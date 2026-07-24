@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PequeMisiones — misiones de repaso personalizadas para tu peque</title>
+<meta name="description" content="Mándale misiones de repaso a tu hijo estés donde estés: ejercicios compatibles con la metodología ABN, con tu mensaje leído en voz alta, que se corrigen solos y nunca frustran. De 3 a 8 años.">
+<meta name="theme-color" content="#4b3b67">
+<link rel="icon" href="./demo-primaria/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --rosa:#ff7bac; --rosa-osc:#e2578f; --lila:#a78bfa; --lila-osc:#8b6fe0; --lila-suave:#f0e9ff;
+  --oro:#ffc94d; --oro-osc:#e8a93e; --menta:#5fe0c0; --menta-osc:#3ec2a2; --cielo:#7dd3fc;
+  --tinta:#3d3660; --tinta-suave:#8a7ba8; --crema:#fffaf5;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
+body{margin:0; font-family:"Baloo 2","Segoe UI",system-ui,sans-serif; color:var(--tinta);
+  background:linear-gradient(170deg,#ffe9f3 0%,#f3e8ff 45%,#e0f2fe 100%); line-height:1.5;}
+.wrap{max-width:880px; margin:0 auto; padding:0 18px;}
+h1{font-size:clamp(1.9rem,5.4vw,3rem); line-height:1.15; margin:.3em 0; font-weight:800;}
+h2{font-size:clamp(1.4rem,4vw,2rem); margin:1.6em 0 .5em; font-weight:800; text-align:center;}
+p{font-size:1.08rem;}
+.sub{color:var(--tinta-suave);}
+.btn{display:inline-block; border:none; cursor:pointer; font-family:inherit; font-weight:800;
+  border-radius:22px; color:#fff; font-size:1.2rem; padding:15px 28px; text-decoration:none;
+  transition:transform .08s; text-align:center;}
+.btn:active{transform:translateY(3px);}
+.btn-rosa{background:var(--rosa); box-shadow:0 6px 0 var(--rosa-osc);}
+.btn-lila{background:var(--lila); box-shadow:0 6px 0 var(--lila-osc);}
+.btn-menta{background:var(--menta); box-shadow:0 6px 0 var(--menta-osc);}
+.hero{text-align:center; padding:56px 0 30px;}
+.hero .logo{font-size:1.35rem; font-weight:800; letter-spacing:.5px;}
+.hero .logo span{color:var(--rosa-osc);}
+.emojis{font-size:2.6rem; margin:8px 0;}
+.tarjeta{background:#fff; border-radius:26px; padding:24px 26px; box-shadow:0 10px 28px rgba(125,168,250,.18); margin:14px 0;}
+.grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px;}
+.grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px;}
+.card{background:#fff; border-radius:20px; padding:18px; box-shadow:0 6px 18px rgba(125,168,250,.15);}
+.card .em{font-size:2.2rem;}
+.card b{display:block; margin:6px 0 4px; font-size:1.1rem;}
+.card p{font-size:.98rem; margin:0; color:var(--tinta-suave);}
+.modulos{display:flex; flex-wrap:wrap; gap:8px; justify-content:center;}
+.mod{background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:.95rem;
+  box-shadow:0 3px 10px rgba(125,168,250,.15);}
+.mod.prox{opacity:.55;}
+.paso{display:flex; gap:14px; align-items:flex-start; margin:14px 0;}
+.paso .n{background:var(--lila); color:#fff; font-weight:800; border-radius:999px; min-width:38px; height:38px;
+  display:flex; align-items:center; justify-content:center; font-size:1.2rem;}
+.precio-box{text-align:center;}
+.precio-box .pv{font-size:3rem; font-weight:800; color:var(--rosa-osc);}
+.precio-box .pv small{font-size:1.1rem; color:var(--tinta-suave); font-weight:700;}
+label{font-weight:700; display:block; margin:12px 0 4px;}
+input[type=email], select, textarea{width:100%; font-family:inherit; font-size:1.05rem; padding:12px;
+  border:2px solid var(--lila-suave); border-radius:12px; color:var(--tinta); background:#fff;}
+.check{display:flex; gap:10px; align-items:flex-start; margin:14px 0; font-size:.95rem;}
+.check input{width:22px; height:22px; margin-top:2px;}
+.ok-msg{background:#e9fcf6; border-radius:14px; padding:14px 16px; font-weight:800; color:var(--menta-osc); margin-top:12px;}
+.err-msg{background:#ffe3ef; border-radius:14px; padding:14px 16px; font-weight:800; color:var(--rosa-osc); margin-top:12px;}
+footer{text-align:center; padding:34px 18px 44px; color:var(--tinta-suave); font-size:.88rem;}
+details{margin:8px 0; font-size:.95rem;}
+summary{font-weight:800; cursor:pointer;}
+.faq p{font-size:.98rem;}
+.badge-precio{display:inline-block; background:var(--oro); color:#7a5200; border-radius:999px;
+  padding:5px 14px; font-weight:800; font-size:.95rem; margin-top:6px;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="logo">🚀 Peque<span>Misiones</span></div>
+    <div class="emojis">👑 🦄 🌈</div>
+    <h1>Mándale misiones de repaso a tu peque,<br>estés donde estés</h1>
+    <p class="sub" style="max-width:640px; margin:10px auto;">Ejercicios personalizados que se corrigen solos, <b>compatibles con la metodología ABN</b> que usan en su cole, con <b>tu mensaje leído en voz alta</b> y premios que les encantan. De 3 a 8 años.</p>
+    <p><a class="btn btn-rosa" href="#apuntarme">✋ Apúntame a la lista — lanzamos en septiembre</a></p>
+    <p class="sub" style="font-size:.92rem;">Sin compromiso · te avisamos una sola vez · los primeros de la lista tendrán 2 meses gratis</p>
+  </div>
+
+  <div class="tarjeta">
+    <h2 style="margin-top:0;">Esto nació en casa 🏠</h2>
+    <p>Soy padre de dos niñas. Vivo parte de la semana lejos de ellas, y quería seguir ayudándolas con el cole aunque no estuviera: a la mayor, que empieza 3º de primaria con el método ABN (las rejillas, los amigos del 10, la tabla del 100…), y a la pequeña, que pasa a 3º de infantil y va más despacio con el habla.</p>
+    <p>Como no encontré nada que fuera <i>como en su cole</i>, lo construí: una app donde les mando "misiones" desde donde esté, con un mensajito que la app les lee en voz alta, ejercicios que se corrigen solos sin frustrarlas jamás, y fuegos artificiales cuando aciertan. <b>Están enganchadísimas.</b> Y varios padres me han pedido lo mismo para sus hijos — así que lo estoy convirtiendo en un servicio para más familias.</p>
+  </div>
+
+  <h2>Cómo funciona</h2>
+  <div class="tarjeta">
+    <div class="paso"><div class="n">1</div><p><b>Crea el perfil de tu peque:</b> su curso, el método del cole y su tema favorito (princesas, unicornios, espacio, dinos…).</p></div>
+    <div class="paso"><div class="n">2</div><p><b>Activa los módulos que quieras</b> del catálogo: solo números, números y letras, relojes… tú decides qué trabaja.</p></div>
+    <div class="paso"><div class="n">3</div><p><b>Cada día, su misión:</b> el sistema la genera solo según cómo va (refuerza lo que le cuesta, estira lo que domina). Y cuando quieras, mándale tú una con tu mensaje — <b>la app se lo lee con tu cariño en voz alta</b>.</p></div>
+    <div class="paso"><div class="n">4</div><p><b>Tú lo ves todo:</b> qué hizo cada día, qué le costó y dónde brilló. Informe semanal en tu correo.</p></div>
+  </div>
+
+  <h2>Los módulos (activas los que quieras)</h2>
+  <div class="modulos">
+    <span class="mod">🔢 Números y conteo</span>
+    <span class="mod">🏠 Familias y tabla del 100</span>
+    <span class="mod">🤝 Amigos del 5/10/20</span>
+    <span class="mod">🏘️ Vecinos</span>
+    <span class="mod">🔮 Rejillas de suma y resta</span>
+    <span class="mod">✨ Dobles sumas y sumirrestas</span>
+    <span class="mod">⚖️ Igualaciones y diferencias</span>
+    <span class="mod">🕐 Relojes y horas</span>
+    <span class="mod">🧺 Pesos y medidas</span>
+    <span class="mod">✍️ Trazar letras y números</span>
+    <span class="mod">🔤 Sílabas y primeras palabras</span>
+    <span class="mod prox">🪙 El euro (pronto)</span>
+    <span class="mod prox">✖️ Multiplicación (pronto)</span>
+  </div>
+
+  <h2>Lo que no encontrarás en otras apps</h2>
+  <div class="grid2">
+    <div class="card"><div class="em">💌</div><b>Misiones a distancia con tu voz</b><p>Papá de viaje, abuela en otra ciudad… escriben un mensaje y la app se lo lee al peque antes de empezar. Magia pura.</p></div>
+    <div class="card"><div class="em">🧮</div><b>Como en su cole (metodología ABN)</b><p>Rejillas de verdad con sus columnas, amigos del 10, vecinos, la tabla del 100. Nada de algoritmos que en clase no usan.</p></div>
+    <div class="card"><div class="em">🌸</div><b>Nunca se frustra</b><p>Sin rojos ni tachones: si falla, se le anima; si se atasca, la respuesta buena brilla y la toca. Siempre termina ganando.</p></div>
+    <div class="card"><div class="em">🗣️</div><b>Todo por voz</b><p>Para los que aún no leen: la app habla despacito, repite lo que haga falta, e incluso les deja grabarse y escucharse.</p></div>
+  </div>
+
+  <h2>Pruébalo ahora mismo (sin registrarte)</h2>
+  <div class="grid2">
+    <div class="card" style="text-align:center;">
+      <div class="em">👑</div><b>Demo primaria (6-8 años)</b>
+      <p>Rejillas, igualaciones, relojes, pesos…</p>
+      <p style="margin-top:12px;"><a class="btn btn-lila" href="./demo-primaria/">Jugar la demo</a></p>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div class="em">🦄</div><b>Demo infantil (3-5 años)</b>
+      <p>Números, amigos, sílabas, trazar letras… todo por voz.</p>
+      <p style="margin-top:12px;"><a class="btn btn-menta" href="./demo-infantil/">Jugar la demo</a></p>
+    </div>
+  </div>
+  <p class="sub" style="text-align:center; font-size:.92rem;">Consejo: ábrela en la tablet o el móvil y dásela a tu peque dos minutos. Ya nos cuentas 😉</p>
+
+  <h2>Precio (cuando lancemos)</h2>
+  <div class="tarjeta precio-box">
+    <div class="pv">4,99 €<small>/mes</small></div>
+    <p>o <b>39 €/año</b> · hasta 3 peques · todos los módulos · 14 días gratis</p>
+    <span class="badge-precio">Las plataformas de mates más conocidas cuestan 40-50 €/mes</span>
+  </div>
+
+  <h2 id="apuntarme">✋ Apúntate a la lista</h2>
+  <div class="tarjeta">
+    <p style="margin-top:0;">Te avisamos <b>una sola vez</b> cuando abramos (septiembre 2026). Los primeros de la lista: <b>2 meses gratis</b>.</p>
+    <form id="form-lista">
+      <label for="f-email">Tu email</label>
+      <input type="email" id="f-email" required placeholder="tu@email.com" autocomplete="email">
+      <label for="f-curso">Curso de tu peque</label>
+      <select id="f-curso">
+        <option value="">— elige —</option>
+        <option>1º infantil (3 años)</option>
+        <option>2º infantil (4 años)</option>
+        <option>3º infantil (5 años)</option>
+        <option>1º primaria</option>
+        <option>2º primaria</option>
+        <option>3º primaria</option>
+        <option>Varios peques</option>
+      </select>
+      <label for="f-pagaria">¿Pagarías 4,99 €/mes por esto?</label>
+      <select id="f-pagaria">
+        <option value="">— elige —</option>
+        <option>Sí</option>
+        <option>Quizá</option>
+        <option>No</option>
+      </select>
+      <label for="f-coment">¿Qué le pedirías? (opcional)</label>
+      <textarea id="f-coment" rows="2" maxlength="400" placeholder="Módulos, ideas, lo que le cuesta a tu peque…"></textarea>
+      <div class="check">
+        <input type="checkbox" id="f-rgpd" required>
+        <label for="f-rgpd" style="margin:0; font-weight:500;">Acepto que se guarde mi email solo para avisarme del lanzamiento de PequeMisiones. Sin publicidad de terceros ni cesión de datos. Podré borrarme respondiendo al propio aviso.</label>
+      </div>
+      <button type="submit" class="btn btn-rosa" style="width:100%;">🚀 ¡Apuntarme!</button>
+      <div id="form-ok" class="ok-msg" style="display:none;"></div>
+      <div id="form-err" class="err-msg" style="display:none;"></div>
+    </form>
+  </div>
+
+  <h2>Preguntas rápidas</h2>
+  <div class="tarjeta faq">
+    <details><summary>¿Necesita saber leer mi peque?</summary><p>No. En el modo infantil todo se dice por voz, despacio, y hay un botón para repetir la consigna las veces que quiera.</p></details>
+    <details><summary>¿Y si en su cole no usan ABN?</summary><p>Los módulos de números, letras, relojes y medidas valen para cualquier cole. Las rejillas ABN se activan solo si las quieres.</p></details>
+    <details><summary>¿Qué datos guardáis de mi hijo?</summary><p>Casi ninguno: un nombre o apodo que tú eliges (se queda en tu tablet) y su progreso en los juegos con un seudónimo. Sin fotos, sin anuncios, sin rastreadores, datos alojados en la UE.</p></details>
+    <details><summary>¿Funciona en cualquier tablet?</summary><p>Sí: es una web-app, va en cualquier tablet o móvil (Android o iPad) sin instalar nada de tiendas. Se añade a la pantalla de inicio y listo.</p></details>
+  </div>
+</div>
+
+<footer>
+  PequeMisiones · hecho por un padre para sus hijas, y ahora para tu peque 💛<br>
+  "ABN" se menciona como referencia a la metodología de cálculo abierto basado en números.
+  Este proyecto no está afiliado a sus autores ni a sus editoriales.<br>
+  Tu email se usa únicamente para avisarte del lanzamiento (base legal: tu consentimiento). Datos alojados en la UE.
+</footer>
+
+<script>
+"use strict";
+const SUPA_URL = "https://tyoavvibplxkevxkamsb.supabase.co";
+const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5b2F2dmlicGx4a2V2eGthbXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NDA4NTAsImV4cCI6MjA5MjQxNjg1MH0.x26xzz4nV3Umtj4_4SCPu9NXQRLDEh1xZeQgGk6adrQ";
+document.getElementById("form-lista").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const ok = document.getElementById("form-ok"), err = document.getElementById("form-err");
+  ok.style.display = "none"; err.style.display = "none";
+  const fila = {
+    email: document.getElementById("f-email").value.trim().toLowerCase(),
+    curso: document.getElementById("f-curso").value || null,
+    pagaria: document.getElementById("f-pagaria").value || null,
+    comentario: document.getElementById("f-coment").value.trim() || null
+  };
+  try{
+    const res = await fetch(SUPA_URL+"/rest/v1/pm_interesados", {
+      method:"POST",
+      headers:{ "apikey":SUPA_ANON, "Authorization":"Bearer "+SUPA_ANON, "Content-Type":"application/json" },
+      body: JSON.stringify(fila)
+    });
+    if(res.ok || res.status===201){
+      ok.textContent = "🎉 ¡Hecho! Te avisaremos en cuanto abramos. (Y gracias de corazón por el empujón)";
+      ok.style.display = "block";
+      e.target.reset();
+    } else if(res.status===409){
+      ok.textContent = "😊 ¡Ya estabas en la lista! Te avisaremos muy pronto.";
+      ok.style.display = "block";
+    } else {
+      err.textContent = "No se pudo guardar (error "+res.status+"). Inténtalo de nuevo en un momento.";
+      err.style.display = "block";
+    }
+  }catch(ex){
+    err.textContent = "Sin conexión ahora mismo. Inténtalo de nuevo en un momento.";
+    err.style.display = "block";
+  }
+});
+</script>
+</body>
+</html>
