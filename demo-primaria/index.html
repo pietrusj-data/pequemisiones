@@ -527,6 +527,7 @@ const S = {
   pin    : LS.get("pin", null),
   insig  : LS.get("insig", []),            // claves de insignias ganadas
   hoy    : LS.get("hoy", {fecha:"", gemas:0, ej:0}),  // lo conseguido hoy
+  chispa : LS.get("chispa", {}),           // maestría por juego (0-10) para el nivel automático del juego libre
   stats  : LS.get("stats", {misiones:0, perfectas:0, abnOk:0, claOk:0, iguOk:0, difOk:0, globos:0, dias:[], nivel3:0, dobleOk:0}),
   cola   : LS.get("cola", []),             // envíos pendientes si no hay internet
   hechasLocal: LS.get("hechasLocal", []),  // ids de misiones ya hechas (por si falla el PATCH)
@@ -534,7 +535,7 @@ const S = {
 };
 function guardar(){
   LS.set("nombreCustom",S.nombre); LS.set("gemas",S.gemas); LS.set("sonido",S.sonido); LS.set("voz",S.voz);
-  LS.set("pin",S.pin); LS.set("insig",S.insig); LS.set("stats",S.stats); LS.set("cola",S.cola);
+  LS.set("pin",S.pin); LS.set("insig",S.insig); LS.set("stats",S.stats); LS.set("cola",S.cola); LS.set("chispa",S.chispa);
   LS.set("hechasLocal",S.hechasLocal); LS.set("hoy",S.hoy);
 }
 function tocaHoy(){
@@ -1042,6 +1043,9 @@ function ejCompletado(){
     if(ej.t==="mul") S.stats.mulOk = (S.stats.mulOk||0)+1;
     if(ej.t==="div") S.stats.divOk = (S.stats.divOk||0)+1;
   }
+  // maestría: sube con aciertos a la primera, baja si el hada tuvo que enseñar
+  const ch = S.chispa[ej.t]===undefined ? 5 : S.chispa[ej.t];
+  S.chispa[ej.t] = EjState.ayudado ? Math.max(0, ch-2) : (EjState.fallosEj===0 ? Math.min(10, ch+1) : ch);
   guardar(); actualizarGemas();
   Tanda.res.push({t:ej.t, d:ej.d, intentos:EjState.fallosEj, ayudado:EjState.ayudado,
     seg: Math.round((Date.now()-EjState.t0)/1000)});
@@ -2626,7 +2630,10 @@ document.querySelectorAll("#s-libre [data-tipo]").forEach(b=>
 document.querySelectorAll("#libre-niveles [data-nivel]").forEach(b=>
   b.addEventListener("click", ()=>{ Libre.nivel = parseInt(b.dataset.nivel,10); sfx.click(); pintarLibre(); }));
 $("btn-libre-empezar").addEventListener("click", ()=>{
-  startTanda({origen:"libre", ejercicios:genTanda([Libre.tipo], Libre.nivel, 5), nivel:Libre.nivel});
+  // nivel automático: el nivel elegido ± su maestría en ese juego (SOLO juego libre; las misiones van al nivel de papá)
+  const ch = S.chispa[Libre.tipo]===undefined ? 5 : S.chispa[Libre.tipo];
+  const nivelEf = Math.max(1, Math.min(3, Libre.nivel + (ch>=8?1:0) - (ch<=2?1:0)));
+  startTanda({origen:"libre", ejercicios:genTanda([Libre.tipo], nivelEf, 5), nivel:nivelEf});
 });
 
 /* zona papá: formulario */
