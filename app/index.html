@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>PequeMisiones · Tu portal</title>
+<meta name="theme-color" content="#a78bfa">
+<link rel="icon" href="../demo-infantil/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --p1:#a78bfa; --p1osc:#8b6fe0; --p1suave:#f0e9ff;
+  --p2:#ff8fb8; --p2osc:#e2578f; --p2suave:#ffe3ef;
+  --oro:#ffc94d; --oro-osc:#e8a93e;
+  --tinta:#3d3660; --tinta-suave:#8a7ba8; --blanco:#fff;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0;}
+body{font-family:"Baloo 2","Segoe UI",system-ui,sans-serif; color:var(--tinta);
+  background:linear-gradient(165deg,#f3e8ff 0%,#ffe9f3 50%,#e0f2fe 100%);
+  min-height:100vh; touch-action:manipulation; -webkit-user-select:none; user-select:none;}
+.screen{display:none; min-height:100vh; flex-direction:column; align-items:center;
+  padding:24px 16px 40px; gap:16px; max-width:860px; margin:0 auto;}
+.screen.activa{display:flex;}
+h1{font-size:2rem; margin:.2em 0; text-align:center; font-weight:800;}
+h2{font-size:1.4rem; margin:.2em 0; text-align:center; font-weight:800;}
+.sub{color:var(--tinta-suave); text-align:center; margin:0; font-size:1.05rem;}
+.logo{font-size:1.2rem; font-weight:800;}
+.logo span{color:var(--p2osc);}
+.btn{border:none; cursor:pointer; font-family:inherit; font-weight:800; color:#fff;
+  border-radius:24px; font-size:1.3rem; padding:16px 26px; transition:transform .08s;
+  display:inline-flex; align-items:center; justify-content:center; gap:10px;}
+.btn:active{transform:translateY(3px);}
+.btn-p1{background:var(--p1); box-shadow:0 6px 0 var(--p1osc);}
+.btn-p2{background:var(--p2); box-shadow:0 6px 0 var(--p2osc);}
+.btn-grande{width:100%; max-width:480px; font-size:1.5rem; padding:20px;}
+.btn-mini{font-size:1rem; padding:10px 18px; border-radius:16px;}
+.btn:disabled{opacity:.4; pointer-events:none;}
+.fila{display:flex; gap:12px; flex-wrap:wrap; justify-content:center; width:100%;}
+.tarjeta{background:var(--blanco); border-radius:26px; padding:20px;
+  box-shadow:0 10px 26px rgba(139,111,224,.18); width:100%; max-width:560px;}
+
+/* perfiles */
+.perfiles{display:flex; gap:16px; flex-wrap:wrap; justify-content:center;}
+.perfil-card{width:150px; background:var(--blanco); border-radius:24px; padding:18px 10px;
+  text-align:center; cursor:pointer; box-shadow:0 8px 20px rgba(139,111,224,.2);
+  border:4px solid transparent; transition:transform .1s;}
+.perfil-card:active{transform:scale(.96);}
+.perfil-card .cara{font-size:3.2rem;}
+.perfil-card .nom{font-weight:800; font-size:1.15rem; margin-top:6px;}
+.perfil-card .det{font-size:.85rem; color:var(--tinta-suave);}
+.perfil-card.nuevo{border:4px dashed var(--p1); background:var(--p1suave); color:var(--p1osc);}
+
+/* wizard */
+.pasos{display:flex; gap:8px; justify-content:center;}
+.paso-punto{width:14px; height:14px; border-radius:50%; background:#e3dbf5;}
+.paso-punto.on{background:var(--p1osc);}
+input[type=text]{width:100%; font-family:inherit; font-size:1.4rem; text-align:center;
+  border:3px solid var(--p1suave); border-radius:16px; padding:14px; color:var(--tinta);}
+.opcion-grande{flex:1; min-width:130px; max-width:220px; background:var(--blanco); border-radius:22px;
+  padding:18px 12px; text-align:center; cursor:pointer; font-weight:800; font-size:1.15rem;
+  box-shadow:0 6px 16px rgba(139,111,224,.16); border:4px solid transparent;}
+.opcion-grande .em{font-size:2.6rem; display:block; margin-bottom:6px;}
+.opcion-grande.sel{border-color:var(--p2); background:var(--p2suave);}
+.tema-card{width:160px; background:var(--blanco); border-radius:22px; padding:14px 10px;
+  text-align:center; cursor:pointer; box-shadow:0 6px 16px rgba(139,111,224,.16);
+  border:4px solid transparent;}
+.tema-card.sel{border-color:var(--p2);}
+.tema-card .em{font-size:2.8rem;}
+.tema-card .nom{font-weight:800; margin-top:4px;}
+.tema-card .paleta{display:flex; gap:4px; justify-content:center; margin-top:8px;}
+.tema-card .paleta span{width:22px; height:22px; border-radius:50%; display:inline-block;}
+.tema-card .masco{font-size:.85rem; color:var(--tinta-suave); margin-top:4px;}
+.mod-chip{background:var(--blanco); border:3px solid var(--p1); color:var(--p1osc);
+  border-radius:999px; padding:12px 18px; font-weight:800; font-size:1.05rem; cursor:pointer;}
+.mod-chip.sel{background:var(--p1); color:#fff;}
+.aviso-bugs{font-size:.85rem; color:var(--tinta-suave); text-align:center; max-width:480px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════ SELECTOR DE PERFILES ══════════ -->
+<section class="screen activa" id="s-perfiles">
+  <div class="logo">🚀 Peque<span>Misiones</span></div>
+  <div style="font-size:3rem;">👋</div>
+  <h1>¿Quién va a jugar?</h1>
+  <div class="perfiles" id="lista-perfiles"></div>
+  <p class="sub" id="hint-portal">Toca tu tarjeta para entrar en tu mundo</p>
+</section>
+
+<!-- ══════════ WIZARD DE ALTA ══════════ -->
+<section class="screen" id="s-wizard">
+  <div class="logo">🚀 Peque<span>Misiones</span></div>
+  <div class="pasos" id="wiz-pasos">
+    <div class="paso-punto on"></div><div class="paso-punto"></div>
+    <div class="paso-punto"></div><div class="paso-punto"></div>
+  </div>
+
+  <div id="w-paso1" class="tarjeta">
+    <h2>¿Cómo te llamas?</h2>
+    <p class="sub">Un nombre o apodo — solo se guarda en esta tablet</p>
+    <input type="text" id="w-alias" maxlength="16" placeholder="Escribe tu nombre…" autocomplete="off" style="margin:14px 0;">
+    <div class="fila">
+      <div class="opcion-grande" data-genero="nina"><span class="em">👧</span>Soy niña</div>
+      <div class="opcion-grande" data-genero="nino"><span class="em">👦</span>Soy niño</div>
+    </div>
+  </div>
+
+  <div id="w-paso2" class="tarjeta" style="display:none;">
+    <h2>¿En qué curso estás?</h2>
+    <div class="fila" style="margin-top:12px;">
+      <div class="opcion-grande" data-curso="inf3"><span class="em">🐣</span>1º Infantil<br><small>3 años</small></div>
+      <div class="opcion-grande" data-curso="inf4"><span class="em">🐥</span>2º Infantil<br><small>4 años</small></div>
+      <div class="opcion-grande" data-curso="inf5"><span class="em">🐤</span>3º Infantil<br><small>5 años</small></div>
+    </div>
+    <div class="fila" style="margin-top:12px;">
+      <div class="opcion-grande" data-curso="pri1"><span class="em">✏️</span>1º Primaria</div>
+      <div class="opcion-grande" data-curso="pri2"><span class="em">📗</span>2º Primaria</div>
+      <div class="opcion-grande" data-curso="pri3"><span class="em">📘</span>3º Primaria</div>
+    </div>
+  </div>
+
+  <div id="w-paso3" class="tarjeta" style="display:none;">
+    <h2 id="w-tema-titulo">¡Elige tu mundo!</h2>
+    <p class="sub">Todos los mundos son para todos los peques</p>
+    <div class="fila" id="w-temas" style="margin-top:12px;"></div>
+  </div>
+
+  <div id="w-paso4" class="tarjeta" style="display:none;">
+    <h2>¿A qué quieres jugar?</h2>
+    <p class="sub" id="w-mod-sub">Papá o mamá pueden cambiarlo luego</p>
+    <div class="fila" id="w-modulos" style="margin-top:12px;"></div>
+    <h2 style="margin-top:18px; font-size:1.15rem;">🎁 Juegos de premio</h2>
+    <p class="sub" style="font-size:.9rem;">Se ganan jugando — tú decides cuáles hay</p>
+    <div class="fila" id="w-juegos" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="fila" style="max-width:560px;">
+    <button class="btn btn-mini btn-p1" id="w-atras">⬅️ Atrás</button>
+    <button class="btn btn-p2" style="flex:1;" id="w-sigue" disabled>Seguir ➡️</button>
+  </div>
+</section>
+
+<script src="./temas.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const LSP = {
+  get(k, def){ try{ const v = localStorage.getItem("pm_"+k); return v===null ? def : JSON.parse(v); }catch(e){ return def; } },
+  set(k, v){ try{ localStorage.setItem("pm_"+k, JSON.stringify(v)); }catch(e){} }
+};
+
+/* ── catálogo de módulos por etapa ── */
+const MODULOS = {
+  infantil: [
+    {id:"num", nombre:"🔢 Números", def:true},
+    {id:"fam", nombre:"🏠 Familias", def:false},
+    {id:"ami", nombre:"🤝 Amigos", def:true},
+    {id:"vec", nombre:"🏘️ Vecinos", def:false},
+    {id:"sil", nombre:"🔤 Sílabas", def:true},
+    {id:"tra", nombre:"✍️ Letras", def:true}
+  ],
+  primaria: [
+    {id:"abn", nombre:"🔮 Rejillas", def:true},
+    {id:"igu", nombre:"⚖️ Igualaciones", def:true},
+    {id:"dif", nombre:"💎 Diferencias", def:true},
+    {id:"rel", nombre:"🕐 Relojes", def:false},
+    {id:"pes", nombre:"🧺 Pesos", def:false}
+  ]
+};
+const JUEGOS_PREMIO = [
+  {id:"globos", nombre:"🎈 Globos", def:true, listo:true},
+  {id:"mariposas", nombre:"🦋 Cazamariposas", def:true, listo:true},
+  {id:"plataformas", nombre:"🕹️ Plataformas", def:false, listo:false},
+  {id:"naves", nombre:"🚀 Naves", def:false, listo:false},
+  {id:"dibujar", nombre:"🎨 Dibujar", def:false, listo:false}
+];
+const esInfantil = c => c.startsWith("inf");
+const NIVEL_POR_CURSO = { inf3:1, inf4:2, inf5:3, pri1:1, pri2:2, pri3:3 };
+
+/* ── selector de perfiles ── */
+function pintarPerfiles(){
+  const lista = LSP.get("perfiles", []);
+  const cont = $("lista-perfiles");
+  cont.innerHTML = "";
+  lista.forEach(p=>{
+    const t = TEMAS[p.tema] || TEMAS.unicornios;
+    const card = document.createElement("div");
+    card.className = "perfil-card";
+    card.style.borderColor = t.colores.p1;
+    card.innerHTML = `<div class="cara">${t.emoji}</div><div class="nom">${p.alias}</div>
+      <div class="det">${t.nombre} · ${p.cursoNombre}</div>`;
+    card.addEventListener("click", ()=>entrar(p));
+    cont.appendChild(card);
+  });
+  const nuevo = document.createElement("div");
+  nuevo.className = "perfil-card nuevo";
+  nuevo.innerHTML = `<div class="cara">➕</div><div class="nom">Nuevo peque</div>`;
+  nuevo.addEventListener("click", abrirWizard);
+  cont.appendChild(nuevo);
+  if(!lista.length) $("hint-portal").textContent = "Crea la primera tarjeta para empezar 🎉";
+}
+function entrar(perfil){
+  LSP.set("perfilActivo", perfil);
+  location.href = esInfantil(perfil.curso) ? "./infantil.html" : "./primaria.html";
+}
+
+/* ── wizard ── */
+const W = { paso:1, alias:"", genero:null, curso:null, tema:null, modulos:new Set(), juegos:new Set() };
+function abrirWizard(){
+  W.paso = 1; W.alias = ""; W.genero = null; W.curso = null; W.tema = null; W.modulos = new Set(); W.juegos = new Set();
+  $("w-alias").value = "";
+  document.querySelectorAll("[data-genero],[data-curso]").forEach(x=>x.classList.remove("sel"));
+  $("s-perfiles").classList.remove("activa");
+  $("s-wizard").classList.add("activa");
+  pintarPaso();
+}
+function pintarPaso(){
+  [1,2,3,4].forEach(n=>{ $("w-paso"+n).style.display = (n===W.paso ? "block" : "none"); });
+  document.querySelectorAll("#wiz-pasos .paso-punto").forEach((p,i)=>p.classList.toggle("on", i < W.paso));
+  $("w-atras").textContent = W.paso===1 ? "⬅️ Salir" : "⬅️ Atrás";
+  $("w-sigue").textContent = W.paso===4 ? "¡A jugar! 🎉" : "Seguir ➡️";
+  if(W.paso===3 && !$("w-temas").children.length) pintarTemas();
+  if(W.paso===4) pintarModulos();
+  valida();
+}
+function valida(){
+  let ok = false;
+  if(W.paso===1) ok = $("w-alias").value.trim().length>=2 && !!W.genero;
+  if(W.paso===2) ok = !!W.curso;
+  if(W.paso===3) ok = !!W.tema;
+  if(W.paso===4) ok = W.modulos.size>=1;
+  $("w-sigue").disabled = !ok;
+}
+function pintarTemas(){
+  const cont = $("w-temas");
+  cont.innerHTML = "";
+  Object.values(TEMAS).forEach(t=>{
+    const c = document.createElement("div");
+    c.className = "tema-card";
+    c.innerHTML = `<div class="em">${t.emoji}</div><div class="nom">${t.nombre}</div>
+      <div class="paleta"><span style="background:${t.colores.p1}"></span><span style="background:${t.colores.p2}"></span><span style="background:${t.colores.p3}"></span><span style="background:${t.colores.p4}"></span></div>
+      <div class="masco">con ${t.mascota.presentacion} ${t.mascota.emoji}</div>`;
+    c.addEventListener("click", ()=>{
+      W.tema = t.id;
+      document.querySelectorAll(".tema-card").forEach(x=>x.classList.toggle("sel", x===c));
+      document.body.style.background = t.colores.fondo;
+      valida();
+    });
+    cont.appendChild(c);
+  });
+}
+function pintarModulos(){
+  const cont = $("w-modulos");
+  cont.innerHTML = "";
+  const etapa = esInfantil(W.curso) ? "infantil" : "primaria";
+  if(!W.modulos.size) MODULOS[etapa].forEach(m=>{ if(m.def) W.modulos.add(m.id); });
+  MODULOS[etapa].forEach(m=>{
+    const chip = document.createElement("div");
+    chip.className = "mod-chip" + (W.modulos.has(m.id) ? " sel" : "");
+    chip.textContent = m.nombre;
+    chip.addEventListener("click", ()=>{
+      if(W.modulos.has(m.id)) W.modulos.delete(m.id); else W.modulos.add(m.id);
+      chip.classList.toggle("sel", W.modulos.has(m.id));
+      valida();
+    });
+    cont.appendChild(chip);
+  });
+  // juegos de premio (desbloqueables por el padre)
+  const cj = $("w-juegos");
+  cj.innerHTML = "";
+  if(!W.juegos.size) JUEGOS_PREMIO.forEach(j=>{ if(j.def) W.juegos.add(j.id); });
+  JUEGOS_PREMIO.forEach(j=>{
+    const chip = document.createElement("div");
+    chip.className = "mod-chip" + (W.juegos.has(j.id) ? " sel" : "");
+    chip.textContent = j.nombre + (j.listo ? "" : " · pronto");
+    if(!j.listo){ chip.style.opacity = ".45"; chip.style.pointerEvents = "none"; }
+    chip.addEventListener("click", ()=>{
+      if(W.juegos.has(j.id)) W.juegos.delete(j.id); else W.juegos.add(j.id);
+      chip.classList.toggle("sel", W.juegos.has(j.id));
+    });
+    cj.appendChild(chip);
+  });
+}
+$("w-alias").addEventListener("input", valida);
+document.querySelectorAll("[data-genero]").forEach(b=>b.addEventListener("click", ()=>{
+  W.genero = b.dataset.genero;
+  document.querySelectorAll("[data-genero]").forEach(x=>x.classList.toggle("sel", x===b));
+  valida();
+}));
+document.querySelectorAll("[data-curso]").forEach(b=>b.addEventListener("click", ()=>{
+  W.curso = b.dataset.curso;
+  W.modulos = new Set(); // re-preseleccionar al cambiar de curso
+  document.querySelectorAll("[data-curso]").forEach(x=>x.classList.toggle("sel", x===b));
+  valida();
+}));
+$("w-atras").addEventListener("click", ()=>{
+  if(W.paso===1){
+    document.body.style.background = "";
+    $("s-wizard").classList.remove("activa");
+    $("s-perfiles").classList.add("activa");
+    return;
+  }
+  W.paso--; pintarPaso();
+});
+$("w-sigue").addEventListener("click", ()=>{
+  if(W.paso===1) W.alias = $("w-alias").value.trim();
+  if(W.paso<4){ W.paso++; pintarPaso(); return; }
+  // crear perfil y entrar
+  const NOMBRES_CURSO = { inf3:"1º Infantil", inf4:"2º Infantil", inf5:"3º Infantil", pri1:"1º Primaria", pri2:"2º Primaria", pri3:"3º Primaria" };
+  const cursoTxt = NOMBRES_CURSO[W.curso];
+  const perfil = {
+    id: "p" + Math.random().toString(36).slice(2,9),
+    alias: W.alias.charAt(0).toUpperCase() + W.alias.slice(1),
+    genero: W.genero,
+    curso: W.curso,
+    cursoNombre: cursoTxt.replace(/(\d) /, "$1 "),
+    nivel: NIVEL_POR_CURSO[W.curso],
+    tema: W.tema,
+    modulos: [...W.modulos],
+    juegos: [...W.juegos],
+    creado: new Date().toISOString().slice(0,10)
+  };
+  const lista = LSP.get("perfiles", []);
+  lista.push(perfil);
+  LSP.set("perfiles", lista);
+  entrar(perfil);
+});
+
+pintarPerfiles();
+</script>
+</body>
+</html>
