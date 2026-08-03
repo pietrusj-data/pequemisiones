@@ -1306,27 +1306,30 @@ function renderIgu(d){
   z.appendChild(btnLeer);
 
   const persos = document.createElement("div"); persos.className = "persos";
-  persos.appendChild(persoCard(d.pa, d.min, d.max, "var(--rosa)"));
-  persos.appendChild(persoCard(d.pb, d.max, d.max, "var(--lila)"));
+  const cardP = persoCard(d.pa, d.min, d.max, "var(--rosa)");
+  const cardG = persoCard(d.pb, d.max, d.max, "var(--lila)");
+  persos.appendChild(cardP); persos.appendChild(cardG);
   z.appendChild(persos);
 
   const ayuda = document.createElement("p");
   ayuda.className = "sub";
-  ayuda.textContent = "Pon ➕ al pequeño o quita ➖ al grande hasta que sean iguales";
+  ayuda.textContent = "Elige ➕ (poner al pequeño) o ➖ (quitar al grande), cuánto mueves… y cuánto tiene ahora";
   z.appendChild(ayuda);
 
-  const etiqueta = i => (i===-1 ? (S.nombre||"Tú") : PERSONAJES[i].n).toUpperCase().slice(0,9);
   const est = {p:d.min, g:d.max}, movs = [];
   const bien = d.max - d.min;
+  function refrescarCards(){
+    cardP.querySelector(".cant").textContent = est.p;
+    cardG.querySelector(".cant").textContent = est.g;
+    cardP.querySelector(".barra").style.width = Math.round(100*est.p/d.max)+"%";
+    cardG.querySelector(".barra").style.width = Math.round(100*est.g/d.max)+"%";
+  }
   const tabla = document.createElement("table"); tabla.className = "rejilla";
   const trh = document.createElement("tr");
-  ["➕ / ➖","CUÁNTO", etiqueta(d.pa)+" 💗", etiqueta(d.pb)+" 👑"].forEach(h=>{
+  ["➕ / ➖","CUÁNTO","AHORA TIENE"].forEach(h=>{
     const th = document.createElement("th"); th.textContent = h; trh.appendChild(th);
   });
   tabla.appendChild(trh);
-  const tr0 = document.createElement("tr");
-  ["","—", d.min, d.max].forEach(v=>{ const {td} = celdaTd("fija", v); tr0.appendChild(td); });
-  tabla.appendChild(tr0);
   z.appendChild(tabla);
   let nFilas = 0;
 
@@ -1344,7 +1347,7 @@ function renderIgu(d){
       const m = signo.div.dataset.modo==="+" ? "-" : "+";
       signo.div.dataset.modo = m; signo.div.textContent = m==="+" ? "➕" : "➖"; });
     tr.appendChild(signo.td); c.signo = signo.div;
-    ["q","p","g"].forEach(nm=>{
+    ["q","res"].forEach(nm=>{
       const cc = celdaTd(); hacerEditable(cc.div, 3);
       tr.appendChild(cc.td); c[nm] = cc.div;
     });
@@ -1354,21 +1357,20 @@ function renderIgu(d){
     window.__solucion = ()=>solucionFila(c);
   }
   function comprobar(c){
-    const modo = c.signo.dataset.modo, q = valorCelda(c.q), p = valorCelda(c.p), g = valorCelda(c.g);
-    if(q===null||p===null||g===null){ hada("Rellena todas las casillas de la fila 🌷"); return; }
+    const modo = c.signo.dataset.modo, q = valorCelda(c.q), res = valorCelda(c.res);
+    if(q===null||res===null){ hada("Pon cuánto mueves y cuánto tiene ahora 🌷"); return; }
     const hueco = est.g - est.p;
     const errs = [];
     if(q<1 || q>hueco){ errs.push({c:c.q, h:`Como mucho puedes mover ${hueco} para no pasarte`}); }
     else if(modo==="+"){
-      if(p!==est.p+q) errs.push({c:c.p, h:`${est.p} y ${q} más… ¡cuenta otra vez!`});
-      if(g!==est.g)   errs.push({c:c.g, h:"El grande no cambia en esta fila"});
+      if(res!==est.p+q) errs.push({c:c.res, h:`${est.p} y ${q} más… ¡cuenta otra vez!`});
     } else {
-      if(g!==est.g-q) errs.push({c:c.g, h:`${est.g} menos ${q}… ¡cuenta otra vez!`});
-      if(p!==est.p)   errs.push({c:c.p, h:"El pequeño no cambia en esta fila"});
+      if(res!==est.g-q) errs.push({c:c.res, h:`${est.g} menos ${q}… ¡cuenta otra vez!`});
     }
     if(errs.length){ marcarMal(errs.map(e=>e.c)); fallo(errs[0].h); return; }
-    if(modo==="+") est.p += q; else est.g -= q;
+    if(modo==="+") est.p = res; else est.g = res;
     movs.push(q);
+    refrescarCards();
     fijar(c); sfx.click();
     if(est.p===est.g) faseFinal(); else filaNueva();
   }
@@ -1406,8 +1408,9 @@ function renderIgu(d){
     hada("Mira, te enseño esta fila 💛", 2600);
     const q = est.g - est.p;
     c.signo.dataset.modo = "+"; c.signo.textContent = "➕";
-    c.q.textContent = q; c.p.textContent = est.p+q; c.g.textContent = est.g;
+    c.q.textContent = q; c.res.textContent = est.p+q;
     est.p += q; movs.push(q);
+    refrescarCards();
     fijar(c);
     setTimeout(faseFinal, 900);
   }
@@ -1423,20 +1426,11 @@ function renderDif(d){
   txt.textContent = `¿Cuál es la diferencia entre ${d.a} y ${d.b}?`;
   z.appendChild(txt);
 
-  const torres = document.createElement("div"); torres.className = "torres";
-  torres.style.height = "140px";
-  [[mayor,"var(--rosa)"],[menor,"var(--lila)"]].forEach(([n,col])=>{
-    const t = document.createElement("div"); t.className = "torre";
-    t.style.height = Math.round(24 + 96*n/mayor)+"px";
-    t.style.background = col;
-    t.textContent = n;
-    torres.appendChild(t);
-  });
-  z.appendChild(torres);
+  /* torres retiradas: en móvil empujaban la tabla y el teclado fuera de pantalla */
 
   const ayuda = document.createElement("p");
   ayuda.className = "sub";
-  ayuda.textContent = "Quítales lo mismo a los dos: cuando el pequeño llegue a 0, lo que quede en el grande es la diferencia";
+  ayuda.textContent = "Quita LO MISMO a los dos. Pequeño en 0 → lo que queda en el grande es la diferencia";
   z.appendChild(ayuda);
 
   const est = {g:mayor, p:menor};
