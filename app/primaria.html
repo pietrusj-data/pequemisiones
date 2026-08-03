@@ -313,6 +313,9 @@ textarea{resize:vertical; min-height:64px;}
     <button class="btn btn-lila" style="flex:1; min-width:150px;" data-tipo="mul">✖️ Multiplicar</button>
   </div>
   <div class="fila">
+    <button class="btn btn-menta" style="flex:1; min-width:150px; max-width:320px;" data-tipo="div">➗ Repartir</button>
+  </div>
+  <div class="fila">
     <button class="btn btn-oro"  style="flex:1; min-width:150px;" data-tipo="rel">🕐 Relojes</button>
     <button class="btn btn-rosa" style="flex:1; min-width:150px;" data-tipo="pes">🧺 Pesos</button>
   </div>
@@ -439,6 +442,7 @@ textarea{resize:vertical; min-height:64px;}
         <button class="chip-sel on" data-t="igu">⚖️ Igualaciones (rejilla)</button>
         <button class="chip-sel on" data-t="dif">💎 Diferencias (rejilla)</button>
         <button class="chip-sel" data-t="mul">✖️ Multiplicación ABN</button>
+        <button class="chip-sel" data-t="div">➗ División y repartos</button>
         <button class="chip-sel" data-t="rel">🕐 Relojes</button>
         <button class="chip-sel" data-t="pes">🧺 Pesos</button>
       </div>
@@ -919,7 +923,21 @@ function genMul(nivel){
   const N = ri(13,99);
   return {t:"mul", d:{sub:"rejilla", m, N}};
 }
-const GEN = {abn:genAbn, cla:genCla, igu:genIgu, dif:genDif, mul:genMul, rel:genRel, pes:genPes};
+function genDiv(nivel){
+  /* división ABN: repartos equitativos (1-2) y rejilla de reparto (3) */
+  if(nivel===1){
+    const k = ri(2,4), cada = ri(2,6);
+    return {t:"div", d:{sub:"reparto", N:k*cada, k}};
+  }
+  if(nivel===2){
+    const k = ri(2,5), cada = ri(3,6), resto = conProb(.6) ? ri(1,k-1) : 0;
+    return {t:"div", d:{sub:"resto", N:k*cada+resto, k}};
+  }
+  const k = ri(3,9);
+  let N; do{ N = ri(25,99); }while(N<=k);
+  return {t:"div", d:{sub:"rejilla", N, k}};
+}
+const GEN = {abn:genAbn, cla:genCla, igu:genIgu, dif:genDif, mul:genMul, div:genDiv, rel:genRel, pes:genPes};
 function genTanda(tipos, nivel, n){
   const lista = [], vistos = new Set();
   const orden = [];
@@ -955,6 +973,10 @@ function tituloEj(ej){
     if(d.sub==="inverso") return `${d.a} × ❓ = ${d.a*d.b}`;
     return `${d.a} × ${d.b}`;
   }
+  if(ej.t==="div"){
+    if(d.sub==="rejilla") return `${d.N} ÷ ${d.k}`;
+    return `Reparte ${d.N} 🍬 entre ${d.k}`;
+  }
   return `Diferencia entre ${d.a} y ${d.b}`;
 }
 function resultadoEj(ej){
@@ -972,6 +994,10 @@ function resultadoEj(ej){
     return `${kg}×1kg` + (r>=2 ? " + 1×½kg" : "") + (r%2 ? " + 1×¼kg" : "");
   }
   if(ej.t==="mul") return d.sub==="rejilla" ? d.N*d.m : d.sub==="inverso" ? d.b : d.a*d.b;
+  if(ej.t==="div"){
+    const c = Math.floor(d.N/d.k), r = d.N%d.k;
+    return r ? `${c} y sobran ${r}` : c;
+  }
   return Math.abs(d.a-d.b);
 }
 
@@ -993,7 +1019,7 @@ function renderEj(){
   Pad.celda = null; Pad.onOK = null;
   EjState = {fallosEj:0, fallosRow:0, ayudado:false, t0:Date.now()};
   $("pad").classList.remove("oculto");
-  ({abn:renderAbn, cla:renderCla, igu:renderIgu, dif:renderDif, mul:renderMul, rel:renderRel, pes:renderPes})[ej.t](ej.d);
+  ({abn:renderAbn, cla:renderCla, igu:renderIgu, dif:renderDif, mul:renderMul, div:renderDiv, rel:renderRel, pes:renderPes})[ej.t](ej.d);
 }
 function fallo(pista){
   EjState.fallosEj++; EjState.fallosRow++; Tanda.fallosTotales++;
@@ -1017,6 +1043,7 @@ function ejCompletado(){
     if(ej.t==="rel") S.stats.relOk = (S.stats.relOk||0)+1;
     if(ej.t==="pes") S.stats.pesOk = (S.stats.pesOk||0)+1;
     if(ej.t==="mul") S.stats.mulOk = (S.stats.mulOk||0)+1;
+    if(ej.t==="div") S.stats.divOk = (S.stats.divOk||0)+1;
   }
   guardar(); actualizarGemas();
   Tanda.res.push({t:ej.t, d:ej.d, intentos:EjState.fallosEj, ayudado:EjState.ayudado,
@@ -1333,6 +1360,141 @@ function renderMul(d){
     terminadoSimple();
   };
   window.__solucion = ()=>{ c.textContent = resp; terminadoSimple(); };
+}
+
+/* ═══════════════ RENDER: DIVISIÓN Y REPARTOS ABN ═══════════════ */
+function renderDiv(d){
+  const z = $("zona-ejercicio");
+  const ej = Tanda.list[Tanda.idx];
+  const enun = document.createElement("div");
+  enun.className = "enunciado-num";
+  enun.textContent = tituloEj(ej);
+  z.appendChild(enun);
+  if(d.sub==="rejilla"){
+    const ayuda = document.createElement("p");
+    ayuda.className = "sub";
+    ayuda.textContent = `Reparte entre ${d.k}: da un poco a cada uno cada vez, hasta que no llegue para todos`;
+    z.appendChild(ayuda);
+    const est = {queda:d.N, llevo:0};
+    const tabla = document.createElement("table"); tabla.className = "rejilla";
+    const trh = document.createElement("tr");
+    ["DOY A CADA UNO ✋",`GASTO ×${d.k}`,"ME QUEDA","LLEVO DADO 👑"].forEach(h=>{ const th=document.createElement("th"); th.textContent=h; trh.appendChild(th); });
+    tabla.appendChild(trh);
+    const tr0 = document.createElement("tr");
+    ["—", "—", d.N, 0].forEach(v=>{ const {td} = celdaTd("fija", v); tr0.appendChild(td); });
+    tabla.appendChild(tr0);
+    z.appendChild(tabla);
+    function terminado(){
+      const linea = document.createElement("div");
+      linea.className = "enunciado-num";
+      linea.style.color = "var(--menta-osc)";
+      linea.textContent = tituloEj(ej)+" = "+resultadoEj(ej);
+      z.appendChild(linea);
+      Pad.onOK = null;
+      ejCompletado();
+    }
+    function fijar(c){ Object.values(c).forEach(x=>{ x.classList.remove("activa"); x.classList.add("hecha"); }); }
+    function filaNueva(){
+      EjState.fallosRow = 0;
+      const tr = document.createElement("tr");
+      const celdas = {};
+      ["doy","g","q","ll"].forEach(nm=>{
+        const c = celdaTd();
+        hacerEditable(c.div, 3);
+        tr.appendChild(c.td); celdas[nm] = c.div;
+      });
+      tabla.appendChild(tr);
+      seleccionarCelda(celdas.doy);
+      Pad.onOK = ()=>comprobarFila(celdas);
+      window.__solucion = ()=>solucionFila(celdas);
+    }
+    function comprobarFila(c){
+      const doy = valorCelda(c.doy), g = valorCelda(c.g), q = valorCelda(c.q), ll = valorCelda(c.ll);
+      if(doy===null||g===null||q===null||ll===null){ hada("Rellena las cuatro casillas de la fila 🌷"); return; }
+      const errs = [];
+      if(doy<1 || doy*d.k>est.queda){ errs.push({c:c.doy, h:`Con ${est.queda} no te llega para dar ${doy} a cada uno de los ${d.k}`}); }
+      else {
+        if(g!==doy*d.k) errs.push({c:c.g, h:`${doy} a cada uno de los ${d.k}… ${doy} por ${d.k}, ¡cuéntalo!`});
+        if(q!==est.queda-doy*d.k) errs.push({c:c.q, h:`${est.queda} menos ${doy*d.k}… ¡casi!`});
+        if(ll!==est.llevo+doy) errs.push({c:c.ll, h:`Ya llevabas ${est.llevo} dados a cada uno, y ahora ${doy} más`});
+      }
+      if(errs.length){ marcarMal(errs.map(e=>e.c)); fallo(errs[0].h); return; }
+      est.queda -= doy*d.k; est.llevo += doy;
+      fijar(c); sfx.click();
+      if(est.queda < d.k) terminado(); else filaNueva();
+    }
+    function solucionFila(c){
+      hada("Mira, te enseño esta 💛", 2600);
+      const doy = Math.floor(est.queda/d.k);
+      c.doy.textContent = doy; c.g.textContent = doy*d.k;
+      c.q.textContent = est.queda-doy*d.k; c.ll.textContent = est.llevo+doy;
+      est.queda -= doy*d.k; est.llevo += doy;
+      fijar(c); setTimeout(terminado, 900);
+    }
+    filaNueva();
+    return;
+  }
+  // repartos visuales (nivel 1 sin resto, nivel 2 con "sobran")
+  const ayuda = document.createElement("p");
+  ayuda.className = "sub";
+  ayuda.textContent = d.sub==="reparto" ? "Repártelos en partes iguales: ¿cuántos le tocan a cada uno?"
+    : "Reparte en partes iguales… ¡y mira si sobra alguno!";
+  z.appendChild(ayuda);
+  const visual = document.createElement("div");
+  visual.style.cssText = "display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:460px; font-size:1.7rem;";
+  for(let i=0;i<d.N;i++){ const s = document.createElement("span"); s.textContent = "🍬"; visual.appendChild(s); }
+  z.appendChild(visual);
+  const caras = document.createElement("div");
+  caras.style.cssText = "font-size:2rem; letter-spacing:6px;";
+  caras.textContent = "🧒".repeat(d.k);
+  z.appendChild(caras);
+  const caja = document.createElement("div");
+  caja.style.cssText = "display:flex; align-items:center; justify-content:center; gap:10px; font-size:1.35rem; font-weight:800; flex-wrap:wrap;";
+  const cCada = document.createElement("div");
+  cCada.style.cssText = "min-width:76px; min-height:60px; font-size:2rem;";
+  hacerEditable(cCada, 2);
+  const l1 = document.createElement("span"); l1.textContent = "Cada uno:";
+  caja.appendChild(l1); caja.appendChild(cCada);
+  let cSobra = null;
+  if(d.sub==="resto"){
+    const l2 = document.createElement("span"); l2.textContent = "· Sobran:";
+    cSobra = document.createElement("div");
+    cSobra.style.cssText = "min-width:76px; min-height:60px; font-size:2rem;";
+    hacerEditable(cSobra, 2);
+    caja.appendChild(l2); caja.appendChild(cSobra);
+  }
+  z.appendChild(caja);
+  seleccionarCelda(cCada);
+  const cada = Math.floor(d.N/d.k), resto = d.N%d.k;
+  function terminadoSimple(){
+    [cCada, cSobra].filter(Boolean).forEach(x=>{ x.classList.remove("activa"); x.classList.add("hecha"); });
+    const linea = document.createElement("div");
+    linea.className = "enunciado-num";
+    linea.style.color = "var(--menta-osc)";
+    linea.textContent = `${d.N} entre ${d.k} = ${resultadoEj(ej)}`;
+    z.appendChild(linea);
+    Pad.onOK = null;
+    ejCompletado();
+  }
+  Pad.onOK = ()=>{
+    const v1 = valorCelda(cCada), v2 = cSobra ? valorCelda(cSobra) : 0;
+    if(v1===null || (cSobra && v2===null)){ hada("Rellena las casillas y dale a OK 🌷"); return; }
+    const errs = [];
+    if(v1!==cada) errs.push(cCada);
+    if(cSobra && v2!==resto) errs.push(cSobra);
+    if(errs.length){
+      marcarMal(errs);
+      fallo(v1!==cada ? `Ve dando de uno en uno a los ${d.k}: una ronda son ${d.k} caramelos…`
+        : `Después de dar ${cada} a cada uno, ¿cuántos quedan sueltos?`);
+      return;
+    }
+    terminadoSimple();
+  };
+  window.__solucion = ()=>{
+    cCada.textContent = cada;
+    if(cSobra) cSobra.textContent = resto;
+    terminadoSimple();
+  };
 }
 
 /* ═══════════════ RENDER: CUENTA CLÁSICA ═══════════════ */
@@ -1908,7 +2070,7 @@ function renderPes(d){
 }
 
 /* ═══════════════ FIN DE TANDA Y RESUMEN ═══════════════ */
-const EMOJI_TIPO = {abn:"🔮", cla:"🏰", igu:"⚖️", dif:"💎", mul:"✖️", rel:"🕐", pes:"🧺"};
+const EMOJI_TIPO = {abn:"🔮", cla:"🏰", igu:"⚖️", dif:"💎", mul:"✖️", div:"➗", rel:"🕐", pes:"🧺"};
 function hoyISO(){ return new Date().toISOString().slice(0,10); }
 function finTanda(){
   const seg = Math.round((Date.now()-Tanda.t0)/1000);
@@ -2455,7 +2617,7 @@ $("btn-salir-juego").addEventListener("click", ()=>{
 
 /* juego libre */
 const Libre = {tipo:"abn", nivel: PERFIL.nivel || 1};
-const NOMBRE_TIPO = {abn:"Rejillas", cla:"Cuentas", igu:"Igualaciones", dif:"Diferencias", mul:"Multiplicar", rel:"Relojes", pes:"Pesos"};
+const NOMBRE_TIPO = {abn:"Rejillas", cla:"Cuentas", igu:"Igualaciones", dif:"Diferencias", mul:"Multiplicar", div:"Repartir", rel:"Relojes", pes:"Pesos"};
 function pintarLibre(){
   document.querySelectorAll("#s-libre [data-tipo]").forEach(b=>
     b.style.opacity = b.dataset.tipo===Libre.tipo ? "1" : ".55");
