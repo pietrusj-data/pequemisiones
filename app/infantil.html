@@ -92,6 +92,18 @@ h2{font-size:1.5rem; margin:.15em 0; text-align:center; font-weight:800;}
 .marco .celda10{width:58px; height:58px; border-radius:14px; border:3px dashed var(--lila);
   display:flex; align-items:center; justify-content:center; font-size:1.9rem; background:var(--lila-suave);}
 .marco .celda10.llena{border-style:solid; border-color:var(--rosa); background:var(--rosa-suave);}
+/* subitización (Ojo veloz): caja de destello */
+.subi-caja{position:relative; width:min(88vw,430px); height:236px; background:var(--blanco); border-radius:26px;
+  box-shadow:0 8px 22px rgba(0,0,0,.08);}
+.subi-punto{position:absolute; width:50px; height:50px; border-radius:999px; transform:translate(-50%,-50%);
+  box-shadow:inset 0 -6px 0 rgba(0,0,0,.12);}
+.subi-mitad{position:absolute; top:10%; bottom:10%; width:1px; left:50%; background:var(--lila-suave);}
+.subi-tapa{position:absolute; inset:0; border-radius:26px; display:none; flex-direction:column;
+  align-items:center; justify-content:center; gap:4px; font-size:3rem;
+  background:linear-gradient(160deg,var(--lila-suave),var(--blanco));}
+.subi-tapa small{font-size:1.15rem; font-weight:800; color:var(--tinta-suave);}
+.subi-tapa.ver{display:flex;}
+.subi-caja .marco{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); padding:10px;}
 
 /* vecinos */
 .recta{display:flex; gap:10px; align-items:center; justify-content:center;}
@@ -269,6 +281,9 @@ textarea{resize:vertical; min-height:64px;}
     <button class="btn btn-azul" style="flex:1; min-width:140px; font-size:2rem;" data-juego="sil">🔤<br><small style="font-size:1.1rem;">Sílabas</small></button>
     <button class="btn btn-rosa" style="flex:1; min-width:140px; font-size:2rem;" data-juego="tra">✍️<br><small style="font-size:1.1rem;">Letras</small></button>
   </div>
+  <div class="fila">
+    <button class="btn btn-lila" style="flex:1; min-width:140px; font-size:2rem;" data-juego="sub">👀<br><small style="font-size:1.1rem;">Ojo veloz</small></button>
+  </div>
 </section>
 
 <!-- MISIONES -->
@@ -386,6 +401,7 @@ textarea{resize:vertical; min-height:64px;}
         <button class="chip-sel" data-t="fam">🏠 Familias (10-90)</button>
         <button class="chip-sel on" data-t="ami">🤝 Amigos</button>
         <button class="chip-sel" data-t="vec">🏘️ Vecinos</button>
+        <button class="chip-sel" data-t="sub">👀 Ojo veloz</button>
         <button class="chip-sel on" data-t="sil">🔤 Sílabas</button>
         <button class="chip-sel" data-t="tra">✍️ Trazar letras</button>
       </div>
@@ -894,7 +910,18 @@ function genFam(nivel){
   }
   return {t:"fam", d:{sub:"toca", fam:dec, buenos:[...buenos], todos:barajar([...buenos, ...malos])}};
 }
-const GEN = {num:genNum, ami:genAmi, vec:genVec, fam:genFam, sil:genSil, tra:genTra};
+function genSub(nivel){
+  /* subitización ABN: ver un instante y decir cuántos SIN contar */
+  let n, disp, flash;
+  if(nivel===1){ n = ri(1,3); disp = "dado"; flash = 2000; }
+  else if(nivel===2){ n = ri(1,6); disp = "dado"; flash = 1600; }
+  else if(nivel===3){ n = ri(2,10); disp = (n<=6 && conProb(.45)) ? "dado" : (n<=10 && conProb(.5) ? "dadodoble" : "marco"); flash = 1200; }
+  else { n = ri(3,10); disp = ["dado","dadodoble","marco","disperso"][ri(0,3)]; flash = 850; }
+  if(disp==="dado" && n>6) disp = "dadodoble";
+  if(disp==="dadodoble" && n<6) disp = n<=3 ? "dado" : "marco";
+  return {t:"sub", d:{n, disp, flash, ops:distractores(n, 2, 1, 10)}};
+}
+const GEN = {num:genNum, sub:genSub, ami:genAmi, vec:genVec, fam:genFam, sil:genSil, tra:genTra};
 function genTanda(tipos, nivel, n){
   const lista = [], vistos = new Set();
   const orden = [];
@@ -908,10 +935,11 @@ function genTanda(tipos, nivel, n){
   }
   return lista;
 }
-const EMOJI_TIPO = {num:"🔢", ami:"🤝", vec:"🏘️", fam:"🏠", sil:"🔤", tra:"✍️"};
-const NOMBRE_JUEGO = {num:"Números", ami:"Amigos", vec:"Vecinos", fam:"Familias", sil:"Sílabas", tra:"Letras"};
+const EMOJI_TIPO = {num:"🔢", sub:"👀", ami:"🤝", vec:"🏘️", fam:"🏠", sil:"🔤", tra:"✍️"};
+const NOMBRE_JUEGO = {num:"Números", sub:"Ojo veloz", ami:"Amigos", vec:"Vecinos", fam:"Familias", sil:"Sílabas", tra:"Letras"};
 function tituloEj(ej){
   const d = ej.d;
+  if(ej.t==="sub") return `Ojo veloz: ${d.n} puntos de un vistazo`;
   if(ej.t==="num"){
     if(d.sub==="contar") return `Contar ${d.n} ${d.emoji}`;
     if(d.sub==="busca") return `Buscar el ${d.n}`;
@@ -934,6 +962,7 @@ function tituloEj(ej){
 }
 function respuestaEj(ej){
   const d = ej.d;
+  if(ej.t==="sub") return d.n;
   if(ej.t==="num") return d.sub==="contar" ? d.n : d.sub==="busca" ? d.n : d.serie[d.hueco];
   if(ej.t==="ami") return d.total-d.x;
   if(ej.t==="vec") return `${d.n-1} y ${d.n+1}`;
@@ -962,7 +991,7 @@ function renderEj(){
   $("prog-fill").style.width = Math.round(100*Tanda.idx/Tanda.list.length)+"%";
   const z = $("zona-ejercicio"); z.innerHTML = "";
   EjState = {intentos:0, guiada:false, t0:Date.now()};
-  ({num:renderNum, ami:renderAmi, vec:renderVec, fam:renderFam, sil:renderSil, tra:renderTra})[ej.t](ej.d);
+  ({num:renderNum, sub:renderSub, ami:renderAmi, vec:renderVec, fam:renderFam, sil:renderSil, tra:renderTra})[ej.t](ej.d);
 }
 function ejCompletado(){
   if(!Tanda) return; // salió de la tanda a mitad
@@ -978,6 +1007,7 @@ function ejCompletado(){
     if(ej.t==="fam") S.stats.famOk = (S.stats.famOk||0)+1;
     if(ej.t==="sil") S.stats.silOk++;
     if(ej.t==="tra") S.stats.traOk++;
+    if(ej.t==="sub") S.stats.subOk = (S.stats.subOk||0)+1;
   }
   // maestría: sube con aciertos a la primera, baja si Nube tuvo que ayudar
   const ch = S.chispa[ej.t]===undefined ? 5 : S.chispa[ej.t];
@@ -1086,6 +1116,59 @@ function renderNum(d){
     });
     obs.observe(z, {subtree:true, attributes:true, attributeFilter:["class"]});
   }
+}
+
+/* ═══════════ RENDER: OJO VELOZ (subitización ABN) ═══════════ */
+const SUBI_COLORES = ["#ff6b6b","#5fe0c0","#7dd3fc","#a78bfa","#ff8fb8","#ffc94d"];
+function subiPuntosDado(n, x0, x1){
+  /* posiciones de cara de dado dentro de la franja horizontal [x0,x1] en % */
+  const cx = (x0+x1)/2, l = x0+(x1-x0)*0.28, r = x0+(x1-x0)*0.72;
+  return ({
+    1:[[cx,50]],
+    2:[[l,28],[r,72]],
+    3:[[l,28],[cx,50],[r,72]],
+    4:[[l,28],[r,28],[l,72],[r,72]],
+    5:[[l,28],[r,28],[cx,50],[l,72],[r,72]],
+    6:[[l,28],[r,28],[l,50],[r,50],[l,72],[r,72]]
+  })[n] || [];
+}
+function renderSub(d){
+  const z = $("zona-ejercicio");
+  ponEnunciado(z, "👀 ¡Mira muy rápido!");
+  const caja = document.createElement("div"); caja.className = "subi-caja";
+  const color = SUBI_COLORES[ri(0,SUBI_COLORES.length-1)];
+  const punto = (x,y)=>{ const p = document.createElement("div"); p.className = "subi-punto";
+    p.style.left = x+"%"; p.style.top = y+"%"; p.style.background = color; caja.appendChild(p); };
+  if(d.disp==="dado"){
+    subiPuntosDado(d.n,0,100).forEach(([x,y])=>punto(x,y));
+  } else if(d.disp==="dadodoble"){ // convención ABN: dado lleno de 5 + el resto
+    const raya = document.createElement("div"); raya.className = "subi-mitad"; caja.appendChild(raya);
+    subiPuntosDado(5,0,50).forEach(([x,y])=>punto(x,y));
+    subiPuntosDado(d.n-5,50,100).forEach(([x,y])=>punto(x,y));
+  } else if(d.disp==="marco"){ // marco de 10: fila de arriba primero
+    const m = document.createElement("div"); m.className = "marco";
+    for(let i=0;i<10;i++){ const c = document.createElement("div"); c.className = "celda10"+(i<d.n?" llena":""); m.appendChild(c); }
+    caja.appendChild(m);
+  } else { // disperso (Reto): rejilla virtual 4×3 con temblor
+    barajar([0,1,2,3,4,5,6,7,8,9,10,11]).slice(0,d.n).forEach(ci=>{
+      punto(16+(ci%4)*23+ri(-4,4), 24+Math.floor(ci/4)*27+ri(-5,5));
+    });
+  }
+  const tapa = document.createElement("div"); tapa.className = "subi-tapa";
+  tapa.innerHTML = "🌟<small>¿Cuántos había?</small>";
+  caja.appendChild(tapa);
+  z.appendChild(caja);
+  let tId = null;
+  const flashear = ()=>{
+    if(!caja.isConnected) return;
+    tapa.classList.remove("ver");
+    clearTimeout(tId);
+    tId = setTimeout(()=>{ if(caja.isConnected) tapa.classList.add("ver"); }, d.flash);
+  };
+  const decir = ()=>{ hablar("¿Cuántos había? ¡Dilo del tirón, sin contar, y toca el número!"); flashear(); };
+  pintarOpciones(z, d.ops.map(String), d.ops.indexOf(d.n), decir);
+  hablar("¡Mira muy rápido, que se esconden! ¿Cuántos hay?");
+  flashear();
 }
 
 /* ═══════════ RENDER: AMIGOS ═══════════ */
