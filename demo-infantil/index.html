@@ -122,6 +122,12 @@ h2{font-size:1.5rem; margin:.15em 0; text-align:center; font-weight:800;}
 .opcion .bandeja-mini .paquete{padding:3px 4px;}
 .opcion .bandeja-mini .paquete .palillo{width:4px; height:34px;}
 .opcion .bandeja-mini .paquete::after{height:7px;}
+/* retrocuenta: el cohete de la cuenta atrás */
+.cohete-zona{width:min(88vw,430px); height:110px; display:flex; align-items:flex-end; justify-content:center;}
+.cohete-nave{display:inline-block; font-size:4.4rem; line-height:1; transition:transform 1.15s cubic-bezier(.55,-.15,.9,.6);}
+.cohete-nave>span{display:inline-block; transform:rotate(-45deg);}
+.cohete-nave.despega{transform:translateY(-80vh);}
+.opcion.ret-num{min-width:72px; min-height:66px; font-size:2rem; padding:6px 12px;}
 
 /* vecinos */
 .recta{display:flex; gap:10px; align-items:center; justify-content:center;}
@@ -302,6 +308,9 @@ textarea{resize:vertical; min-height:64px;}
     <button class="btn btn-lila" style="flex:1; min-width:140px; font-size:2rem;" data-juego="sub">👀<br><small style="font-size:1.1rem;">Ojo veloz</small></button>
     <button class="btn btn-verde" style="flex:1; min-width:140px; font-size:2rem;" data-juego="pal">🥢<br><small style="font-size:1.1rem;">Palillos</small></button>
   </div>
+  <div class="fila">
+    <button class="btn btn-oro" style="flex:1; min-width:140px; font-size:2rem;" data-juego="ret">🚀<br><small style="font-size:1.1rem;">Cuenta atrás</small></button>
+  </div>
 </section>
 
 <!-- MISIONES -->
@@ -421,6 +430,7 @@ textarea{resize:vertical; min-height:64px;}
         <button class="chip-sel" data-t="vec">🏘️ Vecinos</button>
         <button class="chip-sel" data-t="sub">👀 Ojo veloz</button>
         <button class="chip-sel" data-t="pal">🥢 Palillos</button>
+        <button class="chip-sel" data-t="ret">🚀 Cuenta atrás</button>
         <button class="chip-sel on" data-t="sil">🔤 Sílabas</button>
         <button class="chip-sel" data-t="tra">✍️ Trazar letras</button>
       </div>
@@ -962,7 +972,20 @@ function genPal(nivel){
   const dos = barajar(malas.filter(m=>m.p*10+m.s!==n)).slice(0,2);
   return {t:"pal", d:{sub, p, s, n, bandejas:barajar([{p,s}, ...dos])}};
 }
-const GEN = {num:genNum, sub:genSub, pal:genPal, ami:genAmi, vec:genVec, fam:genFam, sil:genSil, tra:genTra};
+function genRet(nivel){
+  /* retrocuenta ABN: contar hacia atrás (la base de la resta) */
+  if(nivel>=2 && conProb(.35)){
+    const from = nivel===2 ? ri(4,10) : nivel===3 ? ri(6,15) : ri(10,30);
+    return {t:"ret", d:{sub:"antes", from, ops:barajar([from-2, from-1, from-3])}};
+  }
+  let desde, hasta;
+  if(nivel===1){ desde = ri(3,5); hasta = 0; }
+  else if(nivel===2){ desde = ri(6,10); hasta = 0; }
+  else if(nivel===3){ desde = ri(8,15); hasta = Math.max(0, desde-7); }
+  else { desde = ri(15,30); hasta = desde-7; }
+  return {t:"ret", d:{sub:"cohete", desde, hasta}};
+}
+const GEN = {num:genNum, sub:genSub, pal:genPal, ret:genRet, ami:genAmi, vec:genVec, fam:genFam, sil:genSil, tra:genTra};
 function genTanda(tipos, nivel, n){
   const lista = [], vistos = new Set();
   const orden = [];
@@ -976,12 +999,13 @@ function genTanda(tipos, nivel, n){
   }
   return lista;
 }
-const EMOJI_TIPO = {num:"🔢", sub:"👀", pal:"🥢", ami:"🤝", vec:"🏘️", fam:"🏠", sil:"🔤", tra:"✍️"};
-const NOMBRE_JUEGO = {num:"Números", sub:"Ojo veloz", pal:"Palillos", ami:"Amigos", vec:"Vecinos", fam:"Familias", sil:"Sílabas", tra:"Letras"};
+const EMOJI_TIPO = {num:"🔢", sub:"👀", pal:"🥢", ret:"🚀", ami:"🤝", vec:"🏘️", fam:"🏠", sil:"🔤", tra:"✍️"};
+const NOMBRE_JUEGO = {num:"Números", sub:"Ojo veloz", pal:"Palillos", ret:"Cuenta atrás", ami:"Amigos", vec:"Vecinos", fam:"Familias", sil:"Sílabas", tra:"Letras"};
 function tituloEj(ej){
   const d = ej.d;
   if(ej.t==="sub") return `Ojo veloz: ${d.n} puntos de un vistazo`;
   if(ej.t==="pal") return d.sub==="lee" ? `Palillos: leer el ${d.n} (${d.p} paquetes y ${d.s} sueltos)` : `Palillos: montar el ${d.n}`;
+  if(ej.t==="ret") return d.sub==="cohete" ? `Cuenta atrás del cohete: del ${d.desde} al ${d.hasta}` : `Contando hacia atrás: ${d.from}, ${d.from-1}, ¿…?`;
   if(ej.t==="num"){
     if(d.sub==="contar") return `Contar ${d.n} ${d.emoji}`;
     if(d.sub==="busca") return `Buscar el ${d.n}`;
@@ -1006,6 +1030,7 @@ function respuestaEj(ej){
   const d = ej.d;
   if(ej.t==="sub") return d.n;
   if(ej.t==="pal") return d.sub==="lee" ? d.n : `${d.p} paquetes y ${d.s} sueltos`;
+  if(ej.t==="ret") return d.sub==="cohete" ? `contar del ${d.desde} al ${d.hasta}` : d.from-2;
   if(ej.t==="num") return d.sub==="contar" ? d.n : d.sub==="busca" ? d.n : d.serie[d.hueco];
   if(ej.t==="ami") return d.total-d.x;
   if(ej.t==="vec") return `${d.n-1} y ${d.n+1}`;
@@ -1034,7 +1059,7 @@ function renderEj(){
   $("prog-fill").style.width = Math.round(100*Tanda.idx/Tanda.list.length)+"%";
   const z = $("zona-ejercicio"); z.innerHTML = "";
   EjState = {intentos:0, guiada:false, t0:Date.now()};
-  ({num:renderNum, sub:renderSub, pal:renderPal, ami:renderAmi, vec:renderVec, fam:renderFam, sil:renderSil, tra:renderTra})[ej.t](ej.d);
+  ({num:renderNum, sub:renderSub, pal:renderPal, ret:renderRet, ami:renderAmi, vec:renderVec, fam:renderFam, sil:renderSil, tra:renderTra})[ej.t](ej.d);
 }
 function ejCompletado(){
   if(!Tanda) return; // salió de la tanda a mitad
@@ -1052,6 +1077,7 @@ function ejCompletado(){
     if(ej.t==="tra") S.stats.traOk++;
     if(ej.t==="sub") S.stats.subOk = (S.stats.subOk||0)+1;
     if(ej.t==="pal") S.stats.palOk = (S.stats.palOk||0)+1;
+    if(ej.t==="ret") S.stats.retOk = (S.stats.retOk||0)+1;
   }
   // maestría: sube con aciertos a la primera, baja si Nube tuvo que ayudar
   const ch = S.chispa[ej.t]===undefined ? 5 : S.chispa[ej.t];
@@ -1246,6 +1272,62 @@ function renderPal(d){
     pintarOpciones(z, d.bandejas.map(b=>palBandejaHTML(b.p, b.s, true)), correcto, decir);
     decir();
   }
+}
+
+/* ═══════════ RENDER: CUENTA ATRÁS (retrocuenta ABN) ═══════════ */
+function renderRet(d){
+  const z = $("zona-ejercicio");
+  if(d.sub==="antes"){
+    ponEnunciado(z, "🚀 Contando hacia atrás…");
+    const big = document.createElement("div");
+    big.style.cssText = "font-size:2.6rem; font-weight:800; color:var(--lila-osc);";
+    big.textContent = `${d.from}, ${d.from-1}, …`;
+    z.appendChild(big);
+    const decir = ()=>hablar(`Estamos contando hacia atrás: ${d.from}, ${d.from-1}… ¿Qué número viene ahora? ¡Tócalo!`);
+    pintarOpciones(z, d.ops.map(String), d.ops.indexOf(d.from-2), decir);
+    decir();
+    return;
+  }
+  ponEnunciado(z, "🚀 ¡Cuenta atrás para despegar!");
+  const zona = document.createElement("div"); zona.className = "cohete-zona";
+  const nave = document.createElement("div"); nave.className = "cohete-nave";
+  nave.innerHTML = "<span>🚀</span>";
+  zona.appendChild(nave); z.appendChild(zona);
+  const decir = ()=>hablar(`¡Prepara el cohete, ${S.nombre}! Cuenta hacia atrás tocando los números: empieza en el ${d.desde}.`);
+  const nums = []; for(let v=d.hasta; v<=d.desde; v++) nums.push(v);
+  const cont = document.createElement("div"); cont.className = "opciones";
+  let esperado = d.desde;
+  const botones = {};
+  const ponPista = ()=>{ if(EjState.guiada && botones[esperado]) botones[esperado].classList.add("pista"); };
+  barajar(nums).forEach(v=>{
+    const b = document.createElement("div");
+    b.className = "opcion ret-num"; b.textContent = v;
+    b.addEventListener("pointerdown", e=>{
+      e.preventDefault();
+      if(b.classList.contains("bien")) return;
+      if(v===esperado){
+        b.classList.remove("pista"); b.classList.add("bien");
+        sfx.click();
+        esperado--;
+        if(esperado < d.hasta){
+          nave.classList.add("despega"); sfx.fanfarria(); lanzarFuegos(3);
+          hablar(d.hasta===0 ? "¡Cero! ¡DESPEGUE! ¡Lo has conseguido!" : "¡DESPEGUE! ¡Lo has conseguido!");
+          setTimeout(()=>{ if(zona.isConnected) ejCompletado(); }, 1100);
+        } else ponPista();
+      } else {
+        b.classList.add("mal"); setTimeout(()=>b.classList.remove("mal"),600);
+        EjState.intentos++; Tanda.fallosTotales++;
+        if(EjState.intentos>=2 && !EjState.guiada){
+          EjState.guiada = true;
+          hablar("Te ayudo: toca el que parpadea, ¡y seguimos contando hacia atrás!");
+          ponPista();
+        } else if(!EjState.guiada){ animo(); setTimeout(decir, 1300); }
+      }
+    });
+    cont.appendChild(b); botones[v] = b;
+  });
+  z.appendChild(cont);
+  decir();
 }
 
 /* ═══════════ RENDER: AMIGOS ═══════════ */
