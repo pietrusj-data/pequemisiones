@@ -518,10 +518,13 @@ if(!PERFIL){ location.href = "./index.html"; throw new Error("sin perfil"); }
 const TEMA = TEMAS[PERFIL.tema] || TEMAS.unicornios;
 const FEM = PERFIL.genero !== "nino";
 const JUEGOS_ACTIVOS = PERFIL.juegos || ["globos","mariposas"];
+/* código de familia opaco (LUNA-847): multi-familia sin datos personales */
+const FAMILIA = (function(){ try{ return JSON.parse(localStorage.getItem("pm_familia")) || "CASA-000"; }catch(e){ return "CASA-000"; } })();
+const FQ = "familia=eq."+encodeURIComponent(FAMILIA)+"&perfil=eq."+encodeURIComponent(PERFIL.id);
 /* ═══════════ CONFIG ═══════════ */
 const SUPA_URL  = "https://tyoavvibplxkevxkamsb.supabase.co";
 const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5b2F2dmlicGx4a2V2eGthbXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NDA4NTAsImV4cCI6MjA5MjQxNjg1MH0.x26xzz4nV3Umtj4_4SCPu9NXQRLDEh1xZeQgGk6adrQ";
-const T_MISIONES="jim_misiones", T_RESULT="jim_resultados", T_INSIG="jim_insignias";
+const T_MISIONES="pm_misiones", T_RESULT="pm_resultados", T_INSIG="pm_insignias";
 
 /* ═══════════ ESTADO ═══════════ */
 const LS = {
@@ -1828,6 +1831,7 @@ function finTanda(){
   const nuevas = chequearInsignias();
   S.premioGratis = true;
   enviarSeguro("insert", T_RESULT, {
+    familia: FAMILIA, perfil: PERFIL.id,
     mision_id: Tanda.misionId, modo: Tanda.origen==="mision"?"mision":"libre",
     nivel: Tanda.nivel, aciertos, fallos: Tanda.fallosTotales,
     gemas: ganadas, tiempo_seg: seg,
@@ -1877,7 +1881,7 @@ function chequearInsignias(){
   INSIGNIAS.forEach(ins=>{
     if(!S.insig.includes(ins.k) && ins.check(S.stats)){
       S.insig.push(ins.k); nuevas.push(ins);
-      enviarSeguro("insert", T_INSIG, {clave:ins.k, nombre:ins.nombre});
+      enviarSeguro("insert", T_INSIG, {familia: FAMILIA, perfil: PERFIL.id, clave:ins.k, nombre:ins.nombre});
     }
   });
   if(nuevas.length) guardar();
@@ -1898,10 +1902,10 @@ function pintarCofre(){
 /* ═══════════ MISIONES (lado Jimena) ═══════════ */
 let MisionesCache = [], HechasCache = [], misionesSig = null;
 async function refrescarMisiones(silencio){
-  const r = await sbSelect(T_MISIONES, "select=*&estado=eq.pendiente&order=created_at.desc&limit=20");
+  const r = await sbSelect(T_MISIONES, "select=*&estado=eq.pendiente&"+FQ+"&order=created_at.desc&limit=20");
   if(r.ok && Array.isArray(r.data)){
     MisionesCache = r.data.filter(m=>!S.hechasLocal.includes(m.id));
-    const h = await sbSelect(T_MISIONES, "select=id,titulo,hecha_at&estado=eq.hecha&order=hecha_at.desc&limit=4");
+    const h = await sbSelect(T_MISIONES, "select=id,titulo,hecha_at&estado=eq.hecha&"+FQ+"&order=hecha_at.desc&limit=4");
     if(h.ok && Array.isArray(h.data)) HechasCache = h.data;
   }
   pintarBadge();
@@ -2209,7 +2213,7 @@ async function enviarMision(){
     nivel: Papa.nivel, ejercicios: Papa.preview, estado: "pendiente"
   };
   $("btn-enviar").disabled = true;
-  const r = await enviarSeguro("insert", T_MISIONES, fila);
+  const r = await enviarSeguro("insert", T_MISIONES, {...fila, familia: FAMILIA, perfil: PERFIL.id});
   $("btn-enviar").disabled = false;
   const okBox = $("papa-envio-ok");
   okBox.classList.remove("oculto");
@@ -2231,8 +2235,8 @@ async function cargarResultados(){
   const cont = $("papa-resultados");
   cont.innerHTML = "<p class='sub'>Cargando…</p>";
   const [rm, rr] = await Promise.all([
-    sbSelect(T_MISIONES, "select=*&order=created_at.desc&limit=25"),
-    sbSelect(T_RESULT, "select=*&order=created_at.desc&limit=100")
+    sbSelect(T_MISIONES, "select=*&"+FQ+"&order=created_at.desc&limit=25"),
+    sbSelect(T_RESULT, "select=*&"+FQ+"&order=created_at.desc&limit=100")
   ]);
   if(!rm.ok){ cont.innerHTML = "<p class='sub'>📡 Sin conexión con Supabase.</p>"; return; }
   const misiones = rm.data||[], resultados = rr.ok ? (rr.data||[]) : [];
@@ -2370,7 +2374,7 @@ $("btn-res-refrescar").addEventListener("click", cargarResultados);
 $("btn-cambiar-pin").addEventListener("click", ()=>{ S.pin = null; guardar(); abrirPin(); });
 $("btn-borrar-hechas").addEventListener("click", async ()=>{
   if(!confirm("¿Borrar las misiones ya hechas? (los resultados se conservan)")) return;
-  await sbDelete(T_MISIONES, "estado=eq.hecha");
+  await sbDelete(T_MISIONES, "estado=eq.hecha&"+FQ);
   cargarResultados();
 });
 $("ajuste-nombre").addEventListener("change", ()=>{

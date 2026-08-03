@@ -87,6 +87,8 @@ input[type=text]{width:100%; font-family:inherit; font-size:1.4rem; text-align:c
   <h1>¿Quién va a jugar?</h1>
   <div class="perfiles" id="lista-perfiles"></div>
   <p class="sub" id="hint-portal">Toca tu tarjeta para entrar en tu mundo</p>
+  <p class="sub" style="font-size:.92rem;">👨‍👩‍👧 Código de familia: <b id="cod-familia">—</b>
+    <button id="btn-cod-familia" style="border:none; background:none; color:var(--p2); font-weight:800; cursor:pointer; font-family:inherit; font-size:.92rem; text-decoration:underline;">cambiar</button></p>
 </section>
 
 <!-- ══════════ WIZARD DE ALTA ══════════ -->
@@ -184,6 +186,25 @@ const JUEGOS_PREMIO = [
 const esInfantil = c => c.startsWith("inf");
 const NIVEL_POR_CURSO = { inf3:1, inf4:2, inf5:3, pri1:1, pri2:2, pri3:3 };
 
+/* ── código de familia (opaco, cero datos personales): viaja con las misiones y permite vincular otra tablet ── */
+const COD_PALABRAS = ["LUNA","SOL","NUBE","MAR","FLOR","RIO","OSO","LEON","BUHO","PINO","MIEL","CIELO","PERLA","COCO","DUNA","FARO","IRIS","KIWI","LIMA","NIDO"];
+function codigoFamilia(){
+  let c = LSP.get("familia", null);
+  if(!c){
+    c = COD_PALABRAS[Math.floor(Math.random()*COD_PALABRAS.length)]+"-"+(100+Math.floor(Math.random()*900));
+    LSP.set("familia", c);
+  }
+  return c;
+}
+function pintarCodigo(){ $("cod-familia").textContent = codigoFamilia(); }
+$("btn-cod-familia").addEventListener("click", ()=>{
+  const v = prompt("Tu código de familia viaja con las misiones (sin ningún dato personal).\nPara vincular esta tablet a una familia que ya existe, escribe aquí su código:", codigoFamilia());
+  if(v===null) return;
+  const limpio = v.trim().toUpperCase();
+  if(!/^[A-ZÑ]{2,12}-\d{3}$/.test(limpio)){ alert("Formato: PALABRA-123 (por ejemplo LUNA-847)"); return; }
+  LSP.set("familia", limpio); pintarCodigo();
+});
+
 /* ── selector de perfiles ── */
 function pintarPerfiles(){
   const lista = LSP.get("perfiles", []);
@@ -205,6 +226,7 @@ function pintarPerfiles(){
   nuevo.addEventListener("click", abrirWizard);
   cont.appendChild(nuevo);
   if(!lista.length) $("hint-portal").textContent = "Crea la primera tarjeta para empezar 🎉";
+  pintarCodigo();
 }
 function entrar(perfil){
   LSP.set("perfilActivo", perfil);
