@@ -276,6 +276,7 @@ textarea{resize:vertical; min-height:64px;}
     <button class="btn btn-rosa btn-grande" id="btn-misiones">📜 Misiones de papá</button>
     <span class="badge oculto" id="badge-misiones">0</span>
   </div>
+  <button class="btn btn-menta btn-grande" style="max-width:480px;" id="btn-diaria">🌞 La misión de hoy</button>
   <button class="btn btn-lila btn-grande" style="max-width:480px;" id="btn-libre">🎮 Juego libre</button>
   <button class="btn btn-oro btn-grande" style="max-width:480px;" id="btn-joyero">👑 Mi joyero real</button>
   <button class="btn btn-cielo btn-grande" style="max-width:480px;" id="btn-globos">🎈 Explotar globos <small style="font-size:.95rem;">(5 💎)</small></button>
@@ -767,6 +768,7 @@ function llevaResta(a,b){ return a%10 < b%10; }
 function conProb(p){ return Math.random() < p; }
 // Convención ABN: el número mayor siempre a la izquierda (se empieza por el mayor)
 function mayorPrimero(a,b){ return a>=b ? [a,b] : [b,a]; }
+function barajar(arr){ return arr.slice().sort(()=>Math.random()-.5); }
 
 function genAbn(nivel){
   if(nivel===1){
@@ -957,6 +959,25 @@ function genDiv(nivel){
   return {t:"div", d:{sub:"rejilla", N, k}};
 }
 const GEN = {abn:genAbn, cla:genCla, igu:genIgu, dif:genDif, mul:genMul, div:genDiv, rel:genRel, pes:genPes};
+function genMisionDiaria(){
+  /* misión del día: refuerza los 2 módulos más flojos del perfil y estira el resto, según la maestría */
+  const base = (PERFIL.modulos && PERFIL.modulos.length ? PERFIL.modulos : ["abn"]);
+  const tipos = base.filter(t=>GEN[t]);
+  if(!tipos.length) tipos.push("abn");
+  const chispaDe = t => S.chispa[t]===undefined ? 5 : S.chispa[t];
+  const nivelDe = t => { const ch = chispaDe(t); return ch>=8 ? 3 : ch<=2 ? 1 : 2; };
+  const orden = tipos.slice().sort((a,b)=>chispaDe(a)-chispaDe(b));
+  const lista = [];
+  orden.slice(0,2).forEach(t=>{ lista.push(GEN[t](nivelDe(t)), GEN[t](nivelDe(t))); });
+  const resto = orden.slice(2);
+  let guard = 0;
+  while(lista.length<6 && guard++<40){
+    const pool = resto.length ? resto : orden;
+    const t = pool[ri(0,pool.length-1)];
+    lista.push(GEN[t](nivelDe(t)));
+  }
+  return barajar(lista);
+}
 function genTanda(tipos, nivel, n){
   const lista = [], vistos = new Set();
   const orden = [];
@@ -1025,7 +1046,7 @@ let Tanda = null, EjState = null, salirArmado = false;
 function startTanda(cfg){
   Tanda = {origen:cfg.origen, misionId:cfg.misionId||null, titulo:cfg.titulo||"",
     list:cfg.ejercicios, idx:0, res:[], gemas0:S.gemas, t0:Date.now(),
-    nivel:cfg.nivel, fallosTotales:0};
+    nivel:cfg.nivel, fallosTotales:0, diaria:cfg.diaria||false};
   go("s-juego");
   renderEj();
   if(cfg.mensaje){ hada("💌 "+cfg.mensaje, 5000); }
@@ -2095,6 +2116,7 @@ function renderPes(d){
 const EMOJI_TIPO = {abn:"🔮", cla:"🏰", igu:"⚖️", dif:"💎", mul:"✖️", div:"➗", rel:"🕐", pes:"🧺"};
 function hoyISO(){ return new Date().toISOString().slice(0,10); }
 function finTanda(){
+  if(Tanda.diaria){ tocaHoy(); S.hoy.diaria = true; guardar(); }
   const seg = Math.round((Date.now()-Tanda.t0)/1000);
   const ganadas = S.gemas - Tanda.gemas0;
   const aciertos = Tanda.res.filter(r=>!r.ayudado).length;
@@ -2616,6 +2638,8 @@ function pintarHome(){
   $("saludo").textContent = "¡Hola, "+S.nombre+"!";
   $("frase-dia").textContent = FRASES_DIA[new Date().getDate() % FRASES_DIA.length];
   tocaHoy();
+  const bd = $("btn-diaria");
+  if(bd){ bd.textContent = S.hoy.diaria ? "🌟 ¡Misión de hoy conseguida!" : "🌞 La misión de hoy"; bd.style.opacity = S.hoy.diaria ? ".65" : "1"; }
   $("hoy-info").textContent = S.hoy.ej > 0
     ? `Hoy llevas ${S.hoy.gemas} 💎 de ${S.hoy.ej} ejercicio${S.hoy.ej===1?"":"s"} ¡sigue así!`
     : "";
@@ -2626,6 +2650,12 @@ function pintarSonido(){ $("btn-sonido").textContent = S.sonido ? "🔊" : "🔇
 /* botones globales */
 $("btn-misiones").addEventListener("click", ()=>go("s-misiones"));
 $("btn-libre").addEventListener("click", ()=>go("s-libre"));
+$("btn-diaria").addEventListener("click", ()=>{
+  if(limiteAlcanzado()){ despedidaLimite(); return; }
+  tocaHoy();
+  if(S.hoy.diaria){ hada("¡La misión de hoy ya está conseguida! Mañana habrá otra 🌞", 3200); return; }
+  startTanda({origen:"libre", diaria:true, titulo:"Misión del día 🌞", ejercicios:genMisionDiaria(), nivel:2});
+});
 $("btn-joyero").addEventListener("click", ()=>go("s-joyero"));
 $("btn-globos").addEventListener("click", ()=>startGlobos(false));
 $("btn-refrescar").addEventListener("click", ()=>{ sfx.click(); refrescarMisiones(false); });

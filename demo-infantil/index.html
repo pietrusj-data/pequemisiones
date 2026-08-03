@@ -279,6 +279,7 @@ textarea{resize:vertical; min-height:64px;}
     <button class="btn btn-rosa btn-grande" id="btn-misiones">🎁 Misión de papá</button>
     <span class="badge oculto" id="badge-misiones">1</span>
   </div>
+  <button class="btn btn-oro btn-grande" id="btn-diaria">🌞 La misión de hoy</button>
   <button class="btn btn-lila btn-grande" id="btn-jugar">🎮 Jugar</button>
   <button class="btn btn-azul btn-grande" id="btn-globos">🎈 Globos <small style="font-size:1.05rem;">(3 ⭐)</small></button>
   <button class="btn btn-verde btn-grande" id="btn-mariposas">🦋 Mariposas <small style="font-size:1.05rem;">(6 ⭐)</small></button>
@@ -1001,6 +1002,23 @@ function genRet(nivel){
   return {t:"ret", d:{sub:"cohete", desde, hasta}};
 }
 const GEN = {num:genNum, sub:genSub, pal:genPal, ret:genRet, ami:genAmi, vec:genVec, fam:genFam, sil:genSil, tra:genTra};
+function genMisionDiaria(){
+  /* misión del día: refuerza los 2 juegos más flojos y estira el resto, según la maestría */
+  const tipos = ["num","sub","pal","ret","ami","vec","fam","sil","tra"].filter(t=>GEN[t]);
+  const chispaDe = t => S.chispa[t]===undefined ? 5 : S.chispa[t];
+  const nivelDe = t => { const ch = chispaDe(t); return Math.max(1, Math.min(4, S.nivelLibre + (ch>=8?1:0) - (ch<=2?1:0))); };
+  const orden = tipos.slice().sort((a,b)=>chispaDe(a)-chispaDe(b));
+  const lista = [];
+  orden.slice(0,2).forEach(t=>{ lista.push(GEN[t](nivelDe(t)), GEN[t](nivelDe(t))); });
+  const resto = orden.slice(2);
+  let guard = 0;
+  while(lista.length<6 && guard++<40){
+    const pool = resto.length ? resto : orden;
+    const t = pool[ri(0,pool.length-1)];
+    lista.push(GEN[t](nivelDe(t)));
+  }
+  return barajar(lista);
+}
 function genTanda(tipos, nivel, n){
   const lista = [], vistos = new Set();
   const orden = [];
@@ -1064,7 +1082,7 @@ let Tanda = null, EjState = null, salirArmado = false;
 function startTanda(cfg){
   Tanda = {origen:cfg.origen, misionId:cfg.misionId||null, titulo:cfg.titulo||"",
     list:cfg.ejercicios, idx:0, res:[], estrellas0:S.estrellas, t0:Date.now(),
-    nivel:cfg.nivel, fallosTotales:0, racha:0};
+    nivel:cfg.nivel, fallosTotales:0, racha:0, diaria:cfg.diaria||false};
   go("s-juego");
   renderEj();
 }
@@ -1810,6 +1828,7 @@ function renderTra(d){
 /* ═══════════ FIN DE TANDA ═══════════ */
 function hoyISO(){ return new Date().toISOString().slice(0,10); }
 function finTanda(){
+  if(Tanda.diaria){ tocaHoy(); S.hoy.diaria = true; guardar(); }
   const seg = Math.round((Date.now()-Tanda.t0)/1000);
   const ganadas = S.estrellas - Tanda.estrellas0;
   const aciertos = Tanda.res.filter(r=>!r.guiada).length;
@@ -2302,6 +2321,8 @@ function pintarHome(){
   $("saludo").textContent = "¡Hola, "+S.nombre+"!";
   $("portada-nombre").textContent = S.nombre;
   tocaHoy();
+  const bd = $("btn-diaria");
+  if(bd){ bd.textContent = S.hoy.diaria ? "🌟 ¡Misión de hoy conseguida!" : "🌞 La misión de hoy"; bd.style.opacity = S.hoy.diaria ? ".65" : "1"; }
   const n = S.hoy.estrellas;
   $("hoy-info").textContent = n > 0
     ? "Hoy: " + "⭐".repeat(Math.min(n,12)) + (n>12 ? " +"+(n-12) : "")
@@ -2319,6 +2340,13 @@ $("btn-portada").addEventListener("click", ()=>{
 });
 $("btn-misiones").addEventListener("click", ()=>go("s-misiones"));
 $("btn-jugar").addEventListener("click", ()=>go("s-elegir"));
+$("btn-diaria").addEventListener("click", ()=>{
+  if(limiteAlcanzado()){ despedidaLimite(); return; }
+  tocaHoy();
+  if(S.hoy.diaria){ hablar("¡La misión de hoy ya está conseguida! Mañana habrá otra."); return; }
+  hablar("¡La misión de hoy! Un poquito de todo. ¡Tú puedes!");
+  startTanda({origen:"libre", diaria:true, titulo:"Misión del día 🌞", ejercicios:genMisionDiaria(), nivel:S.nivelLibre});
+});
 $("btn-globos").addEventListener("click", ()=>startGlobos(false));
 $("btn-cofre").addEventListener("click", ()=>go("s-cofre"));
 $("btn-papa").addEventListener("click", abrirPin);
