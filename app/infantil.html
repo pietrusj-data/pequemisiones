@@ -1688,6 +1688,7 @@ function pintarMisiones(){
 /* ═══════════ GLOBOS ═══════════ */
 const Globos = {n:0, t:20, timer:null, spawner:null, rafRun:false, items:[], retorno:"s-home"};
 function startGlobos(gratis){
+  if(!JUEGOS_ACTIVOS.includes("globos")) return; // juego desactivado por el padre en el portal
   if(!gratis){
     if(S.estrellas < 3){
       hablar("¡Los globos cuestan 3 estrellas! Juega una tanda y las ganas, ¡tú puedes!"); sfx.mal(); return;
@@ -1773,6 +1774,7 @@ function moverRed(e){
   red.style.opacity = "1";
 }
 function startMariposas(gratis){
+  if(!JUEGOS_ACTIVOS.includes("mariposas")) return; // juego desactivado por el padre en el portal
   if(!gratis){
     if(S.estrellas < 6){
       hablar("¡Las mariposas cuestan 6 estrellas! Son para niñas que se esfuerzan mucho. ¡Juega y las consigues!"); sfx.mal(); return;

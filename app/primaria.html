@@ -1926,6 +1926,7 @@ function pintarMisiones(){
 /* ═══════════════ GLOBOS ═══════════════ */
 const Globos = {n:0, t:20, timer:null, spawner:null, rafRun:false, items:[], retorno:"s-home"};
 function startGlobos(gratis){
+  if(!JUEGOS_ACTIVOS.includes("globos")) return; // juego desactivado por el padre en el portal
   if(!gratis){
     if(S.gemas<5){ hada("Necesitas 5 gemas 💎 ¡Haz una misión o juega libre para ganarlas!"); sfx.mal(); return; }
     S.gemas -= 5; guardar();
@@ -2011,6 +2012,7 @@ function moverRed(e){
   red.style.opacity = "1";
 }
 function startMariposas(gratis){
+  if(!JUEGOS_ACTIVOS.includes("mariposas")) return; // juego desactivado por el padre en el portal
   if(!gratis){
     if(S.gemas<10){ hada("Las mariposas cuestan 10 gemas 💎 ¡Son para peques que se esfuerzan mucho! Haz misiones para ganarlas 💪"); sfx.mal(); return; }
     S.gemas -= 10; guardar();
