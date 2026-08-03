@@ -484,6 +484,16 @@ textarea{resize:vertical; min-height:64px;}
       <button class="btn btn-mini btn-lila" id="btn-cambiar-pin">Cambiar PIN</button>
     </div>
     <div class="form-linea">
+      <label>Límite de uso diario (cierre amable)</label>
+      <div class="nivel-sel" id="ajuste-limite">
+        <button class="nivel-btn on" data-lim="0">Sin límite</button>
+        <button class="nivel-btn" data-lim="15">15 min</button>
+        <button class="nivel-btn" data-lim="20">20 min</button>
+        <button class="nivel-btn" data-lim="30">30 min</button>
+      </div>
+      <p class="sub" style="text-align:left; font-size:.88rem;">Al llegar al límite, el hada se despide con cariño hasta mañana (nunca corta una tanda a mitad). Hoy lleva <span id="ajuste-uso-hoy">0</span> min de uso.</p>
+    </div>
+    <div class="form-linea">
       <label>Insignias conseguidas</label>
       <div id="papa-insignias" class="sub" style="text-align:left;">—</div>
     </div>
@@ -533,6 +543,7 @@ const S = {
   insig  : LS.get("insig", []),            // claves de insignias ganadas
   hoy    : LS.get("hoy", {fecha:"", gemas:0, ej:0}),  // lo conseguido hoy
   chispa : LS.get("chispa", {}),           // maestría por juego (0-10) para el nivel automático del juego libre
+  limiteMin: LS.get("limiteMin", 0),       // límite de uso diario en minutos (0 = sin límite); cierre amable
   stats  : LS.get("stats", {misiones:0, perfectas:0, abnOk:0, claOk:0, iguOk:0, difOk:0, globos:0, dias:[], nivel3:0, dobleOk:0}),
   cola   : LS.get("cola", []),             // envíos pendientes si no hay internet
   hechasLocal: LS.get("hechasLocal", []),  // ids de misiones ya hechas (por si falla el PATCH)
@@ -540,13 +551,17 @@ const S = {
 };
 function guardar(){
   LS.set("nombreCustom",S.nombre); LS.set("gemas",S.gemas); LS.set("sonido",S.sonido); LS.set("voz",S.voz);
-  LS.set("pin",S.pin); LS.set("insig",S.insig); LS.set("stats",S.stats); LS.set("cola",S.cola); LS.set("chispa",S.chispa);
+  LS.set("pin",S.pin); LS.set("insig",S.insig); LS.set("stats",S.stats); LS.set("cola",S.cola); LS.set("chispa",S.chispa); LS.set("limiteMin",S.limiteMin);
   LS.set("hechasLocal",S.hechasLocal); LS.set("hoy",S.hoy);
 }
 function tocaHoy(){
   const f = new Date().toISOString().slice(0,10);
-  if(S.hoy.fecha !== f){ S.hoy = {fecha:f, gemas:0, ej:0}; guardar(); }
+  if(S.hoy.fecha !== f){ S.hoy = {fecha:f, gemas:0, ej:0, seg:0}; guardar(); }
 }
+/* límite de uso amable: cuenta el tiempo con la app visible y despide con cariño al llegar */
+function limiteAlcanzado(){ tocaHoy(); return S.limiteMin>0 && (S.hoy.seg||0) >= S.limiteMin*60; }
+function despedidaLimite(){ hada(`¡Por hoy hemos terminado, ${S.nombre}! El hada se va a dormir 💤 Mañana seguimos 💛`, 4200); }
+setInterval(()=>{ if(document.hidden) return; tocaHoy(); S.hoy.seg = (S.hoy.seg||0)+30; guardar(); }, 30000);
 function $(id){ return document.getElementById(id); }
 function actualizarGemas(){
   $("gemas-num").textContent = S.gemas;
@@ -2215,6 +2230,7 @@ function pintarMisiones(){
       btn.className = "btn btn-rosa w100";
       btn.textContent = "¡Empezar misión! 🚀";
       btn.addEventListener("click", ()=>{
+        if(limiteAlcanzado()){ despedidaLimite(); return; }
         startTanda({origen:"mision", misionId:m.id, titulo:m.titulo,
           ejercicios:m.ejercicios, nivel:m.nivel, mensaje:m.mensaje});
       });
@@ -2232,6 +2248,7 @@ function pintarMisiones(){
 const Globos = {n:0, t:20, timer:null, spawner:null, rafRun:false, items:[], retorno:"s-home"};
 function startGlobos(gratis){
   if(!JUEGOS_ACTIVOS.includes("globos")) return; // juego desactivado por el padre en el portal
+  if(limiteAlcanzado()){ despedidaLimite(); return; }
   if(!gratis){
     if(S.gemas<5){ hada("Necesitas 5 gemas 💎 ¡Haz una misión o juega libre para ganarlas!"); sfx.mal(); return; }
     S.gemas -= 5; guardar();
@@ -2318,6 +2335,7 @@ function moverRed(e){
 }
 function startMariposas(gratis){
   if(!JUEGOS_ACTIVOS.includes("mariposas")) return; // juego desactivado por el padre en el portal
+  if(limiteAlcanzado()){ despedidaLimite(); return; }
   if(!gratis){
     if(S.gemas<10){ hada("Las mariposas cuestan 10 gemas 💎 ¡Son para peques que se esfuerzan mucho! Haz misiones para ganarlas 💪"); sfx.mal(); return; }
     S.gemas -= 10; guardar();
@@ -2456,6 +2474,8 @@ async function entrarPapa(){
   go("s-papa");
   $("papa-envio-ok").classList.add("oculto");
   $("ajuste-nombre").value = S.nombre;
+  document.querySelectorAll("#ajuste-limite .nivel-btn").forEach(x=>x.classList.toggle("on", parseInt(x.dataset.lim,10)===S.limiteMin));
+  tocaHoy(); $("ajuste-uso-hoy").textContent = Math.round((S.hoy.seg||0)/60);
   const ping = await sbSelect(T_MISIONES, "select=id&limit=1");
   const c = $("papa-conexion");
   c.textContent = ping.ok ? "🟢 conectado" : "🔴 sin conexión";
@@ -2634,6 +2654,7 @@ document.querySelectorAll("#s-libre [data-tipo]").forEach(b=>
 document.querySelectorAll("#libre-niveles [data-nivel]").forEach(b=>
   b.addEventListener("click", ()=>{ Libre.nivel = parseInt(b.dataset.nivel,10); sfx.click(); pintarLibre(); }));
 $("btn-libre-empezar").addEventListener("click", ()=>{
+  if(limiteAlcanzado()){ despedidaLimite(); return; }
   // nivel automático: el nivel elegido ± su maestría en ese juego (SOLO juego libre; las misiones van al nivel de papá)
   const ch = S.chispa[Libre.tipo]===undefined ? 5 : S.chispa[Libre.tipo];
   const nivelEf = Math.max(1, Math.min(3, Libre.nivel + (ch>=8?1:0) - (ch<=2?1:0)));
@@ -2663,6 +2684,11 @@ $("ajuste-nombre").addEventListener("change", ()=>{
   const n = $("ajuste-nombre").value.trim();
   if(n){ S.nombre = n.charAt(0).toUpperCase()+n.slice(1); guardar(); pintarHome(); }
 });
+document.querySelectorAll("#ajuste-limite .nivel-btn").forEach(b=>
+  b.addEventListener("click", ()=>{
+    S.limiteMin = parseInt(b.dataset.lim,10); guardar();
+    document.querySelectorAll("#ajuste-limite .nivel-btn").forEach(x=>x.classList.toggle("on", x===b));
+  }));
 $("btn-borrar-hechas").addEventListener("click", async ()=>{
   if(!confirm("¿Borrar todas las misiones ya hechas? (los resultados se conservan)")) return;
   await sbDelete(T_MISIONES, "estado=eq.hecha");
