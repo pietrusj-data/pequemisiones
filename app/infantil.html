@@ -104,6 +104,22 @@ h2{font-size:1.5rem; margin:.15em 0; text-align:center; font-weight:800;}
 .subi-tapa small{font-size:1.15rem; font-weight:800; color:var(--tinta-suave);}
 .subi-tapa.ver{display:flex;}
 .subi-caja .marco{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); padding:10px;}
+/* palillos y decenas: sueltos y paquetes de 10 con su goma */
+.bandeja{display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:center;
+  background:var(--blanco); border-radius:26px; padding:18px 20px; width:min(88vw,430px); min-height:110px;
+  box-shadow:0 8px 22px rgba(0,0,0,.08);}
+.palillo{display:inline-block; width:7px; height:46px; border-radius:4px; background:#c98b4e;
+  box-shadow:inset -2px 0 0 rgba(0,0,0,.14);}
+.sueltos{display:inline-flex; gap:5px; align-items:center;}
+.paquete{position:relative; display:inline-flex; gap:2px; padding:4px 6px;}
+.paquete .palillo{width:5px; height:52px;}
+.paquete::after{content:""; position:absolute; left:-3px; right:-3px; top:40%; height:10px;
+  background:var(--rosa); border-radius:6px; box-shadow:0 2px 0 rgba(0,0,0,.08);}
+.opcion .bandeja-mini{display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap; max-width:210px;}
+.opcion .bandeja-mini .palillo{width:5px; height:30px;}
+.opcion .bandeja-mini .paquete{padding:3px 4px;}
+.opcion .bandeja-mini .paquete .palillo{width:4px; height:34px;}
+.opcion .bandeja-mini .paquete::after{height:7px;}
 
 /* vecinos */
 .recta{display:flex; gap:10px; align-items:center; justify-content:center;}
@@ -283,6 +299,7 @@ textarea{resize:vertical; min-height:64px;}
   </div>
   <div class="fila">
     <button class="btn btn-lila" style="flex:1; min-width:140px; font-size:2rem;" data-juego="sub">👀<br><small style="font-size:1.1rem;">Ojo veloz</small></button>
+    <button class="btn btn-verde" style="flex:1; min-width:140px; font-size:2rem;" data-juego="pal">🥢<br><small style="font-size:1.1rem;">Palillos</small></button>
   </div>
 </section>
 
@@ -402,6 +419,7 @@ textarea{resize:vertical; min-height:64px;}
         <button class="chip-sel on" data-t="ami">🤝 Amigos</button>
         <button class="chip-sel" data-t="vec">🏘️ Vecinos</button>
         <button class="chip-sel" data-t="sub">👀 Ojo veloz</button>
+        <button class="chip-sel" data-t="pal">🥢 Palillos</button>
         <button class="chip-sel on" data-t="sil">🔤 Sílabas</button>
         <button class="chip-sel" data-t="tra">✍️ Trazar letras</button>
       </div>
@@ -921,7 +939,33 @@ function genSub(nivel){
   if(disp==="dadodoble" && n<6) disp = n<=3 ? "dado" : "marco";
   return {t:"sub", d:{n, disp, flash, ops:distractores(n, 2, 1, 10)}};
 }
-const GEN = {num:genNum, sub:genSub, ami:genAmi, vec:genVec, fam:genFam, sil:genSil, tra:genTra};
+function genPal(nivel){
+  /* palillos ABN: 10 sueltos se atan en un paquete-decena */
+  let p, s;
+  if(nivel===1){ p = conProb(.3) ? 1 : 0; s = p ? 0 : ri(3,9); }
+  else if(nivel===2){ p = 1; s = ri(0,9); if(conProb(.15)){ p = 2; s = 0; } }
+  else if(nivel===3){ p = ri(1,4); s = ri(0,9); }
+  else { p = ri(1,9); s = ri(0,9); }
+  const n = p*10+s;
+  const sub = (nivel>=2 && conProb(.5)) ? "haz" : "lee";
+  if(sub==="lee"){
+    const set = new Set([n]); // distractores pedagógicos: cifras giradas y paquete de más/menos
+    if(s>=1 && p>=1 && p<=9 && s*10+p!==n) set.add(s*10+p);
+    if(p>=2) set.add(n-10); else if(n+10<=99) set.add(n+10);
+    let guard = 0;
+    while(set.size<3 && guard++<40){ const d2 = n+[-2,-1,1,2,10,-10][ri(0,5)]; if(d2>=1 && d2<=99) set.add(d2); }
+    return {t:"pal", d:{sub, p, s, n, ops:barajar([...set].slice(0,3))}};
+  }
+  const malas = [];
+  if(p<9) malas.push({p:p+1, s});
+  if(p>=2) malas.push({p:p-1, s});
+  if(s<9) malas.push({p, s:s+1});
+  if(s>=1) malas.push({p, s:s-1});
+  if(s>=1 && s<=9 && p<=9 && s!==p) malas.push({p:s, s:p});
+  const dos = barajar(malas.filter(m=>m.p*10+m.s!==n)).slice(0,2);
+  return {t:"pal", d:{sub, p, s, n, bandejas:barajar([{p,s}, ...dos])}};
+}
+const GEN = {num:genNum, sub:genSub, pal:genPal, ami:genAmi, vec:genVec, fam:genFam, sil:genSil, tra:genTra};
 function genTanda(tipos, nivel, n){
   const lista = [], vistos = new Set();
   const orden = [];
@@ -935,11 +979,12 @@ function genTanda(tipos, nivel, n){
   }
   return lista;
 }
-const EMOJI_TIPO = {num:"🔢", sub:"👀", ami:"🤝", vec:"🏘️", fam:"🏠", sil:"🔤", tra:"✍️"};
-const NOMBRE_JUEGO = {num:"Números", sub:"Ojo veloz", ami:"Amigos", vec:"Vecinos", fam:"Familias", sil:"Sílabas", tra:"Letras"};
+const EMOJI_TIPO = {num:"🔢", sub:"👀", pal:"🥢", ami:"🤝", vec:"🏘️", fam:"🏠", sil:"🔤", tra:"✍️"};
+const NOMBRE_JUEGO = {num:"Números", sub:"Ojo veloz", pal:"Palillos", ami:"Amigos", vec:"Vecinos", fam:"Familias", sil:"Sílabas", tra:"Letras"};
 function tituloEj(ej){
   const d = ej.d;
   if(ej.t==="sub") return `Ojo veloz: ${d.n} puntos de un vistazo`;
+  if(ej.t==="pal") return d.sub==="lee" ? `Palillos: leer el ${d.n} (${d.p} paquetes y ${d.s} sueltos)` : `Palillos: montar el ${d.n}`;
   if(ej.t==="num"){
     if(d.sub==="contar") return `Contar ${d.n} ${d.emoji}`;
     if(d.sub==="busca") return `Buscar el ${d.n}`;
@@ -963,6 +1008,7 @@ function tituloEj(ej){
 function respuestaEj(ej){
   const d = ej.d;
   if(ej.t==="sub") return d.n;
+  if(ej.t==="pal") return d.sub==="lee" ? d.n : `${d.p} paquetes y ${d.s} sueltos`;
   if(ej.t==="num") return d.sub==="contar" ? d.n : d.sub==="busca" ? d.n : d.serie[d.hueco];
   if(ej.t==="ami") return d.total-d.x;
   if(ej.t==="vec") return `${d.n-1} y ${d.n+1}`;
@@ -991,7 +1037,7 @@ function renderEj(){
   $("prog-fill").style.width = Math.round(100*Tanda.idx/Tanda.list.length)+"%";
   const z = $("zona-ejercicio"); z.innerHTML = "";
   EjState = {intentos:0, guiada:false, t0:Date.now()};
-  ({num:renderNum, sub:renderSub, ami:renderAmi, vec:renderVec, fam:renderFam, sil:renderSil, tra:renderTra})[ej.t](ej.d);
+  ({num:renderNum, sub:renderSub, pal:renderPal, ami:renderAmi, vec:renderVec, fam:renderFam, sil:renderSil, tra:renderTra})[ej.t](ej.d);
 }
 function ejCompletado(){
   if(!Tanda) return; // salió de la tanda a mitad
@@ -1008,6 +1054,7 @@ function ejCompletado(){
     if(ej.t==="sil") S.stats.silOk++;
     if(ej.t==="tra") S.stats.traOk++;
     if(ej.t==="sub") S.stats.subOk = (S.stats.subOk||0)+1;
+    if(ej.t==="pal") S.stats.palOk = (S.stats.palOk||0)+1;
   }
   // maestría: sube con aciertos a la primera, baja si Nube tuvo que ayudar
   const ch = S.chispa[ej.t]===undefined ? 5 : S.chispa[ej.t];
@@ -1169,6 +1216,39 @@ function renderSub(d){
   pintarOpciones(z, d.ops.map(String), d.ops.indexOf(d.n), decir);
   hablar("¡Mira muy rápido, que se esconden! ¿Cuántos hay?");
   flashear();
+}
+
+/* ═══════════ RENDER: PALILLOS Y DECENAS (ABN) ═══════════ */
+function palBandejaHTML(p, s, mini){
+  let h = "";
+  for(let i=0;i<p;i++) h += '<span class="paquete">'+'<span class="palillo"></span>'.repeat(10)+'</span>';
+  if(s>0) h += '<span class="sueltos">'+'<span class="palillo"></span>'.repeat(s)+'</span>';
+  return mini ? '<span class="bandeja-mini">'+h+'</span>' : h;
+}
+function renderPal(d){
+  const z = $("zona-ejercicio");
+  if(d.sub==="lee"){
+    ponEnunciado(z, "🥢 ¿Qué número hemos hecho?");
+    const band = document.createElement("div"); band.className = "bandeja";
+    band.innerHTML = palBandejaHTML(d.p, d.s, false);
+    z.appendChild(band);
+    const frase = d.p===0
+      ? "¡Cuenta los palillos sueltos y toca el número!"
+      : `¡Mira! Cada paquete con goma tiene diez palillos. Hay ${d.p===1?"un paquete":d.p+" paquetes"}${d.s?` y ${d.s} sueltos`:" y ningún suelto"}. ¿Qué número es?`;
+    const decir = ()=>hablar(frase);
+    pintarOpciones(z, d.ops.map(String), d.ops.indexOf(d.n), decir);
+    decir();
+  } else {
+    ponEnunciado(z, `🥢 ¡Haz el ${d.n} con palillos!`);
+    const big = document.createElement("div");
+    big.style.cssText = "font-size:4rem; font-weight:800; color:var(--lila-osc); line-height:1;";
+    big.textContent = d.n;
+    z.appendChild(big);
+    const correcto = d.bandejas.findIndex(b=>b.p*10+b.s===d.n);
+    const decir = ()=>hablar(`¡Vamos a hacer el ${d.n}! Recuerda: cada paquete tiene diez palillos. ¡Toca la bandeja donde haya ${d.n}!`);
+    pintarOpciones(z, d.bandejas.map(b=>palBandejaHTML(b.p, b.s, true)), correcto, decir);
+    decir();
+  }
 }
 
 /* ═══════════ RENDER: AMIGOS ═══════════ */
