@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generador de rejillas ABN online gratis (con PDF para imprimir)</title>
+<meta name="description" content="Genera rejillas ABN de sumas y restas para imprimir, gratis y sin descargar nada: elige nivel (con o sin llevadas, tres cifras), cantidad, y dale a imprimir o guardar en PDF. Con las columnas de verdad del método.">
+<meta name="theme-color" content="#4b3b67">
+<link rel="icon" href="../demo-primaria/icon-192.png">
+<link rel="canonical" href="https://pietrusj-data.github.io/pequemisiones/rejillas/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"Generador de rejillas ABN","applicationCategory":"EducationalApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"inLanguage":"es","description":"Generador gratuito de rejillas ABN de sumas y restas para imprimir o guardar en PDF."}
+</script>
+<style>
+:root{
+  --rosa:#ff7bac; --rosa-osc:#e2578f; --lila:#a78bfa; --lila-osc:#8b6fe0; --lila-suave:#f0e9ff;
+  --oro:#ffc94d; --menta:#5fe0c0; --menta-osc:#3ec2a2; --tinta:#3d3660; --tinta-suave:#8a7ba8;
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:"Baloo 2","Segoe UI",system-ui,sans-serif; color:var(--tinta);
+  background:linear-gradient(170deg,#ffe9f3 0%,#f3e8ff 45%,#e0f2fe 100%); line-height:1.5;}
+.wrap{max-width:920px; margin:0 auto; padding:0 18px 40px;}
+h1{font-size:clamp(1.6rem,4.6vw,2.4rem); line-height:1.15; margin:.4em 0 .2em; font-weight:800;}
+.sub{color:var(--tinta-suave);}
+.top{text-align:center; padding:26px 0 6px;}
+.logo{font-weight:800;}
+.logo a{color:var(--tinta); text-decoration:none;}
+.logo span{color:var(--rosa-osc);}
+.controles{background:#fff; border-radius:22px; padding:16px 18px; box-shadow:0 8px 24px rgba(125,168,250,.16);
+  display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; justify-content:center; margin:14px 0;}
+.campo{display:flex; flex-direction:column; gap:4px; font-weight:700; font-size:.95rem;}
+select{font-family:inherit; font-size:1rem; padding:9px 12px; border:2px solid var(--lila-suave); border-radius:12px; color:var(--tinta); background:#fff;}
+.btn{border:none; cursor:pointer; font-family:inherit; font-weight:800; border-radius:16px; color:#fff;
+  font-size:1.05rem; padding:12px 20px; transition:transform .08s;}
+.btn:active{transform:translateY(2px);}
+.btn-rosa{background:var(--rosa); box-shadow:0 4px 0 var(--rosa-osc);}
+.btn-lila{background:var(--lila); box-shadow:0 4px 0 var(--lila-osc);}
+.fichas{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px;}
+.ficha{background:#fff; border-radius:18px; padding:14px 16px; box-shadow:0 6px 18px rgba(125,168,250,.14); break-inside:avoid;}
+.ficha .enun{font-size:1.5rem; font-weight:800; text-align:center; margin-bottom:8px;}
+table.rejilla{border-collapse:collapse; width:100%;}
+.rejilla th{background:var(--lila-suave); color:var(--tinta); font-size:.8rem; padding:6px 4px; border:2px solid #d9ccf5;}
+.rejilla td{border:2px solid #d9ccf5; height:40px; min-width:70px;}
+.cta{background:#fff; border-radius:22px; padding:18px 20px; box-shadow:0 8px 24px rgba(125,168,250,.16); margin:22px 0; text-align:center;}
+.cta a{color:var(--rosa-osc); font-weight:800;}
+.faq{background:#fff; border-radius:22px; padding:14px 20px; box-shadow:0 8px 24px rgba(125,168,250,.16); margin:14px 0;}
+details{margin:8px 0;} summary{font-weight:800; cursor:pointer;}
+footer{text-align:center; padding:22px; color:var(--tinta-suave); font-size:.85rem;}
+@media print{
+  body{background:#fff;}
+  .controles, .cta, .faq, footer, .no-print{display:none !important;}
+  .top{padding:0;} h1{font-size:1.2rem;} .sub{display:none;}
+  .fichas{grid-template-columns:repeat(2,1fr); gap:10px;}
+  .ficha{box-shadow:none; border:1px solid #ccc; border-radius:8px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="logo"><a href="../">🚀 Peque<span>Misiones</span></a></div>
+    <h1>Generador de rejillas ABN para imprimir</h1>
+    <p class="sub">Gratis y sin descargar nada: elige, genera y dale a imprimir (o "guardar como PDF"). Con las columnas del método de verdad.</p>
+  </div>
+
+  <div class="controles">
+    <div class="campo">Operación
+      <select id="c-op"><option value="mezcla">Sumas y restas</option><option value="suma">Solo sumas</option><option value="resta">Solo restas</option></select>
+    </div>
+    <div class="campo">Nivel
+      <select id="c-nivel">
+        <option value="1">1 · Fáciles (alguna llevada)</option>
+        <option value="2" selected>2 · Con llevadas</option>
+        <option value="3">3 · Tres cifras</option>
+      </select>
+    </div>
+    <div class="campo">Cantidad
+      <select id="c-n"><option>6</option><option selected>9</option><option>12</option></select>
+    </div>
+    <button class="btn btn-lila" id="b-generar">🔄 Otra tanda</button>
+    <button class="btn btn-rosa" id="b-imprimir">🖨️ Imprimir / PDF</button>
+  </div>
+
+  <div class="fichas" id="fichas"></div>
+
+  <div class="cta no-print">
+    <b>¿Y si en vez de imprimirlas… se corrigieran solas?</b><br>
+    En <a href="../">PequeMisiones</a> estas mismas rejillas son interactivas: valida cualquier camino, anima sin frustrar y te cuenta cómo le fue.
+    <a href="../demo-primaria/">Prueba la demo gratis →</a>
+  </div>
+
+  <div class="faq no-print">
+    <details><summary>¿Qué es una rejilla ABN?</summary><p>Es la herramienta estrella del método ABN para sumar y restar: el niño va "poniendo" o "quitando" cantidades a su ritmo, en los saltos que él elija, apuntando en cada fila cuánto coge, cuánto le falta y cuánto lleva. No hay un único camino correcto: cualquier descomposición que llegue vale.</p></details>
+    <details><summary>¿Cómo se usa esta ficha?</summary><p>El enunciado va arriba (por ejemplo 47 + 25) y la rejilla vacía debajo. En la columna del medio se empieza escribiendo el número que "falta" (el segundo), y en la última el que "tengo" (el primero). Cada fila es un salto: pongo 20 → me faltan 5 → tengo 67… hasta que no falte nada.</p></details>
+    <details><summary>¿Puedo usarlas en clase o en casa?</summary><p>Sí, para lo que quieras: son gratuitas. Si las compartes, nos hace ilusión que menciones de dónde salieron 💛</p></details>
+  </div>
+
+  <footer>
+    Hecho por un padre para sus hijas · "ABN" se menciona como referencia a la metodología de cálculo abierto basado en números; proyecto no afiliado a sus autores ni editoriales · <a href="../" style="color:var(--tinta-suave);">PequeMisiones</a>
+  </footer>
+</div>
+
+<script>
+"use strict";
+function ri(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
+function conProb(p){ return Math.random() < p; }
+function llevaSuma(a,b){ return a%10 + b%10 >= 10; }
+function llevaResta(a,b){ return a%10 < b%10; }
+function mayorPrimero(a,b){ return a>=b ? [a,b] : [b,a]; }
+function genUna(op, nivel){
+  const quiereOp = op==="mezcla" ? (conProb(.5)?"suma":"resta") : op;
+  if(quiereOp==="suma"){
+    let a,b;
+    if(nivel===1){ do{ a=ri(12,58); b=ri(11,39); }while(a+b>89 || llevaSuma(a,b)!==conProb(.35)); }
+    else if(nivel===2){ do{ a=ri(24,88); b=ri(24,88); }while(a+b>160 || !llevaSuma(a,b)); }
+    else { do{ a=ri(125,459); b=ri(115,459); }while(a+b>899 || !llevaSuma(a,b)); }
+    [a,b] = mayorPrimero(a,b);
+    return {op:"suma", a, b};
+  }
+  let a,b;
+  if(nivel===1){ do{ a=ri(25,79); b=ri(11,a-12); }while(a-b<10 || llevaResta(a,b)!==conProb(.3)); }
+  else if(nivel===2){ do{ a=ri(41,99); b=ri(17,a-11); }while(a-b<10 || !llevaResta(a,b)); }
+  else { do{ a=ri(210,899); b=ri(105,a-105); }while(!llevaResta(a,b)); }
+  return {op:"resta", a, b};
+}
+function fichaHTML(e){
+  const headers = e.op==="suma" ? ["PONGO ✨","ME FALTA","TENGO 👑"] : ["QUITO ✂️","FALTA QUITAR","ME QUEDAN 👑"];
+  let filas = `<tr><td style="text-align:center; color:#9b8fc0;">—</td><td style="text-align:center; font-weight:800;">${e.b}</td><td style="text-align:center; font-weight:800;">${e.a}</td></tr>`;
+  for(let i=0;i<5;i++) filas += "<tr><td></td><td></td><td></td></tr>";
+  return `<div class="ficha"><div class="enun">${e.a} ${e.op==="suma"?"+":"−"} ${e.b}</div>
+    <table class="rejilla"><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr>${filas}</table></div>`;
+}
+function generar(){
+  const op = document.getElementById("c-op").value;
+  const nivel = parseInt(document.getElementById("c-nivel").value,10);
+  const n = parseInt(document.getElementById("c-n").value,10);
+  const vistos = new Set(), lista = [];
+  let guard = 0;
+  while(lista.length<n && guard++<400){
+    const e = genUna(op, nivel);
+    const k = e.op+e.a+"_"+e.b;
+    if(!vistos.has(k)){ vistos.add(k); lista.push(e); }
+  }
+  document.getElementById("fichas").innerHTML = lista.map(fichaHTML).join("");
+}
+document.getElementById("b-generar").addEventListener("click", generar);
+document.getElementById("b-imprimir").addEventListener("click", ()=>window.print());
+generar();
+</script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tabla del 100 interactiva (ABN) — jugar online y imprimir gratis</title>
+<meta name="description" content="La tabla del 100 interactiva para aprender los números como en el método ABN: toca un número y escucha su nombre, ve su familia y sus vecinos, pinta saltos de +1/−1/+10/−10, juega a encontrar números… y también se imprime, con o sin huecos.">
+<meta name="theme-color" content="#4b3b67">
+<link rel="icon" href="../demo-infantil/icon-192.png">
+<link rel="canonical" href="https://pietrusj-data.github.io/pequemisiones/tabla-100/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"Tabla del 100 interactiva","applicationCategory":"EducationalApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"inLanguage":"es","description":"Tabla del 100 interactiva y gratuita: familias, vecinos, saltos de 10 y juego de buscar números, con voz. También imprimible."}
+</script>
+<style>
+:root{
+  --rosa:#ff7bac; --rosa-osc:#e2578f; --lila:#a78bfa; --lila-osc:#8b6fe0; --lila-suave:#f0e9ff;
+  --oro:#ffc94d; --oro-osc:#e8a93e; --menta:#5fe0c0; --menta-osc:#3ec2a2; --tinta:#3d3660; --tinta-suave:#8a7ba8;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+body{margin:0; font-family:"Baloo 2","Segoe UI",system-ui,sans-serif; color:var(--tinta);
+  background:linear-gradient(170deg,#ffe9f3 0%,#f3e8ff 45%,#e0f2fe 100%); line-height:1.5;}
+.wrap{max-width:760px; margin:0 auto; padding:0 14px 40px;}
+h1{font-size:clamp(1.5rem,4.4vw,2.2rem); line-height:1.15; margin:.4em 0 .2em; font-weight:800; text-align:center;}
+.sub{color:var(--tinta-suave);}
+.top{text-align:center; padding:24px 0 4px;}
+.logo{font-weight:800;}
+.logo a{color:var(--tinta); text-decoration:none;}
+.logo span{color:var(--rosa-osc);}
+.modos{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:12px 0;}
+.modo{border:none; cursor:pointer; font-family:inherit; font-weight:800; border-radius:999px;
+  padding:9px 16px; font-size:.95rem; background:#fff; color:var(--tinta); box-shadow:0 3px 10px rgba(125,168,250,.18);}
+.modo.on{background:var(--lila); color:#fff; box-shadow:0 4px 0 var(--lila-osc);}
+.msg{text-align:center; font-weight:800; min-height:34px; font-size:1.1rem; margin:4px 0;}
+.tabla{display:grid; grid-template-columns:repeat(10,1fr); gap:4px; background:#fff; padding:10px;
+  border-radius:18px; box-shadow:0 8px 24px rgba(125,168,250,.16);}
+.celda{aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:9px;
+  border:2px solid var(--lila-suave); font-weight:800; font-size:clamp(.8rem,2.6vw,1.15rem);
+  cursor:pointer; user-select:none; background:#fff; transition:background .12s, border-color .12s;}
+.celda.activa{background:var(--oro); border-color:var(--oro-osc);}
+.celda.familia{background:#fff4d6;}
+.celda.vecino{background:var(--lila-suave); border-color:var(--lila);}
+.celda.camino{background:#e2fbf4; border-color:var(--menta-osc);}
+.celda.bien{background:var(--menta); border-color:var(--menta-osc); color:#fff;}
+.saltos{display:flex; gap:8px; justify-content:center; margin:12px 0;}
+.salto{border:none; cursor:pointer; font-family:inherit; font-weight:800; border-radius:14px; color:#fff;
+  font-size:1.1rem; padding:10px 16px; background:var(--menta); box-shadow:0 4px 0 var(--menta-osc);}
+.salto:active{transform:translateY(2px);}
+.acciones{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:14px 0;}
+.btn{border:none; cursor:pointer; font-family:inherit; font-weight:800; border-radius:16px; color:#fff;
+  font-size:1rem; padding:11px 18px;}
+.btn-rosa{background:var(--rosa); box-shadow:0 4px 0 var(--rosa-osc);}
+.btn-lila{background:var(--lila); box-shadow:0 4px 0 var(--lila-osc);}
+.cta{background:#fff; border-radius:22px; padding:18px 20px; box-shadow:0 8px 24px rgba(125,168,250,.16); margin:20px 0; text-align:center;}
+.cta a{color:var(--rosa-osc); font-weight:800;}
+.faq{background:#fff; border-radius:22px; padding:14px 20px; box-shadow:0 8px 24px rgba(125,168,250,.16); margin:14px 0;}
+details{margin:8px 0;} summary{font-weight:800; cursor:pointer;}
+footer{text-align:center; padding:22px; color:var(--tinta-suave); font-size:.85rem;}
+@media print{
+  body{background:#fff;}
+  .modos, .saltos, .acciones, .cta, .faq, footer, .msg, .sub{display:none !important;}
+  .tabla{box-shadow:none; gap:0; padding:0;}
+  .celda{border-radius:0; border:1px solid #999;}
+  .celda.hueco-print{color:transparent;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="logo"><a href="../">🚀 Peque<span>Misiones</span></a></div>
+    <h1>La tabla del 100 interactiva</h1>
+    <p class="sub">Toca, escucha y juega con los números del 0 al 99, con sus familias y sus vecinos — como en el método ABN. Y si la quieres en papel, imprímela con o sin huecos.</p>
+  </div>
+
+  <div class="modos">
+    <button class="modo on" data-m="explorar">👆 Explorar</button>
+    <button class="modo" data-m="saltos">🐸 Saltos</button>
+    <button class="modo" data-m="busca">🔍 ¡Encuéntralo!</button>
+  </div>
+  <p class="msg" id="msg">Toca cualquier número: dirá su nombre y verás su familia y sus vecinos</p>
+
+  <div class="tabla" id="tabla"></div>
+
+  <div class="saltos" id="saltos" style="display:none;">
+    <button class="salto" data-s="-10">−10</button>
+    <button class="salto" data-s="-1">−1</button>
+    <button class="salto" data-s="1">+1</button>
+    <button class="salto" data-s="10">+10</button>
+  </div>
+
+  <div class="acciones">
+    <button class="btn btn-lila" id="b-print-llena">🖨️ Imprimir tabla</button>
+    <button class="btn btn-lila" id="b-print-huecos">🖨️ Imprimir con huecos</button>
+  </div>
+
+  <div class="cta">
+    <b>¿Le gusta jugar con la tabla?</b> En <a href="../">PequeMisiones</a> la tabla del 100 es un juego con misiones, familias con intrusos, huecos que se completan con voz… <a href="../demo-infantil/">Prueba la demo infantil gratis →</a>
+  </div>
+
+  <div class="faq">
+    <details><summary>¿Qué son las "familias" y los "vecinos"?</summary><p>En el método ABN, la <b>familia</b> de un número son todos los que comparten decena (la familia del 30: del 30 al 39 — su fila en la tabla). Los <b>vecinos</b> son el anterior y el siguiente (los del 47 son el 46 y el 48). La tabla del 100 hace visibles esas relaciones: bajar una fila es +10, subir es −10.</p></details>
+    <details><summary>¿Cómo se usa el modo Saltos?</summary><p>Toca un número de salida y usa los botones +1, −1, +10 y −10: el camino se va pintando. Es la base del cálculo ABN: moverse por la tabla a saltos de dieces y unos.</p></details>
+    <details><summary>¿Para qué edad es?</summary><p>De 4 a 8 años aproximadamente: primero explorar y escuchar los nombres, después las familias y vecinos, y por último los saltos y el juego de buscar contrarreloj mental.</p></details>
+  </div>
+
+  <footer>
+    Hecho por un padre para sus hijas · "ABN" se menciona como referencia a la metodología de cálculo abierto basado en números; proyecto no afiliado a sus autores ni editoriales · <a href="../" style="color:var(--tinta-suave);">PequeMisiones</a>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+function ri(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
+let modo = "explorar", activo = null, objetivo = null;
+const celdas = {};
+function hablar(t){
+  try{
+    if(!window.speechSynthesis) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = "es-ES"; u.rate = .85;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function limpiar(clases){
+  Object.values(celdas).forEach(c=>clases.forEach(cl=>c.classList.remove(cl)));
+}
+function marcarEntorno(n){
+  limpiar(["activa","familia","vecino"]);
+  const dec = Math.floor(n/10)*10;
+  for(let v=dec; v<dec+10; v++) celdas[v].classList.add("familia");
+  if(n>0) celdas[n-1].classList.add("vecino");
+  if(n<99) celdas[n+1].classList.add("vecino");
+  celdas[n].classList.add("activa");
+}
+function nuevoObjetivo(){
+  objetivo = ri(1,99);
+  $("msg").textContent = "🔍 ¿Dónde está el "+objetivo+"?";
+  hablar("¿Dónde está el "+objetivo+"?");
+}
+function tocar(n){
+  if(modo==="explorar"){
+    marcarEntorno(n);
+    $("msg").textContent = n+" · familia del "+(Math.floor(n/10)*10 || "0-9")+" · vecinos "+(n>0?n-1:"—")+" y "+(n<99?n+1:"—");
+    hablar(String(n));
+  } else if(modo==="saltos"){
+    limpiar(["camino","activa"]);
+    activo = n;
+    celdas[n].classList.add("activa");
+    $("msg").textContent = "Estás en el "+n+". ¡Usa los saltos!";
+    hablar(String(n));
+  } else {
+    if(objetivo===null) return;
+    if(n===objetivo){
+      celdas[n].classList.add("bien");
+      $("msg").textContent = "🎉 ¡Sí! Era el "+n;
+      hablar("¡Muy bien! Era el "+n);
+      setTimeout(()=>{ celdas[n].classList.remove("bien"); nuevoObjetivo(); }, 1400);
+    } else {
+      $("msg").textContent = n+"… "+(n<objetivo ? "el "+objetivo+" es más grande ⬇️" : "el "+objetivo+" es más pequeño ⬆️");
+    }
+  }
+}
+function saltar(s){
+  if(modo!=="saltos" || activo===null){ $("msg").textContent = "Primero toca un número de salida 👆"; return; }
+  const destino = activo + s;
+  if(destino<0 || destino>99){ $("msg").textContent = "¡Ahí te sales de la tabla! 😄"; return; }
+  celdas[activo].classList.remove("activa");
+  celdas[activo].classList.add("camino");
+  activo = destino;
+  celdas[activo].classList.add("activa");
+  $("msg").textContent = (s>0?"+":"")+s+" → estás en el "+activo;
+  hablar(String(activo));
+}
+const tabla = $("tabla");
+for(let n=0; n<=99; n++){
+  const c = document.createElement("div");
+  c.className = "celda"; c.textContent = n;
+  c.addEventListener("pointerdown", e=>{ e.preventDefault(); tocar(n); });
+  tabla.appendChild(c); celdas[n] = c;
+}
+document.querySelectorAll(".modo").forEach(b=>b.addEventListener("click", ()=>{
+  modo = b.dataset.m;
+  document.querySelectorAll(".modo").forEach(x=>x.classList.toggle("on", x===b));
+  limpiar(["activa","familia","vecino","camino","bien"]);
+  activo = null; objetivo = null;
+  $("saltos").style.display = modo==="saltos" ? "flex" : "none";
+  if(modo==="explorar") $("msg").textContent = "Toca cualquier número: dirá su nombre y verás su familia y sus vecinos";
+  if(modo==="saltos") $("msg").textContent = "Toca un número de salida y muévete con los botones";
+  if(modo==="busca") nuevoObjetivo();
+}));
+document.querySelectorAll(".salto").forEach(b=>b.addEventListener("click", ()=>saltar(parseInt(b.dataset.s,10))));
+$("b-print-llena").addEventListener("click", ()=>{
+  Object.values(celdas).forEach(c=>c.classList.remove("hueco-print"));
+  window.print();
+});
+$("b-print-huecos").addEventListener("click", ()=>{
+  Object.values(celdas).forEach(c=>c.classList.remove("hueco-print"));
+  const huecos = new Set();
+  while(huecos.size<20) huecos.add(ri(1,99));
+  huecos.forEach(n=>celdas[n].classList.add("hueco-print"));
+  window.print();
+});
+</script>
+</body>
+</html>
