@@ -33,11 +33,16 @@ h1{font-size:clamp(1.5rem,4.4vw,2.2rem); line-height:1.15; margin:.4em 0 .2em; f
   padding:9px 16px; font-size:.95rem; background:#fff; color:var(--tinta); box-shadow:0 3px 10px rgba(125,168,250,.18);}
 .modo.on{background:var(--lila); color:#fff; box-shadow:0 4px 0 var(--lila-osc);}
 .msg{text-align:center; font-weight:800; min-height:34px; font-size:1.1rem; margin:4px 0;}
-.tabla{display:grid; grid-template-columns:repeat(10,1fr); gap:4px; background:#fff; padding:10px;
-  border-radius:18px; box-shadow:0 8px 24px rgba(125,168,250,.16);}
+.tabla-scroll{width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:18px;}
+.tabla{display:grid; grid-template-columns:repeat(10,minmax(44px,1fr)); gap:4px; background:#fff; padding:10px;
+  border-radius:18px; box-shadow:0 8px 24px rgba(125,168,250,.16); min-width:min-content;}
 .celda{aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:9px;
-  border:2px solid var(--lila-suave); font-weight:800; font-size:clamp(.8rem,2.6vw,1.15rem);
+  border:2px solid var(--lila-suave); font-weight:800; font-size:clamp(1rem,2.6vw,1.15rem);
   cursor:pointer; user-select:none; background:#fff; transition:background .12s, border-color .12s;}
+/* en móviles estrechos la tabla se desplaza en horizontal para que cada número
+   siga siendo tocable por un dedo infantil (44px mínimo) */
+.pista-scroll{display:none; text-align:center; color:var(--tinta-suave); font-size:.85rem; margin:6px 0 0;}
+@media (max-width:520px){ .pista-scroll{display:block;} }
 .celda.activa{background:var(--oro); border-color:var(--oro-osc);}
 .celda.familia{background:#fff4d6;}
 .celda.vecino{background:var(--lila-suave); border-color:var(--lila);}
@@ -59,8 +64,9 @@ details{margin:8px 0;} summary{font-weight:800; cursor:pointer;}
 footer{text-align:center; padding:22px; color:var(--tinta-suave); font-size:.85rem;}
 @media print{
   body{background:#fff;}
-  .modos, .saltos, .acciones, .cta, .faq, footer, .msg, .sub{display:none !important;}
-  .tabla{box-shadow:none; gap:0; padding:0;}
+  .modos, .saltos, .acciones, .cta, .faq, footer, .msg, .sub, .pista-scroll{display:none !important;}
+  .tabla-scroll{overflow:visible;}
+  .tabla{box-shadow:none; gap:0; padding:0; grid-template-columns:repeat(10,1fr); min-width:0;}
   .celda{border-radius:0; border:1px solid #999;}
   .celda.hueco-print{color:transparent;}
 }
@@ -81,7 +87,8 @@ footer{text-align:center; padding:22px; color:var(--tinta-suave); font-size:.85r
   </div>
   <p class="msg" id="msg">Toca cualquier número: dirá su nombre y verás su familia y sus vecinos</p>
 
-  <div class="tabla" id="tabla"></div>
+  <div class="tabla-scroll"><div class="tabla" id="tabla"></div></div>
+  <p class="pista-scroll no-print">👉 Desliza la tabla de lado para ver todos los números</p>
 
   <div class="saltos" id="saltos" style="display:none;">
     <button class="salto" data-s="-10">−10</button>

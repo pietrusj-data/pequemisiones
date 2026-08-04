@@ -89,6 +89,9 @@ input[type=text]{width:100%; font-family:inherit; font-size:1.4rem; text-align:c
   <p class="sub" id="hint-portal">Toca tu tarjeta para entrar en tu mundo</p>
   <p class="sub" style="font-size:.92rem;">👨‍👩‍👧 Código de familia: <b id="cod-familia">—</b>
     <button id="btn-cod-familia" style="border:none; background:none; color:var(--p2); font-weight:800; cursor:pointer; font-family:inherit; font-size:.92rem; text-decoration:underline;">cambiar</button></p>
+  <p class="sub" style="font-size:.86rem; max-width:460px;">💡 Para mandarle misiones desde tu móvil: abre esta misma página allí, pon el
+    <b>mismo código de familia</b> y crea la tarjeta con el <b>mismo nombre</b>. Se encontrarán solas —
+    sin cuentas, sin emails y sin que sepamos quién es.</p>
 </section>
 
 <!-- ══════════ WIZARD DE ALTA ══════════ -->
@@ -103,6 +106,7 @@ input[type=text]{width:100%; font-family:inherit; font-size:1.4rem; text-align:c
     <h2>¿Cómo te llamas?</h2>
     <p class="sub">Un nombre o apodo — solo se guarda en esta tablet</p>
     <input type="text" id="w-alias" maxlength="16" placeholder="Escribe tu nombre…" autocomplete="off" style="margin:14px 0;">
+    <p class="sub" id="w-aviso-alias" style="display:none; color:var(--p2osc); font-size:.95rem;">Ya hay una tarjeta con ese nombre en este dispositivo. Elige otro (por ejemplo, añade la inicial del apellido).</p>
     <div class="fila">
       <div class="opcion-grande" data-genero="nina"><span class="em">👧</span>Soy niña</div>
       <div class="opcion-grande" data-genero="nino"><span class="em">👦</span>Soy niño</div>
@@ -184,6 +188,7 @@ const JUEGOS_PREMIO = [
   {id:"dibujar", nombre:"🎨 Dibujar", def:false, listo:false}
 ];
 const esInfantil = c => c.startsWith("inf");
+/* clavePerfil() y keyDe() viven en temas.js (los comparten portal y motores) */
 const NIVEL_POR_CURSO = { inf3:1, inf4:2, inf5:3, pri1:1, pri2:2, pri3:3 };
 
 /* ── código de familia (opaco, cero datos personales): viaja con las misiones y permite vincular otra tablet ── */
@@ -254,7 +259,13 @@ function pintarPaso(){
 }
 function valida(){
   let ok = false;
-  if(W.paso===1) ok = $("w-alias").value.trim().length>=2 && !!W.genero;
+  if(W.paso===1){
+    const alias = $("w-alias").value.trim();
+    // dos peques con el mismo nombre compartirían identidad en el servidor
+    const repe = LSP.get("perfiles", []).some(p=>keyDe(p)===clavePerfil(alias));
+    ok = alias.length>=2 && !!W.genero && !repe;
+    $("w-aviso-alias").style.display = repe ? "block" : "none";
+  }
   if(W.paso===2) ok = !!W.curso;
   if(W.paso===3) ok = !!W.tema;
   if(W.paso===4) ok = W.modulos.size>=1;
@@ -339,6 +350,7 @@ $("w-sigue").addEventListener("click", ()=>{
   const cursoTxt = NOMBRES_CURSO[W.curso];
   const perfil = {
     id: "p" + Math.random().toString(36).slice(2,9),
+    key: clavePerfil(W.alias),   // identidad compartida entre dispositivos de la familia
     alias: W.alias.charAt(0).toUpperCase() + W.alias.slice(1),
     genero: W.genero,
     curso: W.curso,

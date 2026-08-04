@@ -280,6 +280,17 @@ textarea{resize:vertical; min-height:64px;}
   </div>
   <button class="btn btn-oro btn-grande" id="btn-diaria">🌞 La misión de hoy</button>
   <button class="btn btn-lila btn-grande" id="btn-jugar">🎮 Jugar</button>
+  <button class="btn btn-verde btn-grande" id="btn-premios">🎁 Mis premios</button>
+</section>
+
+<!-- PREMIOS (minijuegos + cofre, fuera del home para no saturarlo) -->
+<section class="screen" id="s-premios">
+  <div class="topbar">
+    <button class="icono-btn btn-volver">⬅️</button>
+    <span class="chip">⭐ <span class="estrellas-num2">0</span></span>
+  </div>
+  <div style="font-size:3.4rem;">🎁</div>
+  <h1>Mis premios</h1>
   <button class="btn btn-azul btn-grande" id="btn-globos">🎈 Globos <small style="font-size:1.05rem;">(3 ⭐)</small></button>
   <button class="btn btn-verde btn-grande" id="btn-mariposas">🦋 Mariposas <small style="font-size:1.05rem;">(6 ⭐)</small></button>
   <button class="btn btn-oro btn-grande" id="btn-cofre">🎀 Mi cofre</button>
@@ -521,7 +532,10 @@ const FEM = PERFIL.genero !== "nino";
 const JUEGOS_ACTIVOS = PERFIL.juegos || ["globos","mariposas"];
 /* código de familia opaco (LUNA-847): multi-familia sin datos personales */
 const FAMILIA = (function(){ try{ return JSON.parse(localStorage.getItem("pm_familia")) || "CASA-000"; }catch(e){ return "CASA-000"; } })();
-const FQ = "familia=eq."+encodeURIComponent(FAMILIA)+"&perfil=eq."+encodeURIComponent(PERFIL.id);
+/* la identidad del peque en el servidor es su NOMBRE normalizado, no un id local:
+   así el móvil de papá y la tablet del niño se encuentran con solo compartir el código */
+const PERFIL_KEY = keyDe(PERFIL);
+const FQ = "familia=eq."+encodeURIComponent(FAMILIA)+"&perfil=eq."+encodeURIComponent(PERFIL_KEY);
 /* ═══════════ CONFIG ═══════════ */
 const SUPA_URL  = "https://tyoavvibplxkevxkamsb.supabase.co";
 const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5b2F2dmlicGx4a2V2eGthbXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NDA4NTAsImV4cCI6MjA5MjQxNjg1MH0.x26xzz4nV3Umtj4_4SCPu9NXQRLDEh1xZeQgGk6adrQ";
@@ -529,8 +543,8 @@ const T_MISIONES="pm_misiones", T_RESULT="pm_resultados", T_INSIG="pm_insignias"
 
 /* ═══════════ ESTADO ═══════════ */
 const LS = {
-  get(k, def){ try{ const v = localStorage.getItem("pm_"+PERFIL.id+"_"+k); return v===null ? def : JSON.parse(v); }catch(e){ return def; } },
-  set(k, v){ try{ localStorage.setItem("pm_"+PERFIL.id+"_"+k, JSON.stringify(v)); }catch(e){} }
+  get(k, def){ try{ const v = localStorage.getItem("pm_"+PERFIL_KEY+"_"+k); return v===null ? def : JSON.parse(v); }catch(e){ return def; } },
+  set(k, v){ try{ localStorage.setItem("pm_"+PERFIL_KEY+"_"+k, JSON.stringify(v)); }catch(e){} }
 };
 const S = {
   nombre : LS.get("nombre", PERFIL.alias),
@@ -1852,7 +1866,7 @@ function finTanda(){
   const nuevas = chequearInsignias();
   S.premioGratis = true;
   enviarSeguro("insert", T_RESULT, {
-    familia: FAMILIA, perfil: PERFIL.id,
+    familia: FAMILIA, perfil: PERFIL_KEY,
     mision_id: Tanda.misionId, modo: Tanda.origen==="mision"?"mision":"libre",
     nivel: Tanda.nivel, aciertos, fallos: Tanda.fallosTotales,
     gemas: ganadas, tiempo_seg: seg,
@@ -1902,7 +1916,7 @@ function chequearInsignias(){
   INSIGNIAS.forEach(ins=>{
     if(!S.insig.includes(ins.k) && ins.check(S.stats)){
       S.insig.push(ins.k); nuevas.push(ins);
-      enviarSeguro("insert", T_INSIG, {familia: FAMILIA, perfil: PERFIL.id, clave:ins.k, nombre:ins.nombre});
+      enviarSeguro("insert", T_INSIG, {familia: FAMILIA, perfil: PERFIL_KEY, clave:ins.k, nombre:ins.nombre});
     }
   });
   if(nuevas.length) guardar();
@@ -1982,7 +1996,7 @@ function startGlobos(gratis){
     }
     S.estrellas -= 3; guardar(); actualizarEstrellas();
   }
-  Globos.retorno = pantallaActual==="s-resumen" ? "s-resumen" : "s-home";
+  Globos.retorno = pantallaActual==="s-resumen" ? "s-resumen" : pantallaActual==="s-premios" ? "s-premios" : "s-home";
   S.premioGratis = false;
   $("btn-premio-globos").classList.add("oculto");
   $("btn-premio-mariposas").classList.add("oculto");
@@ -2042,7 +2056,7 @@ function endGlobos(abandonado){
   }
   guardar();
   chequearInsignias();
-  setTimeout(()=>go(Globos.retorno==="s-resumen" ? "s-resumen" : "s-home"), abandonado ? 0 : 1700);
+  setTimeout(()=>go(Globos.retorno), abandonado ? 0 : 1700);
 }
 
 /* ═══════════ CAZAMARIPOSAS 🦋 (con red de verdad) ═══════════ */
@@ -2069,7 +2083,7 @@ function startMariposas(gratis){
     }
     S.estrellas -= 6; guardar(); actualizarEstrellas();
   }
-  Mari.retorno = pantallaActual==="s-resumen" ? "s-resumen" : "s-home";
+  Mari.retorno = pantallaActual==="s-resumen" ? "s-resumen" : pantallaActual==="s-premios" ? "s-premios" : "s-home";
   S.premioGratis = false;
   $("btn-premio-globos").classList.add("oculto");
   $("btn-premio-mariposas").classList.add("oculto");
@@ -2157,7 +2171,7 @@ function endMariposas(abandonado){
   }
   guardar();
   chequearInsignias();
-  setTimeout(()=>go(Mari.retorno==="s-resumen" ? "s-resumen" : "s-home"), abandonado ? 0 : 1700);
+  setTimeout(()=>go(Mari.retorno), abandonado ? 0 : 1700);
 }
 addEventListener("pointerup", ()=>Mari.activo = false);
 
@@ -2234,7 +2248,7 @@ async function enviarMision(){
     nivel: Papa.nivel, ejercicios: Papa.preview, estado: "pendiente"
   };
   $("btn-enviar").disabled = true;
-  const r = await enviarSeguro("insert", T_MISIONES, {...fila, familia: FAMILIA, perfil: PERFIL.id});
+  const r = await enviarSeguro("insert", T_MISIONES, {...fila, familia: FAMILIA, perfil: PERFIL_KEY});
   $("btn-enviar").disabled = false;
   const okBox = $("papa-envio-ok");
   okBox.classList.remove("oculto");
@@ -2350,6 +2364,7 @@ $("btn-portada").addEventListener("click", ()=>{
 });
 $("btn-misiones").addEventListener("click", ()=>go("s-misiones"));
 $("btn-jugar").addEventListener("click", ()=>go("s-elegir"));
+$("btn-premios").addEventListener("click", ()=>{ go("s-premios"); hablar("¡Tus premios! Los ganas jugando."); });
 $("btn-diaria").addEventListener("click", ()=>{
   if(limiteAlcanzado()){ despedidaLimite(); return; }
   tocaHoy();

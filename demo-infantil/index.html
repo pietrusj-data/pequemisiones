@@ -281,6 +281,17 @@ textarea{resize:vertical; min-height:64px;}
   </div>
   <button class="btn btn-oro btn-grande" id="btn-diaria">🌞 La misión de hoy</button>
   <button class="btn btn-lila btn-grande" id="btn-jugar">🎮 Jugar</button>
+  <button class="btn btn-verde btn-grande" id="btn-premios">🎁 Mis premios</button>
+</section>
+
+<!-- PREMIOS (minijuegos + cofre, fuera del home para no saturarlo) -->
+<section class="screen" id="s-premios">
+  <div class="topbar">
+    <button class="icono-btn btn-volver">⬅️</button>
+    <span class="chip">⭐ <span class="estrellas-num2">0</span></span>
+  </div>
+  <div style="font-size:3.4rem;">🎁</div>
+  <h1>Mis premios</h1>
   <button class="btn btn-azul btn-grande" id="btn-globos">🎈 Globos <small style="font-size:1.05rem;">(3 ⭐)</small></button>
   <button class="btn btn-verde btn-grande" id="btn-mariposas">🦋 Mariposas <small style="font-size:1.05rem;">(6 ⭐)</small></button>
   <button class="btn btn-oro btn-grande" id="btn-cofre">🎀 Mi cofre</button>
@@ -1973,7 +1984,7 @@ function startGlobos(gratis){
     }
     S.estrellas -= 3; guardar(); actualizarEstrellas();
   }
-  Globos.retorno = pantallaActual==="s-resumen" ? "s-resumen" : "s-home";
+  Globos.retorno = pantallaActual==="s-resumen" ? "s-resumen" : pantallaActual==="s-premios" ? "s-premios" : "s-home";
   S.premioGratis = false;
   $("btn-premio-globos").classList.add("oculto");
   $("btn-premio-mariposas").classList.add("oculto");
@@ -2033,7 +2044,7 @@ function endGlobos(abandonado){
   }
   guardar();
   chequearInsignias();
-  setTimeout(()=>go(Globos.retorno==="s-resumen" ? "s-resumen" : "s-home"), abandonado ? 0 : 1700);
+  setTimeout(()=>go(Globos.retorno), abandonado ? 0 : 1700);
 }
 
 /* ═══════════ CAZAMARIPOSAS 🦋 (con red de verdad) ═══════════ */
@@ -2059,7 +2070,7 @@ function startMariposas(gratis){
     }
     S.estrellas -= 6; guardar(); actualizarEstrellas();
   }
-  Mari.retorno = pantallaActual==="s-resumen" ? "s-resumen" : "s-home";
+  Mari.retorno = pantallaActual==="s-resumen" ? "s-resumen" : pantallaActual==="s-premios" ? "s-premios" : "s-home";
   S.premioGratis = false;
   $("btn-premio-globos").classList.add("oculto");
   $("btn-premio-mariposas").classList.add("oculto");
@@ -2147,7 +2158,7 @@ function endMariposas(abandonado){
   }
   guardar();
   chequearInsignias();
-  setTimeout(()=>go(Mari.retorno==="s-resumen" ? "s-resumen" : "s-home"), abandonado ? 0 : 1700);
+  setTimeout(()=>go(Mari.retorno), abandonado ? 0 : 1700);
 }
 addEventListener("pointerup", ()=>Mari.activo = false);
 
@@ -2340,6 +2351,7 @@ $("btn-portada").addEventListener("click", ()=>{
 });
 $("btn-misiones").addEventListener("click", ()=>go("s-misiones"));
 $("btn-jugar").addEventListener("click", ()=>go("s-elegir"));
+$("btn-premios").addEventListener("click", ()=>{ go("s-premios"); hablar("¡Tus premios! Los ganas jugando."); });
 $("btn-diaria").addEventListener("click", ()=>{
   if(limiteAlcanzado()){ despedidaLimite(); return; }
   tocaHoy();

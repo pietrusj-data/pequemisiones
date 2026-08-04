@@ -111,3 +111,14 @@ function aplicarTema(tema) {
 function conc(perfil, femenino, masculino) {
   return perfil.genero === "nina" ? femenino : masculino;
 }
+
+/* Clave estable del peque, derivada de su nombre.
+   Es lo que viaja al servidor junto al código de familia: así la MISMA tarjeta
+   creada en otro dispositivo (el móvil de papá) apunta al mismo peque que la
+   tablet del niño, sin cuentas ni datos personales. */
+function clavePerfil(s) {
+  return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]/g, "").slice(0, 24) || "peque";
+}
+/* Un perfil puede venir de antes de que existiera `key`: se recalcula del alias */
+function keyDe(perfil) { return (perfil && perfil.key) || clavePerfil(perfil && perfil.alias); }

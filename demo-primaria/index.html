@@ -279,9 +279,21 @@ textarea{resize:vertical; min-height:64px;}
   </div>
   <button class="btn btn-menta btn-grande" style="max-width:480px;" id="btn-diaria">🌞 La misión de hoy</button>
   <button class="btn btn-lila btn-grande" style="max-width:480px;" id="btn-libre">🎮 Juego libre</button>
-  <button class="btn btn-oro btn-grande" style="max-width:480px;" id="btn-joyero">👑 Mi joyero real</button>
+  <button class="btn btn-oro btn-grande" style="max-width:480px;" id="btn-premios">🎁 Mis premios</button>
+</section>
+
+<!-- ══════════ PANTALLA: PREMIOS (minijuegos + joyero) ══════════ -->
+<section class="screen" id="s-premios">
+  <div class="topbar">
+    <button class="icono-btn btn-volver">⬅️</button>
+    <span class="chip">💎 <span class="num gemas-num2">0</span></span>
+  </div>
+  <div style="font-size:3.4rem;">🎁</div>
+  <h1>Mis premios</h1>
+  <p class="sub">Se ganan haciendo ejercicios ✨</p>
   <button class="btn btn-cielo btn-grande" style="max-width:480px;" id="btn-globos">🎈 Explotar globos <small style="font-size:.95rem;">(5 💎)</small></button>
   <button class="btn btn-menta btn-grande" style="max-width:480px;" id="btn-mariposas">🦋 Cazar mariposas <small style="font-size:.95rem;">(10 💎)</small></button>
+  <button class="btn btn-oro btn-grande" style="max-width:480px;" id="btn-joyero">👑 Mi joyero real</button>
 </section>
 
 <!-- ══════════ PANTALLA: MISIONES ══════════ -->
@@ -2270,7 +2282,7 @@ function startGlobos(gratis){
     if(S.gemas<5){ hada("Necesitas 5 gemas 💎 ¡Haz una misión o juega libre para ganarlas!"); sfx.mal(); return; }
     S.gemas -= 5; guardar();
   }
-  Globos.retorno = pantallaActual==="s-resumen" ? "s-resumen" : "s-home";
+  Globos.retorno = pantallaActual==="s-resumen" ? "s-resumen" : pantallaActual==="s-premios" ? "s-premios" : "s-home";
   S.premioGratis = false;
   $("btn-premio-globos").classList.add("oculto");
   $("btn-premio-mariposas").classList.add("oculto");
@@ -2330,7 +2342,7 @@ function endGlobos(abandonado){
   guardar();
   const nuevas = chequearInsignias();
   setTimeout(()=>{
-    go(Globos.retorno==="s-resumen" ? "s-resumen" : "s-home");
+    go(Globos.retorno);
     if(nuevas.length) hada("¡Insignia nueva en tu joyero! 👑✨", 4000);
   }, abandonado ? 0 : 1600);
 }
@@ -2356,7 +2368,7 @@ function startMariposas(gratis){
     if(S.gemas<10){ hada("Las mariposas cuestan 10 gemas 💎 ¡Son para princesas que se esfuerzan mucho! Haz misiones para ganarlas 💪"); sfx.mal(); return; }
     S.gemas -= 10; guardar();
   }
-  Mari.retorno = pantallaActual==="s-resumen" ? "s-resumen" : "s-home";
+  Mari.retorno = pantallaActual==="s-resumen" ? "s-resumen" : pantallaActual==="s-premios" ? "s-premios" : "s-home";
   S.premioGratis = false;
   $("btn-premio-globos").classList.add("oculto");
   $("btn-premio-mariposas").classList.add("oculto");
@@ -2444,7 +2456,7 @@ function endMariposas(abandonado){
   guardar(); actualizarGemas();
   const nuevas = chequearInsignias();
   setTimeout(()=>{
-    go(Mari.retorno==="s-resumen" ? "s-resumen" : "s-home");
+    go(Mari.retorno);
     if(nuevas.length) hada("¡Insignia nueva en tu joyero! 👑✨", 4000);
   }, abandonado ? 0 : 1600);
 }
@@ -2647,6 +2659,7 @@ $("btn-diaria").addEventListener("click", ()=>{
   startTanda({origen:"libre", diaria:true, titulo:"Misión del día 🌞", ejercicios:genMisionDiaria(), nivel:2});
 });
 $("btn-joyero").addEventListener("click", ()=>go("s-joyero"));
+$("btn-premios").addEventListener("click", ()=>go("s-premios"));
 $("btn-globos").addEventListener("click", ()=>startGlobos(false));
 $("btn-refrescar").addEventListener("click", ()=>{ sfx.click(); refrescarMisiones(false); });
 $("btn-papa").addEventListener("click", abrirPin);

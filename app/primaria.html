@@ -278,9 +278,21 @@ textarea{resize:vertical; min-height:64px;}
   </div>
   <button class="btn btn-menta btn-grande" style="max-width:480px;" id="btn-diaria">🌞 La misión de hoy</button>
   <button class="btn btn-lila btn-grande" style="max-width:480px;" id="btn-libre">🎮 Juego libre</button>
-  <button class="btn btn-oro btn-grande" style="max-width:480px;" id="btn-joyero">👑 Mi joyero real</button>
+  <button class="btn btn-oro btn-grande" style="max-width:480px;" id="btn-premios">🎁 Mis premios</button>
+</section>
+
+<!-- ══════════ PANTALLA: PREMIOS (minijuegos + joyero) ══════════ -->
+<section class="screen" id="s-premios">
+  <div class="topbar">
+    <button class="icono-btn btn-volver">⬅️</button>
+    <span class="chip">💎 <span class="num gemas-num2">0</span></span>
+  </div>
+  <div style="font-size:3.4rem;">🎁</div>
+  <h1>Mis premios</h1>
+  <p class="sub">Se ganan haciendo ejercicios ✨</p>
   <button class="btn btn-cielo btn-grande" style="max-width:480px;" id="btn-globos">🎈 Explotar globos <small style="font-size:.95rem;">(5 💎)</small></button>
   <button class="btn btn-menta btn-grande" style="max-width:480px;" id="btn-mariposas">🦋 Cazar mariposas <small style="font-size:.95rem;">(10 💎)</small></button>
+  <button class="btn btn-oro btn-grande" style="max-width:480px;" id="btn-joyero">👑 Mi joyero real</button>
 </section>
 
 <!-- ══════════ PANTALLA: MISIONES ══════════ -->
@@ -527,7 +539,10 @@ const FEM = PERFIL.genero !== "nino";
 const JUEGOS_ACTIVOS = PERFIL.juegos || ["globos","mariposas"];
 /* código de familia opaco (LUNA-847): multi-familia sin datos personales */
 const FAMILIA = (function(){ try{ return JSON.parse(localStorage.getItem("pm_familia")) || "CASA-000"; }catch(e){ return "CASA-000"; } })();
-const FQ = "familia=eq."+encodeURIComponent(FAMILIA)+"&perfil=eq."+encodeURIComponent(PERFIL.id);
+/* la identidad del peque en el servidor es su NOMBRE normalizado, no un id local:
+   así el móvil de papá y la tablet del niño se encuentran con solo compartir el código */
+const PERFIL_KEY = keyDe(PERFIL);
+const FQ = "familia=eq."+encodeURIComponent(FAMILIA)+"&perfil=eq."+encodeURIComponent(PERFIL_KEY);
 /* ═══════════════ CONFIG ═══════════════ */
 const SUPA_URL  = "https://tyoavvibplxkevxkamsb.supabase.co";
 const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5b2F2dmlicGx4a2V2eGthbXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NDA4NTAsImV4cCI6MjA5MjQxNjg1MH0.x26xzz4nV3Umtj4_4SCPu9NXQRLDEh1xZeQgGk6adrQ";
@@ -535,8 +550,8 @@ const T_MISIONES="pm_misiones", T_RESULT="pm_resultados", T_INSIG="pm_insignias"
 
 /* ═══════════════ ESTADO ═══════════════ */
 const LS = {
-  get(k, def){ try{ const v = localStorage.getItem("pm_"+PERFIL.id+"_"+k); return v===null ? def : JSON.parse(v); }catch(e){ return def; } },
-  set(k, v){ try{ localStorage.setItem("pm_"+PERFIL.id+"_"+k, JSON.stringify(v)); }catch(e){} }
+  get(k, def){ try{ const v = localStorage.getItem("pm_"+PERFIL_KEY+"_"+k); return v===null ? def : JSON.parse(v); }catch(e){ return def; } },
+  set(k, v){ try{ localStorage.setItem("pm_"+PERFIL_KEY+"_"+k, JSON.stringify(v)); }catch(e){} }
 };
 const S = {
   nombre : LS.get("nombreCustom", "") || PERFIL.alias,
@@ -2138,7 +2153,7 @@ function finTanda(){
 
   // enviar a papá
   enviarSeguro("insert", T_RESULT, {
-    familia: FAMILIA, perfil: PERFIL.id,
+    familia: FAMILIA, perfil: PERFIL_KEY,
     mision_id: Tanda.misionId, modo: Tanda.origen==="mision"?"mision":"libre",
     nivel: Tanda.nivel, aciertos: aciertos, fallos: Tanda.fallosTotales,
     gemas: ganadas, tiempo_seg: seg,
@@ -2195,7 +2210,7 @@ function chequearInsignias(){
     if(!S.insig.includes(ins.k) && ins.check(S.stats)){
       S.insig.push(ins.k);
       nuevas.push(ins);
-      enviarSeguro("insert", T_INSIG, {familia: FAMILIA, perfil: PERFIL.id, clave:ins.k, nombre:ins.nombre});
+      enviarSeguro("insert", T_INSIG, {familia: FAMILIA, perfil: PERFIL_KEY, clave:ins.k, nombre:ins.nombre});
     }
   });
   if(nuevas.length) guardar();
@@ -2279,7 +2294,7 @@ function startGlobos(gratis){
     if(S.gemas<5){ hada("Necesitas 5 gemas 💎 ¡Haz una misión o juega libre para ganarlas!"); sfx.mal(); return; }
     S.gemas -= 5; guardar();
   }
-  Globos.retorno = pantallaActual==="s-resumen" ? "s-resumen" : "s-home";
+  Globos.retorno = pantallaActual==="s-resumen" ? "s-resumen" : pantallaActual==="s-premios" ? "s-premios" : "s-home";
   S.premioGratis = false;
   $("btn-premio-globos").classList.add("oculto");
   $("btn-premio-mariposas").classList.add("oculto");
@@ -2339,7 +2354,7 @@ function endGlobos(abandonado){
   guardar();
   const nuevas = chequearInsignias();
   setTimeout(()=>{
-    go(Globos.retorno==="s-resumen" ? "s-resumen" : "s-home");
+    go(Globos.retorno);
     if(nuevas.length) hada("¡Insignia nueva en tu joyero! 👑✨", 4000);
   }, abandonado ? 0 : 1600);
 }
@@ -2366,7 +2381,7 @@ function startMariposas(gratis){
     if(S.gemas<10){ hada("Las mariposas cuestan 10 gemas 💎 ¡Son para peques que se esfuerzan mucho! Haz misiones para ganarlas 💪"); sfx.mal(); return; }
     S.gemas -= 10; guardar();
   }
-  Mari.retorno = pantallaActual==="s-resumen" ? "s-resumen" : "s-home";
+  Mari.retorno = pantallaActual==="s-resumen" ? "s-resumen" : pantallaActual==="s-premios" ? "s-premios" : "s-home";
   S.premioGratis = false;
   $("btn-premio-globos").classList.add("oculto");
   $("btn-premio-mariposas").classList.add("oculto");
@@ -2454,7 +2469,7 @@ function endMariposas(abandonado){
   guardar(); actualizarGemas();
   const nuevas = chequearInsignias();
   setTimeout(()=>{
-    go(Mari.retorno==="s-resumen" ? "s-resumen" : "s-home");
+    go(Mari.retorno);
     if(nuevas.length) hada("¡Insignia nueva en tu joyero! 👑✨", 4000);
   }, abandonado ? 0 : 1600);
 }
@@ -2540,7 +2555,7 @@ async function enviarMision(){
     estado: "pendiente"
   };
   $("btn-enviar").disabled = true;
-  const r = await enviarSeguro("insert", T_MISIONES, {...fila, familia: FAMILIA, perfil: PERFIL.id});
+  const r = await enviarSeguro("insert", T_MISIONES, {...fila, familia: FAMILIA, perfil: PERFIL_KEY});
   $("btn-enviar").disabled = false;
   const okBox = $("papa-envio-ok");
   okBox.classList.remove("oculto");
@@ -2657,6 +2672,7 @@ $("btn-diaria").addEventListener("click", ()=>{
   startTanda({origen:"libre", diaria:true, titulo:"Misión del día 🌞", ejercicios:genMisionDiaria(), nivel:2});
 });
 $("btn-joyero").addEventListener("click", ()=>go("s-joyero"));
+$("btn-premios").addEventListener("click", ()=>go("s-premios"));
 $("btn-globos").addEventListener("click", ()=>startGlobos(false));
 $("btn-refrescar").addEventListener("click", ()=>{ sfx.click(); refrescarMisiones(false); });
 $("btn-papa").addEventListener("click", abrirPin);
