@@ -2232,7 +2232,8 @@ function pintarJoyero(){
 /* ═══════════════ MISIONES (lado niña) ═══════════════ */
 let MisionesCache = [], HechasCache = [], misionesSig = null;
 async function refrescarMisiones(silencio){
-  const r = await sbSelect(T_MISIONES, "select=*&estado=eq.pendiente&"+FQ+"&order=created_at.desc&limit=20");
+  // revision=aprobada: el peque solo ve misiones cuyo mensaje pasó la comprobación del servidor
+  const r = await sbSelect(T_MISIONES, "select=*&estado=eq.pendiente&revision=eq.aprobada&"+FQ+"&order=created_at.desc&limit=20");
   if(r.ok && Array.isArray(r.data)){
     MisionesCache = r.data.filter(m=>!S.hechasLocal.includes(m.id));
     const h = await sbSelect(T_MISIONES, "select=id,titulo,hecha_at&estado=eq.hecha&"+FQ+"&order=hecha_at.desc&limit=5");
@@ -2562,7 +2563,9 @@ async function enviarMision(){
   const okBox = $("papa-envio-ok");
   okBox.classList.remove("oculto");
   if(r.ok){
-    okBox.textContent = "🚀 ¡Misión enviada! Le aparecerá en la tablet en menos de 1 minuto.";
+    okBox.textContent = fila.mensaje
+      ? "🚀 ¡Misión enviada! Comprobamos el mensaje un momento y le aparecerá en la tablet enseguida."
+      : "🚀 ¡Misión enviada! Le aparecerá en la tablet en menos de 1 minuto.";
     $("papa-preview").classList.add("oculto");
     Papa.preview = null; $("papa-msj").value = "";
   } else if(r.status===0 || r.status>=500){
@@ -2621,7 +2624,11 @@ async function cargarResultados(){
       const m = it.m;
       const estado = m.estado==="hecha"
         ? `<span class="tag tag-ok">✅ hecha</span>` : `<span class="tag tag-meh">⏳ pendiente</span>`;
-      cab = `<b>📜 ${m.titulo||"Misión"}</b> <small>${fechaCorta(m.created_at)} · nivel ${m.nivel} · ${m.ejercicios.length} ej.</small> ${estado}`;
+      /* revisión del mensaje (moderación en servidor): el peque solo ve las aprobadas */
+      const rev = m.revision==="retenida"
+        ? `<span class="tag tag-ayuda">✋ mensaje retenido${m.revision_motivo ? ": "+m.revision_motivo : ""}</span>`
+        : m.revision==="pendiente" ? `<span class="tag tag-meh">🔎 comprobando mensaje…</span>` : "";
+      cab = `<b>📜 ${m.titulo||"Misión"}</b> <small>${fechaCorta(m.created_at)} · nivel ${m.nivel} · ${m.ejercicios.length} ej.</small> ${estado} ${rev}`;
       if(r) cab += ` <span style="margin-left:auto; font-weight:800;">${r.aciertos}/${m.ejercicios.length} solas · ${r.fallos} fallos · ${Math.max(1,Math.round(r.tiempo_seg/60))} min · ${r.gemas}💎</span>`;
     } else {
       cab = `<b>🎮 Práctica libre</b> <small>${fechaCorta(r.created_at)} · nivel ${r.nivel}</small>
