@@ -349,6 +349,7 @@ textarea{resize:vertical; min-height:64px;}
     <div class="progreso"><span id="prog-txt">1/5</span>
       <div class="pbar"><div id="prog-fill" style="width:10%;"></div></div>
     </div>
+    <button class="chip" id="btn-pista" style="border:0; cursor:pointer; font-family:inherit;">💡 Pista</button>
     <span class="chip">💎 <span class="num gemas-num2">0</span></span>
   </div>
   <div id="zona-ejercicio" class="w100" style="display:flex; flex-direction:column; align-items:center; gap:10px;"></div>
@@ -465,8 +466,13 @@ textarea{resize:vertical; min-height:64px;}
       <input type="range" id="papa-cant" min="4" max="20" value="8">
     </div>
     <div class="form-linea">
-      <label>Mensaje para ella (opcional)</label>
-      <textarea id="papa-msj" maxlength="300" placeholder="¡Hola campeona! A ver si superas esta misión 💪"></textarea>
+      <label>Mensaje para tu peque (opcional — la app se lo lee en voz alta 💌)</label>
+      <textarea id="papa-msj" maxlength="140" placeholder="¡Hola! A ver si superas esta misión 💪"></textarea>
+      <div class="chips" id="papa-frases" style="margin-top:8px;"></div>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px;">
+        <button class="chip-sel" type="button" id="btn-oir-msj">🔊 Oír cómo le sonará</button>
+        <small style="color:var(--tinta-suave); text-align:left;">Los mensajes no son privados: los ven todos los adultos con el código de la familia.</small>
+      </div>
     </div>
     <button class="btn btn-lila w100" id="btn-generar">🔍 Generar vista previa</button>
     <div id="papa-preview" class="oculto" style="margin-top:12px;">
@@ -1122,6 +1128,39 @@ function ejCompletado(){
     else finTanda();
   }, EjState.ayudado ? 2000 : 1700);
 }
+
+/* ═══════════════ AYUDANTE DE PISTAS (D-07 fase 2) ═══════════════
+   Pista de MÉTODO generada en el servidor (función `ayudante` + Haiku): nunca el
+   resultado. No cuenta como ayudado ni toca gemas/maestría; repetir el toque en el
+   mismo ejercicio repite la misma pista sin volver a llamar. Queda registrada en
+   pm_dudas y el padre la ve en Resultados. */
+let PistaBusy = false;
+async function pedirPista(){
+  if(!Tanda || PistaBusy) return;
+  const ej = Tanda.list[Tanda.idx]; if(!ej) return;
+  Tanda.pistas = Tanda.pistas || {};
+  const ya = Tanda.pistas[Tanda.idx];
+  if(ya){ hada(ya, 7000); hablar(ya); return; }
+  PistaBusy = true;
+  const btn = $("btn-pista"); if(btn){ btn.disabled = true; btn.textContent = "💭…"; }
+  try{
+    const r = await fetch(SUPA_URL+"/functions/v1/ayudante", {
+      method: "POST",
+      headers: {"Content-Type":"application/json", "Authorization":"Bearer "+SUPA_ANON, "apikey":SUPA_ANON},
+      body: JSON.stringify({familia: FAMILIA, perfil: PERFIL_KEY, tipo: ej.t,
+        enunciado: tituloEj(ej).slice(0,180), nivel: Tanda.nivel||2, mascota: TEMA.mascota.nombre})
+    });
+    const d = r.ok ? await r.json() : null;
+    const p = (d && d.pista) ? d.pista : "Respira hondo y ve pasito a pasito, ¡tú puedes! ✨";
+    Tanda.pistas[Tanda.idx] = p;
+    hada(p, 7000); hablar(p);
+  }catch(e){
+    hada("Ahora no me salen las palabras… ¡pero tú puedes! 💪", 4000);
+  }
+  PistaBusy = false;
+  const b2 = $("btn-pista"); if(b2){ b2.disabled = false; b2.textContent = "💡 Pista"; }
+}
+$("btn-pista").addEventListener("click", pedirPista);
 
 /* ═══════════════ RENDER: REJILLA ABN ═══════════════ */
 function celdaTd(clase, texto){
@@ -2547,6 +2586,33 @@ function generarPreview(){
   }).join("");
   $("papa-preview").classList.remove("oculto");
 }
+/* Capa A del canal de mensajes (D-07): frases listas para tocar, tope corto y escucha previa */
+const FRASES_PAPA = ["¡Ánimo! 💪","Te quiero mucho ❤️","¡Qué ganas de ver cómo te sale! 🌟","Hoy, poquito y bien 🌈","¡A por la misión! 🚀","Cuando acabes, me llamas 📞"];
+function oirMensaje(){
+  const v = $("papa-msj").value.trim() || $("papa-msj").placeholder;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(v);
+    u.lang = "es-ES"; u.rate = 0.95; u.pitch = 1.15;
+    const voz = speechSynthesis.getVoices().find(x=>x.lang && x.lang.startsWith("es"));
+    if(voz) u.voice = voz;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+(function(){
+  const cont = $("papa-frases"); if(!cont) return;
+  FRASES_PAPA.forEach(f=>{
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip-sel"; b.textContent = f;
+    b.addEventListener("click", ()=>{
+      const t = $("papa-msj"); const v = t.value.trim();
+      t.value = ((v ? v+" " : "")+f).slice(0,140);
+      t.focus();
+    });
+    cont.appendChild(b);
+  });
+  $("btn-oir-msj").addEventListener("click", oirMensaje);
+})();
 async function enviarMision(){
   if(!Papa.preview) return;
   const hoy = new Date();
@@ -2615,6 +2681,19 @@ async function cargarResultados(){
     }).join("");
     cont.appendChild(bloque);
   }
+  // pistas pedidas a la mascota (tabla pm_dudas, la escribe solo el servidor)
+  try{
+    const rd = await sbSelect("pm_dudas", "select=created_at,tipo,enunciado,pista&"+FQ+"&order=created_at.desc&limit=15");
+    if(rd.ok && Array.isArray(rd.data) && rd.data.length){
+      const bd = document.createElement("div");
+      bd.style.cssText = "background:var(--lila-suave); border-radius:12px; padding:10px 14px; margin-bottom:12px;";
+      bd.innerHTML = `<b>💡 Pistas que ha pedido a ${TEMA.mascota.nombre} ${TEMA.mascota.emoji}</b>` + rd.data.map(x=>
+        `<div style="padding:4px 0; font-size:.92rem;">
+          <span style="font-weight:800;">${fechaCorta(x.created_at)}</span> · ${x.enunciado||x.tipo}<br>
+          <span style="color:var(--tinta-suave);">→ ${x.pista}</span></div>`).join("");
+      cont.appendChild(bd);
+    }
+  }catch(e){}
   items.forEach(it=>{
     const card = document.createElement("div");
     card.className = "res-card";
@@ -2646,7 +2725,10 @@ async function cargarResultados(){
           <span style="margin-left:auto;">${tag}</span></div>`;
       }).join("");
     }
-    card.innerHTML = `<div class="cab">${cab}</div>` + (det?`<div class="res-det">${det}</div>`:"");
+    /* transparencia entre cuidadores (capa B): el mensaje enviado queda visible en el histórico */
+    const msj = (it.tipo==="mision" && it.m.mensaje)
+      ? `<div class="sub" style="text-align:left; margin:4px 0 0;">💬 «${it.m.mensaje}»</div>` : "";
+    card.innerHTML = `<div class="cab">${cab}</div>` + msj + (det?`<div class="res-det">${det}</div>`:"");
     if(det){
       card.querySelector(".cab").addEventListener("click", ()=>
         card.querySelector(".res-det").classList.toggle("ver"));

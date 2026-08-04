@@ -451,8 +451,13 @@ textarea{resize:vertical; min-height:64px;}
       <input type="range" id="papa-cant" min="4" max="10" value="6">
     </div>
     <div class="form-linea">
-      <label>Mensaje para ella (¡la app se lo lee en voz alta! 💌)</label>
-      <textarea id="papa-msj" maxlength="300" placeholder="¡Hola mi amor! Papá te manda estos juegos 💛"></textarea>
+      <label>Mensaje para tu peque (¡la app se lo lee en voz alta! 💌)</label>
+      <textarea id="papa-msj" maxlength="140" placeholder="¡Hola mi amor! Papá te manda estos juegos 💛"></textarea>
+      <div class="chips" id="papa-frases" style="margin-top:8px;"></div>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px;">
+        <button class="chip-sel" type="button" id="btn-oir-msj">🔊 Oír cómo le sonará</button>
+        <small style="color:var(--tinta-suave); text-align:left;">Los mensajes no son privados: los ven todos los adultos con el código de la familia.</small>
+      </div>
     </div>
     <button class="btn btn-lila w100" id="btn-generar">🔍 Generar vista previa</button>
     <div id="papa-preview" class="oculto" style="margin-top:12px;">
@@ -2242,6 +2247,33 @@ function generarPreview(){
      <span style="margin-left:auto; color:var(--tinta-suave);">→ ${respuestaEj(ej)}</span></div>`).join("");
   $("papa-preview").classList.remove("oculto");
 }
+/* Capa A del canal de mensajes (D-07): frases listas para tocar, tope corto y escucha previa */
+const FRASES_PAPA = ["¡Ánimo! 💪","Te quiero mucho ❤️","¡Qué ganas de ver cómo te sale! 🌟","Hoy, poquito y bien 🌈","¡A por la misión! 🚀","Un beso enorme 😘"];
+function oirMensaje(){
+  const v = $("papa-msj").value.trim() || $("papa-msj").placeholder;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(v);
+    u.lang = "es-ES"; u.rate = 0.95; u.pitch = 1.15;
+    const voz = speechSynthesis.getVoices().find(x=>x.lang && x.lang.startsWith("es"));
+    if(voz) u.voice = voz;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+(function(){
+  const cont = $("papa-frases"); if(!cont) return;
+  FRASES_PAPA.forEach(f=>{
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip-sel"; b.textContent = f;
+    b.addEventListener("click", ()=>{
+      const t = $("papa-msj"); const v = t.value.trim();
+      t.value = ((v ? v+" " : "")+f).slice(0,140);
+      t.focus();
+    });
+    cont.appendChild(b);
+  });
+  $("btn-oir-msj").addEventListener("click", oirMensaje);
+})();
 async function enviarMision(){
   if(!Papa.preview) return;
   const hoy = new Date();
@@ -2341,7 +2373,10 @@ async function cargarResultados(){
           <span style="margin-left:auto;">${tag}</span></div>`;
       }).join("");
     }
-    card.innerHTML = `<div class="cab">${cab}</div>` + (det?`<div class="res-det">${det}</div>`:"");
+    /* transparencia entre cuidadores (capa B): el mensaje enviado queda visible en el histórico */
+    const msj = (it.tipo==="mision" && it.m.mensaje)
+      ? `<div class="sub" style="text-align:left; margin:4px 0 0;">💬 «${it.m.mensaje}»</div>` : "";
+    card.innerHTML = `<div class="cab">${cab}</div>` + msj + (det?`<div class="res-det">${det}</div>`:"");
     if(det){
       card.querySelector(".cab").addEventListener("click", ()=>card.querySelector(".res-det").classList.toggle("ver"));
     }
