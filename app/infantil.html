@@ -581,6 +581,9 @@ function limiteAlcanzado(){ tocaHoy(); return S.limiteMin>0 && (S.hoy.seg||0) >=
 function despedidaLimite(){ hablar(`¡Por hoy hemos terminado, ${S.nombre}! ${TEMA.mascota.nombre} se va a dormir. ¡Mañana jugamos más!`); }
 setInterval(()=>{ if(document.hidden) return; tocaHoy(); S.hoy.seg = (S.hoy.seg||0)+30; guardar(); }, 30000);
 function $(id){ return document.getElementById(id); }
+/* texto libre que escribe el adulto (título y mensaje de la misión, motivo de
+   revisión): acaba en innerHTML, así que se escapa al pintarlo. */
+function escHtml(t){ return String(t==null?"":t).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function actualizarEstrellas(){
   $("estrellas-num").textContent = S.estrellas;
   document.querySelectorAll(".estrellas-num2").forEach(e=>e.textContent=S.estrellas);
@@ -1972,8 +1975,8 @@ function pintarMisiones(){
       const card = document.createElement("div");
       card.className = "mision-card centrado";
       card.innerHTML = `<div style="font-size:3rem;">🎁</div>
-        <div style="font-weight:800; font-size:1.3rem;">${m.titulo||"Misión de papá"}</div>
-        ${m.mensaje?`<div class="msj">💌 ${m.mensaje}</div>`:""}`;
+        <div style="font-weight:800; font-size:1.3rem;">${escHtml(m.titulo||"Misión de papá")}</div>
+        ${m.mensaje?`<div class="msj">💌 ${escHtml(m.mensaje)}</div>`:""}`;
       const btn = document.createElement("button");
       btn.className = "btn btn-rosa btn-grande";
       btn.style.fontSize = "1.6rem";
@@ -2354,9 +2357,9 @@ async function cargarResultados(){
       const estado = m.estado==="hecha" ? `<span class="tag tag-ok">✅ hecha</span>` : `<span class="tag tag-meh">⏳ pendiente</span>`;
       /* revisión del mensaje (moderación en servidor): la peque solo ve las aprobadas */
       const rev = m.revision==="retenida"
-        ? `<span class="tag tag-ayuda">✋ mensaje retenido${m.revision_motivo ? ": "+m.revision_motivo : ""}</span>`
+        ? `<span class="tag tag-ayuda">✋ mensaje retenido${m.revision_motivo ? ": "+escHtml(m.revision_motivo) : ""}</span>`
         : m.revision==="pendiente" ? `<span class="tag tag-meh">🔎 comprobando mensaje…</span>` : "";
-      cab = `<b>🎁 ${m.titulo||"Misión"}</b> <small>${fechaCorta(m.created_at)} · nivel ${m.nivel} · ${m.ejercicios.length} ej.</small> ${estado} ${rev}`;
+      cab = `<b>🎁 ${escHtml(m.titulo||"Misión")}</b> <small>${fechaCorta(m.created_at)} · nivel ${m.nivel} · ${m.ejercicios.length} ej.</small> ${estado} ${rev}`;
       if(r) cab += ` <span style="margin-left:auto; font-weight:800;">${r.aciertos}/${m.ejercicios.length} solas · ${r.fallos} fallos · ${Math.max(1,Math.round(r.tiempo_seg/60))} min · ${r.gemas}⭐</span>`;
     } else {
       cab = `<b>🎮 Juego libre</b> <small>${fechaCorta(r.created_at)} · nivel ${r.nivel}</small>
@@ -2375,7 +2378,7 @@ async function cargarResultados(){
     }
     /* transparencia entre cuidadores (capa B): el mensaje enviado queda visible en el histórico */
     const msj = (it.tipo==="mision" && it.m.mensaje)
-      ? `<div class="sub" style="text-align:left; margin:4px 0 0;">💬 «${it.m.mensaje}»</div>` : "";
+      ? `<div class="sub" style="text-align:left; margin:4px 0 0;">💬 «${escHtml(it.m.mensaje)}»</div>` : "";
     card.innerHTML = `<div class="cab">${cab}</div>` + msj + (det?`<div class="res-det">${det}</div>`:"");
     if(det){
       card.querySelector(".cab").addEventListener("click", ()=>card.querySelector(".res-det").classList.toggle("ver"));
