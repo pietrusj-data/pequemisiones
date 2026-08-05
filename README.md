@@ -16,7 +16,8 @@ al aprendizaje.** El cliente es la familia entera, no el niño. La promesa no es
 | `index.html` | Landing en español + lista de espera |
 | `en/` | Landing gemela en inglés (marca **PequeMissions**) |
 | `app/` | **El producto**: portal de perfiles + los dos motores (`primaria.html`, `infantil.html`) |
-| `demo-primaria/`, `demo-infantil/` | Demos jugables sin registro ni red (escaparate) |
+| `demo-primaria/`, `demo-infantil/` | Escaparate: redirigen al motor con `?demo=1` (no son copias) |
+| `pruebas/` | Pruebas automáticas: `node --test pruebas/` |
 | `rejillas/`, `tabla-100/` | Herramientas ABN gratuitas (entrada por buscador) |
 | `confianza/`, `privacidad/` | Páginas legales y de transparencia |
 | `supabase/` | Esquema, seguridad (RLS) y edge functions del servidor |
@@ -35,7 +36,9 @@ al aprendizaje.** El cliente es la familia entera, no el niño. La promesa no es
 ## Cómo funciona por dentro
 
 Sin build ni dependencias: cada pantalla es un `index.html` con HTML, CSS y JS en
-línea, instalable como PWA. El servidor es Supabase (REST con `fetch` y clave
+línea, instalable como PWA. **Los motores del portal son la única versión del
+producto**: la demo pública es ese mismo motor arrancado con `?demo=1` (sin red,
+sin misiones y sin zona de padres), no una copia que pueda quedarse atrás. El servidor es Supabase (REST con `fetch` y clave
 pública), con cola offline en `localStorage` para que nunca se pierda un ejercicio
 por falta de cobertura.
 

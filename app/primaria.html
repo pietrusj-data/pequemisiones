@@ -540,8 +540,17 @@ textarea{resize:vertical; min-height:64px;}
 <script src="./temas.js"></script>
 <script>
 "use strict";
+/* ── modo DEMO (?demo=1) ──
+   La demo pública es ESTE mismo motor con un perfil de mentira, sin red, sin
+   misiones y sin zona de papá. Antes era un archivo aparte copiado a mano, y se
+   quedaba atrás cada vez que el motor cambiaba; ahora no puede desincronizarse. */
+const DEMO = new URLSearchParams(location.search).has("demo");
+const PERFIL_DEMO = { id:"demo", alias:"Princesa", genero:"nina", curso:"pri2", nivel:2,
+  tema:"princesas", modulos:["abn","igu","dif","mul","div","rel","pes"],
+  juegos:["globos","mariposas"] };
 /* ── PequeMisiones: perfil del portal ── */
-const PERFIL = (function(){ try{ return JSON.parse(localStorage.getItem("pm_perfilActivo")); }catch(e){ return null; } })();
+const PERFIL = DEMO ? PERFIL_DEMO
+  : (function(){ try{ return JSON.parse(localStorage.getItem("pm_perfilActivo")); }catch(e){ return null; } })();
 if(!PERFIL){ location.href = "./index.html"; throw new Error("sin perfil"); }
 const TEMA = TEMAS[PERFIL.tema] || TEMAS.princesas;
 const FEM = PERFIL.genero !== "nino";
@@ -550,7 +559,7 @@ const JUEGOS_ACTIVOS = PERFIL.juegos || ["globos","mariposas"];
 const FAMILIA = (function(){ try{ return JSON.parse(localStorage.getItem("pm_familia")) || "CASA-000"; }catch(e){ return "CASA-000"; } })();
 /* la identidad del peque en el servidor es su NOMBRE normalizado, no un id local:
    así el móvil de papá y la tablet del niño se encuentran con solo compartir el código */
-const PERFIL_KEY = keyDe(PERFIL);
+const PERFIL_KEY = DEMO ? "demo" : keyDe(PERFIL);
 const FQ = "familia=eq."+encodeURIComponent(FAMILIA)+"&perfil=eq."+encodeURIComponent(PERFIL_KEY);
 /* ═══════════════ CONFIG ═══════════════ */
 const SUPA_URL  = "https://tyoavvibplxkevxkamsb.supabase.co";
@@ -695,6 +704,9 @@ function sbHeaders(extra){
   }, extra||{});
 }
 async function sb(metodo, ruta, body, extra){
+  // En la demo no se toca el servidor: se responde "todo bien, nada que traer",
+  // así nada se encola ni se reintenta. Es el único punto por el que sale la red.
+  if(DEMO) return {ok:true, status:200, data:[]};
   const ctl = new AbortController();
   const t = setTimeout(()=>ctl.abort(), 9000);
   try{
@@ -1142,6 +1154,7 @@ function ejCompletado(){
    pm_dudas y el padre la ve en Resultados. */
 let PistaBusy = false;
 async function pedirPista(){
+  if(DEMO) return; // en la demo el botón está oculto: nadie gasta pistas desde fuera
   if(!Tanda || PistaBusy) return;
   const ej = Tanda.list[Tanda.idx]; if(!ej) return;
   Tanda.pistas = Tanda.pistas || {};
@@ -2880,6 +2893,21 @@ actualizarGemas();
 flushCola();
 go("s-home");
 refrescarMisiones(true);
+/* ── modo demo: se quita todo lo que necesita una familia detrás y se pone
+   una cinta para volver a la web. Mismo motor, menos puertas. ── */
+if(DEMO){
+  document.title = "Demo primaria · PequeMisiones 👑";
+  $("btn-misiones").parentElement.classList.add("oculto");
+  $("btn-papa").classList.add("oculto");
+  $("btn-portal").classList.add("oculto");
+  const pista = $("btn-pista"); if(pista) pista.classList.add("oculto");
+  const cinta = document.createElement("a");
+  cinta.href = "../";
+  cinta.textContent = "🚀 Estás en la DEMO de PequeMisiones — toca aquí para volver y apuntarte a la lista";
+  cinta.style.cssText = "position:fixed; top:0; left:0; right:0; z-index:95; background:#4b3b67; color:#fff; text-align:center; padding:7px 10px; font-weight:800; font-size:.92rem; text-decoration:none;";
+  document.body.appendChild(cinta);
+  document.body.style.paddingTop = "36px";
+}
 </script>
 </body>
 </html>
