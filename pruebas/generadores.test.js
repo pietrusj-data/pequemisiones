@@ -1,0 +1,326 @@
+/*
+ * Pruebas de los generadores de ejercicios.
+ *
+ * No comprueban "que salga tal número": los ejercicios son aleatorios a propósito.
+ * Comprueban las REGLAS que nunca se pueden romper, porque romperlas significa que
+ * un niño de verdad se queda delante de un ejercicio imposible:
+ *
+ *   · la respuesta correcta SIEMPRE está entre las opciones que se le ofrecen
+ *   · no hay dos opciones iguales (dos botones buenos confunden)
+ *   · convención ABN: el número mayor a la izquierda
+ *   · ninguna resta da negativo, ninguna división pide algo imposible
+ *   · los niveles no se salen de su rango
+ *
+ * Cada generador se ejecuta cientos de veces, así que los casos raros que solo
+ * salen 1 de cada 200 tiradas también quedan cubiertos.
+ */
+const { test, describe } = require("node:test");
+const assert = require("node:assert/strict");
+const { cargaMotor } = require("./motor.js");
+
+const VUELTAS = 400;
+
+/* Repite un generador muchas veces y devuelve todo lo que salió. */
+function muchas(fn, nivel, n = VUELTAS) {
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(fn(nivel));
+  return out;
+}
+const entero = v => Number.isInteger(v);
+
+/* La regla de oro: la respuesta buena está, y está una sola vez. */
+function opcionesSanas(ops, correcta, contexto) {
+  assert.ok(Array.isArray(ops) && ops.length >= 2, `${contexto}: hacen falta al menos 2 opciones`);
+  assert.ok(ops.includes(correcta), `${contexto}: la respuesta correcta (${correcta}) NO está entre las opciones [${ops}]`);
+  assert.equal(new Set(ops).size, ops.length, `${contexto}: hay opciones repetidas [${ops}]`);
+}
+
+describe("motor de primaria", () => {
+  const M = cargaMotor("primaria");
+
+  test("genAbn · el mayor a la izquierda y ninguna resta negativa", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genAbn, nivel)) {
+        const d = ej.d;
+        assert.equal(ej.t, "abn");
+        assert.ok([d.a, d.b].every(entero), `nivel ${nivel}: números no enteros`);
+        if (d.op === "suma") assert.ok(d.a >= d.b, `suma ${d.a}+${d.b}: el mayor debe ir primero`);
+        if (d.op === "resta") assert.ok(d.a - d.b > 0, `resta ${d.a}-${d.b}: no puede dar 0 ni negativo`);
+        if (d.op === "doble") assert.ok(d.a >= d.b && d.b >= d.c, `doble suma ${d.a}+${d.b}+${d.c}: orden descendente`);
+        if (d.op === "sumirresta") {
+          assert.ok(d.a >= d.b, `sumirresta ${d.a}+${d.b}-${d.c}: el mayor primero`);
+          assert.ok(d.a + d.b - d.c > 0, `sumirresta ${d.a}+${d.b}-${d.c}: el resultado no puede ser negativo`);
+        }
+      }
+    }
+  });
+
+  test("genAbn · el nivel 1 no se sale de dos cifras", () => {
+    for (const ej of muchas(M.genAbn, 1)) {
+      const d = ej.d;
+      const max = d.op === "suma" ? d.a + d.b : d.a;
+      assert.ok(max < 100, `nivel 1 debería quedarse en dos cifras y salió ${max}`);
+    }
+  });
+
+  test("genCla · sumas y restas coherentes", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genCla, nivel)) {
+        const d = ej.d;
+        assert.equal(ej.t, "cla");
+        if (d.op === "resta") assert.ok(d.a - d.b > 0, `resta clásica ${d.a}-${d.b} negativa`);
+        if (d.op === "suma") assert.ok(d.a >= d.b, `suma clásica ${d.a}+${d.b}: mayor primero`);
+        if (d.op === "suma3") assert.ok(d.a >= d.b && d.b >= d.c, "tres sumandos sin ordenar");
+      }
+    }
+  });
+
+  test("genIgu · siempre falta algo y los personajes son distintos", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genIgu, nivel)) {
+        const d = ej.d;
+        assert.ok(d.max > d.min, `igualación ${d.min}→${d.max}: no hay nada que igualar`);
+        assert.ok(d.min > 0, "igualación con cantidad de partida no positiva");
+        assert.notEqual(d.pa, d.pb, "los dos personajes de la igualación son el mismo");
+        assert.ok(typeof M.fraseIgu(d) === "string" && M.fraseIgu(d).length > 10, "frase de la igualación vacía");
+      }
+    }
+  });
+
+  test("genDif · el grande siempre primero", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genDif, nivel)) {
+        assert.ok(ej.d.a > ej.d.b, `diferencia ${ej.d.a} vs ${ej.d.b}: el mayor va primero`);
+      }
+    }
+  });
+
+  test("genRel · horas válidas y objetivo dentro del día", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genRel, nivel)) {
+        const d = ej.d;
+        assert.ok(d.m >= 0 && d.m <= 59, `minutos fuera de rango: ${d.m}`);
+        if (d.sub !== "suma") {
+          assert.equal(d.m % 5, 0, `las agujas solo caen en múltiplos de 5, salió ${d.m}`);
+          const maxH = d.modo24 ? 23 : 12;
+          assert.ok(d.h >= (d.modo24 ? 0 : 1) && d.h <= maxH, `hora fuera de rango: ${d.h}`);
+          if (nivel === 1) assert.ok([0, 30].includes(d.m), `nivel 1: en punto o y media, salió ${d.m}`);
+          if (nivel === 2) assert.ok([0, 15, 30, 45].includes(d.m), `nivel 2: cuartos, salió ${d.m}`);
+        }
+        const obj = M.relObjetivo(d);
+        assert.match(obj, /^\d{1,2}:\d{2}$/, `objetivo mal formado: ${obj}`);
+        const [h, m] = obj.split(":").map(Number);
+        assert.ok(h >= 0 && h <= 23 && m >= 0 && m <= 59, `objetivo fuera del día: ${obj}`);
+      }
+    }
+  });
+
+  test("genPes · el total cuadra con las pesas que se enseñan", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genPes, nivel)) {
+        const d = ej.d;
+        const total = M.pesTotal(d);
+        assert.ok(total > 0, "peso de cero");
+        if (d.sub === "lee") {
+          assert.equal(total, d.n1 * 4 + d.nm * 2 + d.nq, "el total no coincide con las pesas");
+          assert.ok(d.n1 + d.nm + d.nq >= 2, "hay que enseñar al menos dos pesas");
+          assert.ok([d.n1, d.nm, d.nq].every(x => entero(x) && x >= 0), "número de pesas inválido");
+        }
+        assert.ok(M.pesoEnTexto(total).length > 0, "el peso no se sabe decir en palabras");
+      }
+    }
+  });
+
+  test("genMul · tablas ordenadas y rejilla en rango", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genMul, nivel)) {
+        const d = ej.d;
+        if (d.sub === "tabla") {
+          assert.ok(d.a >= d.b, `tabla ${d.a}×${d.b}: el mayor primero`);
+          assert.ok(d.a <= 10 && d.b <= 10, `tabla fuera del 10: ${d.a}×${d.b}`);
+        }
+        if (d.sub === "inverso") assert.ok(nivel >= 2, "el inverso no debería salir en nivel 1");
+        if (d.sub === "rejilla") {
+          assert.ok(d.m >= 2 && d.m <= 9, `multiplicador raro: ${d.m}`);
+          assert.ok(d.N >= 10 && d.N <= 99, `número a trocear fuera de dos cifras: ${d.N}`);
+        }
+      }
+    }
+  });
+
+  test("genDiv · los repartos salen exactos y el resto es menor que el divisor", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genDiv, nivel)) {
+        const d = ej.d;
+        assert.ok(d.k >= 2, `repartir entre ${d.k} no tiene sentido`);
+        assert.ok(d.N > 0, "no hay nada que repartir");
+        if (d.sub === "reparto") assert.equal(d.N % d.k, 0, `${d.N} entre ${d.k} no es exacto y se pide exacto`);
+        if (d.sub === "resto") assert.ok(d.N % d.k < d.k, "resto imposible");
+        if (d.sub === "rejilla") assert.ok(d.N > d.k, `${d.N} entre ${d.k}: no da ni para uno`);
+      }
+    }
+  });
+
+  test("genTanda y la misión diaria entregan lo que prometen", () => {
+    for (const n of [4, 6, 10]) {
+      const t = M.genTanda(["abn", "igu", "rel"], 2, n);
+      assert.equal(t.length, n, "la tanda no trae los ejercicios pedidos");
+      t.forEach(ej => assert.ok(M.GEN[ej.t], `tipo desconocido en la tanda: ${ej.t}`));
+    }
+    for (let i = 0; i < 50; i++) {
+      const m = M.genMisionDiaria();
+      assert.equal(m.length, 6, "la misión diaria debe traer 6 ejercicios");
+      m.forEach(ej => assert.ok(ej && ej.t && ej.d, "ejercicio vacío en la misión diaria"));
+    }
+  });
+});
+
+describe("motor de infantil", () => {
+  const M = cargaMotor("infantil");
+
+  test("genNum · la respuesta buena está entre las opciones", () => {
+    for (const nivel of [1, 2, 3, 4]) {
+      for (const ej of muchas(M.genNum, nivel)) {
+        const d = ej.d;
+        if (d.sub === "contar") {
+          assert.ok(d.n >= 1, "contar cero cosas");
+          opcionesSanas(d.ops, d.n, `contar ${d.n}`);
+          assert.ok(d.emoji && d.nombre, "faltan los dibujos que hay que contar");
+        }
+        if (d.sub === "busca") opcionesSanas(d.ops, d.n, `busca el ${d.n}`);
+        if (d.sub === "falta") {
+          assert.equal(d.serie.length, 4, "la serie debe tener 4 números");
+          const paso = d.serie[1] - d.serie[0];
+          d.serie.forEach((v, i) => {
+            if (i > 0) assert.equal(v - d.serie[i - 1], paso, `serie que cambia de paso: [${d.serie}]`);
+          });
+          assert.ok(d.serie.every(v => v >= 0), `serie con negativos: [${d.serie}]`);
+          assert.ok(d.hueco > 0 && d.hueco < 4, "el hueco no puede estar en los extremos");
+          opcionesSanas(d.ops, d.serie[d.hueco], `serie [${d.serie}]`);
+        }
+      }
+    }
+  });
+
+  test("genAmi · los amigos suman el total", () => {
+    for (const nivel of [1, 2, 3, 4]) {
+      for (const ej of muchas(M.genAmi, nivel)) {
+        const d = ej.d;
+        if (d.sub === "inverso") {
+          assert.equal(d.x + d.y, d.ops.find(o => o === d.x + d.y), "el total no está entre las opciones");
+          opcionesSanas(d.ops, d.x + d.y, `¿de quién son amigos ${d.x} y ${d.y}?`);
+        } else {
+          assert.ok(d.x >= 0 && d.x <= d.total, `${d.x} no puede ser amigo de ${d.total}`);
+          opcionesSanas(d.ops, d.total - d.x, `amigos del ${d.total} con ${d.x}`);
+        }
+      }
+    }
+  });
+
+  test("genVec · los dos vecinos están entre las opciones", () => {
+    for (const nivel of [1, 2, 3, 4]) {
+      for (const ej of muchas(M.genVec, nivel)) {
+        const d = ej.d;
+        assert.ok(d.n >= 1, "el número no puede ser 0 o negativo");
+        assert.ok(d.chips.includes(d.n - 1), `falta el vecino ${d.n - 1} de ${d.n} en [${d.chips}]`);
+        assert.ok(d.chips.includes(d.n + 1), `falta el vecino ${d.n + 1} de ${d.n} en [${d.chips}]`);
+        assert.ok(!d.chips.includes(d.n), `el propio ${d.n} aparece entre sus vecinos [${d.chips}]`);
+        assert.equal(new Set(d.chips).size, d.chips.length, `vecinos repetidos en [${d.chips}]`);
+      }
+    }
+  });
+
+  test("genFam · las familias son coherentes", () => {
+    for (const nivel of [1, 2, 3, 4]) {
+      for (const ej of muchas(M.genFam, nivel)) {
+        const d = ej.d;
+        if (d.sub === "de") {
+          assert.equal(Math.floor(d.n / 10) * 10, d.fam, `el ${d.n} no es de la familia del ${d.fam}`);
+          opcionesSanas(d.ops, d.fam, `familia del ${d.n}`);
+        }
+        if (d.sub === "toca") {
+          d.buenos.forEach(v => assert.equal(Math.floor(v / 10) * 10, d.fam, `${v} no es de la familia del ${d.fam}`));
+          d.buenos.forEach(v => assert.ok(d.todos.includes(v), `el bueno ${v} no está entre los que se pueden tocar`));
+          assert.ok(d.todos.length > d.buenos.length, "no hay ningún intruso que descartar");
+        }
+        if (d.sub === "completa") {
+          d.faltan.forEach(v => {
+            assert.equal(Math.floor(v / 10) * 10, d.fam, `el hueco ${v} no es de la familia del ${d.fam}`);
+            assert.ok(d.chips.includes(v), `falta la ficha ${v} para rellenar su hueco`);
+          });
+        }
+        if (d.sub === "tabla") {
+          assert.ok(d.huecos.length >= 3, "muy pocos huecos en la tabla");
+          d.huecos.forEach(v => assert.ok(v >= 10 && v <= 99, `hueco fuera de la tabla: ${v}`));
+        }
+      }
+    }
+  });
+
+  test("genSub · lo que se enseña un instante se puede contar", () => {
+    for (const nivel of [1, 2, 3, 4]) {
+      for (const ej of muchas(M.genSub, nivel)) {
+        const d = ej.d;
+        assert.ok(d.n >= 1 && d.n <= 10, `subitizar ${d.n} es demasiado`);
+        assert.ok(d.flash >= 500, "el destello es tan corto que no da tiempo a verlo");
+        if (d.disp === "dado") assert.ok(d.n <= 6, `un dado no puede enseñar ${d.n}`);
+        if (d.disp === "dadodoble") assert.ok(d.n >= 6 && d.n <= 12, `dos dados no pueden enseñar ${d.n}`);
+        opcionesSanas(d.ops, d.n, `subitización de ${d.n}`);
+      }
+    }
+  });
+
+  test("genPal · los palillos cuadran con el número", () => {
+    for (const nivel of [1, 2, 3, 4]) {
+      for (const ej of muchas(M.genPal, nivel)) {
+        const d = ej.d;
+        assert.equal(d.n, d.p * 10 + d.s, `${d.p} paquetes y ${d.s} sueltos no son ${d.n}`);
+        assert.ok(d.s <= 9, `${d.s} sueltos: 10 sueltos son un paquete`);
+        if (d.sub === "lee") opcionesSanas(d.ops, d.n, `leer ${d.p} paquetes y ${d.s} sueltos`);
+        if (d.sub === "haz") {
+          const buena = d.bandejas.filter(b => b.p === d.p && b.s === d.s);
+          assert.equal(buena.length, 1, `hacer ${d.n}: debe haber exactamente una bandeja correcta`);
+        }
+      }
+    }
+  });
+
+  test("genRet · la cuenta atrás siempre baja", () => {
+    for (const nivel of [1, 2, 3, 4]) {
+      for (const ej of muchas(M.genRet, nivel)) {
+        const d = ej.d;
+        if (d.sub === "cohete") {
+          assert.ok(d.desde > d.hasta, `cuenta atrás de ${d.desde} a ${d.hasta}: no baja`);
+          assert.ok(d.hasta >= 0, "la cuenta atrás no puede pasar de cero");
+        }
+        if (d.sub === "antes") {
+          assert.ok(d.from >= 2, "no hay número antes del 1");
+          opcionesSanas(d.ops, d.from - 1, `el anterior al ${d.from}`);
+        }
+      }
+    }
+  });
+
+  test("genSil y genTra · solo letras que la app sabe decir y dibujar", () => {
+    for (const nivel of [1, 2, 3, 4]) {
+      for (const ej of muchas(M.genTra, nivel, 200)) {
+        assert.ok(M.NOMBRE_LETRA[ej.d.letra], `la app no sabe decir "${ej.d.letra}"`);
+      }
+      for (const ej of muchas(M.genSil, nivel, 200)) {
+        assert.ok(ej.d && ej.d.sub, "sílaba sin subtipo");
+        if (Array.isArray(ej.d.ops)) {
+          assert.ok(ej.d.ops.length >= 2, "hacen falta al menos dos opciones");
+          assert.equal(new Set(ej.d.ops.map(o => JSON.stringify(o))).size, ej.d.ops.length, "opciones de sílaba repetidas");
+        }
+      }
+    }
+  });
+
+  test("la misión diaria trae 6 ejercicios jugables", () => {
+    for (let i = 0; i < 50; i++) {
+      const m = M.genMisionDiaria();
+      assert.equal(m.length, 6, "la misión diaria debe traer 6 ejercicios");
+      m.forEach(ej => assert.ok(M.GEN[ej.t], `tipo desconocido en la misión diaria: ${ej.t}`));
+    }
+  });
+});
