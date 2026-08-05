@@ -143,6 +143,22 @@ input[type=text]{width:100%; font-family:inherit; font-size:1.4rem; text-align:c
     <h2 style="margin-top:18px; font-size:1.15rem;">🎁 Juegos de premio</h2>
     <p class="sub" style="font-size:.9rem;">Se ganan jugando — tú decides cuáles hay</p>
     <div class="fila" id="w-juegos" style="margin-top:10px;"></div>
+
+    <!-- Consentimiento de quien tiene la patria potestad o tutela: art. 7 LOPDGDD.
+         Un menor de 14 años no puede consentir por sí mismo, así que esta casilla
+         es la que legitima todo el tratamiento. Sin marcarla no se crea el perfil. -->
+    <label id="w-tutor-caja" style="display:flex; gap:10px; align-items:flex-start; text-align:left;
+      margin-top:20px; background:#f7f3ff; border-radius:14px; padding:12px 14px; cursor:pointer;">
+      <input type="checkbox" id="w-tutor" style="width:22px; height:22px; flex:0 0 auto; margin-top:2px;">
+      <span style="font-size:.95rem; line-height:1.4;">
+        Soy su <b>madre, padre o tutor legal</b> y creo este perfil yo.
+        He leído la <a href="../privacidad/" target="_blank" rel="noopener">política de privacidad</a>.
+      </span>
+    </label>
+    <p class="sub" style="font-size:.86rem; margin-top:8px;">
+      Consejo: usa un <b>apodo</b> en vez del nombre real. La app funciona igual y así ni
+      nosotros sabemos cómo se llama.
+    </p>
   </div>
 
   <div class="fila" style="max-width:560px;">
@@ -246,6 +262,7 @@ const W = { paso:1, alias:"", genero:null, curso:null, tema:null, modulos:new Se
 function abrirWizard(){
   W.paso = 1; W.alias = ""; W.genero = null; W.curso = null; W.tema = null; W.modulos = new Set(); W.juegos = new Set();
   $("w-alias").value = "";
+  $("w-tutor").checked = false; // el consentimiento se declara en cada alta, no se hereda
   document.querySelectorAll("[data-genero],[data-curso]").forEach(x=>x.classList.remove("sel"));
   $("s-perfiles").classList.remove("activa");
   $("s-wizard").classList.add("activa");
@@ -271,7 +288,7 @@ function valida(){
   }
   if(W.paso===2) ok = !!W.curso;
   if(W.paso===3) ok = !!W.tema;
-  if(W.paso===4) ok = W.modulos.size>=1;
+  if(W.paso===4) ok = W.modulos.size>=1 && $("w-tutor").checked;
   $("w-sigue").disabled = !ok;
 }
 function pintarTemas(){
@@ -336,6 +353,7 @@ document.querySelectorAll("[data-curso]").forEach(b=>b.addEventListener("click",
   document.querySelectorAll("[data-curso]").forEach(x=>x.classList.toggle("sel", x===b));
   valida();
 }));
+$("w-tutor").addEventListener("change", valida);
 $("w-atras").addEventListener("click", ()=>{
   if(W.paso===1){
     document.body.style.background = "";
@@ -362,7 +380,10 @@ $("w-sigue").addEventListener("click", ()=>{
     tema: W.tema,
     modulos: [...W.modulos],
     juegos: [...W.juegos],
-    creado: new Date().toISOString().slice(0,10)
+    creado: new Date().toISOString().slice(0,10),
+    // registro del consentimiento del tutor (art. 7.1 RGPD: hay que poder
+    // demostrar que se prestó). Se guarda en el dispositivo, como el propio perfil.
+    tutor: { declarado:true, fecha:new Date().toISOString(), politica:"2026-08-05" }
   };
   const lista = LSP.get("perfiles", []);
   lista.push(perfil);
