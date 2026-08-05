@@ -294,6 +294,8 @@ textarea{resize:vertical; min-height:64px;}
   </div>
   <div style="font-size:3.4rem;">🎁</div>
   <h1>Mis premios</h1>
+  <!-- La hucha: estrellas que NO se gastan jugando, para los premios de la familia -->
+  <div id="hucha-caja" class="tarjeta oculto" style="max-width:480px; width:100%;"></div>
   <button class="btn btn-azul btn-grande" id="btn-globos">🎈 Globos <small style="font-size:1.05rem;">(3 ⭐)</small></button>
   <button class="btn btn-verde btn-grande" id="btn-mariposas">🦋 Mariposas <small style="font-size:1.05rem;">(6 ⭐)</small></button>
   <button class="btn btn-oro btn-grande" id="btn-cofre">🎀 Mi cofre</button>
@@ -425,6 +427,8 @@ textarea{resize:vertical; min-height:64px;}
   <div class="tabs">
     <button class="tab activa" data-tab="nueva">✉️ Nueva misión</button>
     <button class="tab" data-tab="resultados">📊 Resultados</button>
+    <button class="tab" data-tab="hucha">🏦 Hucha</button>
+    <button class="tab" data-tab="ayuda">🎓 Cómo ayudar</button>
     <button class="tab" data-tab="ajustes">🔧 Ajustes</button>
   </div>
 
@@ -484,6 +488,37 @@ textarea{resize:vertical; min-height:64px;}
     <div id="papa-resultados"></div>
   </div>
 
+  <!-- ══ HUCHA: las estrellas son moneda, el premio lo pone la familia (D-06) ══ -->
+  <div id="tab-hucha" class="tarjeta oculto">
+    <div id="hucha-saldo" style="text-align:center; font-size:1.1rem; font-weight:800; margin-bottom:6px;">…</div>
+    <p class="sub" style="text-align:left; font-size:.92rem;">
+      Estas estrellas son <b>distintas</b> de las que gasta en los minijuegos: se llenan con
+      todo lo que ha ido ganando y solo bajan cuando tú le entregas un premio de verdad.
+      <b>La app nunca toca dinero.</b> A esta edad funcionan mejor los premios pequeños y de
+      tiempo juntos que las cosas.
+    </p>
+    <div id="hucha-lista" style="margin-top:10px;"></div>
+    <div class="form-linea" style="margin-top:14px;">
+      <label>Añadir un premio de la familia</label>
+      <div class="fila" style="gap:8px;">
+        <input type="text" id="premio-nombre" maxlength="40" placeholder="Elegir el cuento de dormir" style="flex:2;">
+        <input type="number" id="premio-coste" min="5" max="5000" step="5" value="50" style="flex:0 0 92px;">
+      </div>
+      <div class="chips" id="premio-sugeridos" style="margin-top:8px;"></div>
+      <button class="btn btn-mini btn-lila" id="btn-premio-add" style="margin-top:8px;">➕ Añadir premio</button>
+    </div>
+    <div id="hucha-canjes" class="sub" style="text-align:left; margin-top:14px;"></div>
+  </div>
+
+  <!-- ══ MODO PADRES: qué está aprendiendo y cómo ayudar (D-04) ══ -->
+  <div id="tab-ayuda" class="tarjeta oculto">
+    <p class="sub" style="text-align:left;">
+      Lo que tu peque está trabajando ahora mismo, explicado para quien aprendió las cuentas
+      de otra manera. <b>No hace falta que te sepas el método</b>: basta con preguntar bien.
+    </p>
+    <div id="ayuda-lista"></div>
+  </div>
+
   <div id="tab-ajustes" class="tarjeta oculto">
     <div class="form-linea">
       <label>Nombre de la niña</label>
@@ -533,6 +568,7 @@ textarea{resize:vertical; min-height:64px;}
 <canvas id="fx"></canvas>
 
 <script src="./temas.js"></script>
+<script src="./ayuda-abn.js"></script>
 <script>
 "use strict";
 /* ── modo DEMO (?demo=1) ──
@@ -2291,8 +2327,142 @@ async function entrarPapa(){
 }
 function papaTab(nombre){
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("activa", t.dataset.tab===nombre));
-  ["nueva","resultados","ajustes"].forEach(t=>$("tab-"+t).classList.toggle("oculto", t!==nombre));
+  ["nueva","resultados","hucha","ayuda","ajustes"].forEach(t=>$("tab-"+t).classList.toggle("oculto", t!==nombre));
   if(nombre==="resultados") cargarResultados();
+  if(nombre==="hucha") cargarHucha();
+  if(nombre==="ayuda") pintarAyuda();
+}
+
+/* ═══════════════ LA HUCHA (D-06) ═══════════════
+   Las estrellas son moneda, no premio: el premio de verdad lo pone la familia y
+   lo entrega un adulto en el mundo real. La plataforma jamás toca dinero.
+
+   Dos economías que no chocan:
+     · estrellas del día → se gastan en minijuegos, viven en el dispositivo
+     · hucha             → TODAS las ganadas en la vida del perfil, menos lo canjeado
+
+   El saldo se calcula desde el servidor (pm_resultados menos pm_canjes), así
+   cuadra solo entre el móvil del adulto y la tablet del peque. */
+const Hucha = { saldo:0, premios:[], canjes:[], cargada:false };
+async function cargarHucha(silencio){
+  const [res, pre, can] = await Promise.all([
+    sbSelect(T_RESULT, "select=gemas&"+FQ+"&limit=2000"),
+    sbSelect("pm_premios", "select=*&"+FQ+"&activo=is.true&order=coste.asc"),
+    sbSelect("pm_canjes",  "select=*&"+FQ+"&order=created_at.desc&limit=20")
+  ]);
+  if(!res.ok) return false;
+  const ganadas = (res.data||[]).reduce((s,r)=>s+(r.gemas||0), 0);
+  Hucha.premios = pre.ok ? (pre.data||[]) : [];
+  Hucha.canjes  = can.ok ? (can.data||[]) : [];
+  const gastadas = Hucha.canjes.reduce((s,c)=>s+(c.coste||0), 0);
+  Hucha.saldo = Math.max(0, ganadas - gastadas);
+  Hucha.cargada = true;
+  if(!silencio) pintarHuchaPapa();
+  pintarHuchaPeque();
+  return true;
+}
+function pintarHuchaPapa(){
+  $("hucha-saldo").innerHTML = `🏦 En la hucha: <span style="font-size:1.35rem;">${Hucha.saldo} ⭐</span>`;
+  const l = $("hucha-lista");
+  if(!Hucha.premios.length){
+    l.innerHTML = `<p class="sub" style="text-align:left;">Todavía no hay ningún premio. Añade uno abajo
+      y aparecerá en la pantalla de tu peque con su barra de progreso.</p>`;
+  } else {
+    l.innerHTML = "";
+    Hucha.premios.forEach(p=>{
+      const puede = Hucha.saldo >= p.coste;
+      const fila = document.createElement("div");
+      fila.style.cssText = "display:flex; gap:8px; align-items:center; padding:7px 0; border-bottom:1px solid var(--lila-suave); flex-wrap:wrap;";
+      fila.innerHTML = `<b style="flex:1; text-align:left;">${escHtml(p.nombre)}</b>
+        <span class="tag ${puede?"tag-ok":"tag-meh"}">${p.coste} ⭐</span>`;
+      const bEnt = document.createElement("button");
+      bEnt.className = "chip"; bEnt.style.cssText = "border:0; cursor:pointer; font-family:inherit;";
+      bEnt.textContent = puede ? "🎉 Entregar" : "aún no";
+      bEnt.disabled = !puede;
+      bEnt.addEventListener("click", ()=>canjear(p));
+      const bDel = document.createElement("button");
+      bDel.className = "chip"; bDel.style.cssText = "border:0; cursor:pointer; font-family:inherit;";
+      bDel.textContent = "🗑️";
+      bDel.addEventListener("click", async ()=>{
+        if(!confirm("¿Quitar el premio «"+p.nombre+"»?")) return;
+        await sbDelete("pm_premios", "id=eq."+p.id+"&"+FQ);
+        await cargarHucha();
+      });
+      fila.appendChild(bEnt); fila.appendChild(bDel);
+      l.appendChild(fila);
+    });
+  }
+  $("hucha-canjes").innerHTML = Hucha.canjes.length
+    ? "<b>Premios ya entregados:</b><br>" + Hucha.canjes.map(c=>
+        `${fechaCorta(c.created_at)} · ${escHtml(c.nombre)} (${c.coste} ⭐)`).join("<br>")
+    : "";
+  const sug = $("premio-sugeridos");
+  if(sug && !sug.children.length){
+    [["Elegir el cuento de dormir",30],["Ir al parque",60],
+     ["Cocinar algo juntos",50],["Elegir la peli del finde",80],
+     ["Una videollamada larga con papá",40]].forEach(([n,c])=>{
+      const b = document.createElement("button");
+      b.className = "chip-sel"; b.type = "button"; b.textContent = n+" · "+c+"⭐";
+      b.addEventListener("click", ()=>{ $("premio-nombre").value = n; $("premio-coste").value = c; });
+      sug.appendChild(b);
+    });
+  }
+}
+async function canjear(p){
+  if(!confirm(`¿Entregar «${p.nombre}»?\n\nSe descuentan ${p.coste} ⭐ de la hucha. El premio se lo das tú, en persona.`)) return;
+  await sbInsert("pm_canjes", {familia:FAMILIA, perfil:PERFIL_KEY, premio_id:p.id, nombre:p.nombre, coste:p.coste});
+  await cargarHucha();
+  alert("¡Premio entregado! 🎉\n\nDíselo tú, que es la mejor parte.");
+}
+/* Lo que ve el peque. Como todavía no lee, la mascota se lo cuenta en voz alta. */
+function pintarHuchaPeque(){
+  const caja = $("hucha-caja"); if(!caja) return;
+  if(!Hucha.premios.length){ caja.classList.add("oculto"); return; }
+  caja.classList.remove("oculto");
+  const sig = Hucha.premios.find(p=>p.coste > Hucha.saldo) || Hucha.premios[Hucha.premios.length-1];
+  const listos = Hucha.premios.filter(p=>p.coste <= Hucha.saldo);
+  const pct = Math.min(100, Math.round(100*Hucha.saldo/Math.max(1,sig.coste)));
+  caja.innerHTML = `
+    <div style="font-size:1.05rem; font-weight:800;">🏦 Mi hucha: ${Hucha.saldo} ⭐</div>
+    ${listos.length ? `<div class="tag tag-ok" style="margin-top:6px;">¡Ya puedes pedir: ${escHtml(listos[listos.length-1].nombre)}! 🎉</div>` : ""}
+    <div style="margin-top:8px; font-weight:700;">${escHtml(sig.nombre)}</div>
+    <div class="pbar" style="width:100%; margin-top:6px;"><div style="width:${pct}%;"></div></div>
+    <div class="sub" style="font-size:.9rem; margin-top:4px;">
+      ${Hucha.saldo >= sig.coste ? "¡Conseguido!" : "Te faltan "+(sig.coste-Hucha.saldo)+" ⭐"}
+    </div>`;
+}
+function contarHuchaEnVoz(){
+  if(!Hucha.premios.length) return;
+  const listos = Hucha.premios.filter(p=>p.coste <= Hucha.saldo);
+  if(listos.length){ hablar("¡Ya puedes pedir "+listos[listos.length-1].nombre+"!"); return; }
+  const sig = Hucha.premios.find(p=>p.coste > Hucha.saldo);
+  if(sig) hablar("Tienes "+Hucha.saldo+" estrellas. Te faltan "+(sig.coste-Hucha.saldo)+" para "+sig.nombre);
+}
+
+/* ═══════════════ MODO PADRES ABN (D-04) ═══════════════ */
+function pintarAyuda(){
+  const cont = $("ayuda-lista");
+  if(cont.children.length) return; // se pinta una sola vez
+  const bloque = (emoji, titulo, cuerpo)=>`
+    <details style="background:var(--lila-suave); border-radius:12px; padding:10px 14px; margin-bottom:8px; text-align:left;">
+      <summary style="font-weight:800;">${emoji} ${titulo}</summary>
+      <div style="margin-top:8px; font-size:.96rem; line-height:1.5;">${cuerpo}</div>
+    </details>`;
+  let html = AYUDA_GENERAL.map(g=>
+    `<div style="text-align:left; padding:6px 0;"><b>${g.emoji} ${g.titulo}</b><br>
+     <span class="sub" style="font-size:.94rem;">${g.texto}</span></div>`).join("");
+  const ficha = f => `
+    <p><b>¿Qué está aprendiendo?</b><br>${f.queEs}</p>
+    <p><b>Cómo se hace</b><br>${f.comoSeHace}</p>
+    <p><b>Cómo ayudar sin hacerle los deberes</b><br>${f.comoAyudar}</p>
+    ${f.frases ? `<p><b>Frases que funcionan</b><br>${f.frases.map(x=>"«"+x+"»").join("<br>")}</p>` : ""}`;
+  html += "<hr style='border:0; border-top:1px solid var(--lila-suave); margin:12px 0;'>";
+  html += bloque(AYUDA_ABN._intro.emoji, AYUDA_ABN._intro.titulo, ficha(AYUDA_ABN._intro));
+  (PERFIL.modulos||[]).forEach(m=>{
+    const f = AYUDA_ABN[m];
+    if(f) html += bloque(f.emoji, f.titulo, ficha(f));
+  });
+  cont.innerHTML = html;
 }
 function generarPreview(){
   const tipos = [...Papa.tipos];
@@ -2503,7 +2673,19 @@ $("btn-portada").addEventListener("click", ()=>{
 });
 $("btn-misiones").addEventListener("click", ()=>go("s-misiones"));
 $("btn-jugar").addEventListener("click", ()=>go("s-elegir"));
-$("btn-premios").addEventListener("click", ()=>{ go("s-premios"); hablar("¡Tus premios! Los ganas jugando."); });
+$("btn-premios").addEventListener("click", async ()=>{
+  go("s-premios"); hablar("¡Tus premios! Los ganas jugando.");
+  await cargarHucha(true);
+  setTimeout(contarHuchaEnVoz, 2600); // primero el saludo, después la hucha
+});
+$("btn-premio-add").addEventListener("click", async ()=>{
+  const nombre = $("premio-nombre").value.trim();
+  const coste = parseInt($("premio-coste").value, 10);
+  if(nombre.length < 3 || !(coste > 0)){ alert("Ponle un nombre y un precio en estrellas."); return; }
+  await sbInsert("pm_premios", {familia:FAMILIA, perfil:PERFIL_KEY, nombre, coste});
+  $("premio-nombre").value = "";
+  await cargarHucha();
+});
 $("btn-diaria").addEventListener("click", ()=>{
   if(limiteAlcanzado()){ despedidaLimite(); return; }
   tocaHoy();
@@ -2613,6 +2795,7 @@ actualizarEstrellas();
 pintarHome();
 flushCola();
 refrescarMisiones(true);
+cargarHucha(true); // para que el peque vea su hucha al entrar en "Mis premios"
 /* ── modo demo: se quita todo lo que necesita una familia detrás y se pone
    una cinta para volver a la web. Mismo motor, menos puertas. ── */
 if(DEMO){
