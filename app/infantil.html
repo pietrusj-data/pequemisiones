@@ -344,6 +344,9 @@ textarea{resize:vertical; min-height:64px;}
     <div class="progreso"><span id="prog-txt">1/6</span>
       <div class="pbar"><div id="prog-fill" style="width:8%;"></div></div>
     </div>
+    <!-- Pista para quien no sabe leer: sin texto, solo la bombilla. La mascota
+         la dice en voz alta; el peque no tiene que leer nada. -->
+    <button class="icono-btn" id="btn-pista" title="Pedir una pista">💡</button>
     <span class="chip">⭐ <span class="estrellas-num2">0</span></span>
   </div>
   <div id="zona-ejercicio" class="w100" style="display:flex; flex-direction:column; align-items:center; gap:16px; flex:1;"></div>
@@ -1141,6 +1144,41 @@ function renderEj(){
   EjState = {intentos:0, guiada:false, t0:Date.now()};
   ({num:renderNum, sub:renderSub, pal:renderPal, ret:renderRet, ami:renderAmi, vec:renderVec, fam:renderFam, sil:renderSil, tra:renderTra})[ej.t](ej.d);
 }
+/* ═══════════ AYUDANTE DE PISTAS POR VOZ (D-07 fase 2, etapa infantil) ═══════════
+   El peque no sabe leer: toca la bombilla y la mascota le DICE una frase corta
+   con qué hacer ("cuenta con el dedito"), nunca la respuesta. No cuenta como
+   guiada ni toca estrellas: pedir ayuda no se penaliza. Si algo falla, oye un
+   ánimo enlatado — nunca un error. */
+let PistaBusy = false;
+async function pedirPista(){
+  if(DEMO) return; // en la demo el botón está oculto
+  if(!Tanda || PistaBusy) return;
+  const ej = Tanda.list[Tanda.idx]; if(!ej) return;
+  Tanda.pistas = Tanda.pistas || {};
+  const ya = Tanda.pistas[Tanda.idx];
+  if(ya){ hablar(ya); return; } // repetir el toque repite la misma pista, sin coste
+  PistaBusy = true;
+  const btn = $("btn-pista"); if(btn){ btn.disabled = true; btn.textContent = "💭"; }
+  try{
+    const r = await fetch(SUPA_URL+"/functions/v1/ayudante", {
+      method: "POST",
+      headers: {"Content-Type":"application/json", "Authorization":"Bearer "+SUPA_ANON, "apikey":SUPA_ANON},
+      body: JSON.stringify({familia:FAMILIA, perfil:PERFIL_KEY, tipo:ej.t,
+        enunciado: tituloEj(ej).slice(0,180), nivel: Tanda.nivel||2,
+        mascota: TEMA.mascota.nombre, etapa: "infantil"})
+    });
+    const d = r.ok ? await r.json() : null;
+    const p = (d && d.pista) ? d.pista : "Míralo despacito y cuenta con el dedito, ¡tú puedes!";
+    Tanda.pistas[Tanda.idx] = p;
+    hablar(p);
+  }catch(e){
+    hablar("Míralo otra vez despacito, ¡tú puedes!");
+  }
+  PistaBusy = false;
+  const b2 = $("btn-pista"); if(b2){ b2.disabled = false; b2.textContent = "💡"; }
+}
+$("btn-pista").addEventListener("click", pedirPista);
+
 function ejCompletado(){
   if(!Tanda) return; // salió de la tanda a mitad
   const ej = Tanda.list[Tanda.idx];
@@ -1963,7 +2001,8 @@ function pintarCofre(){
 let MisionesCache = [], HechasCache = [], misionesSig = null;
 async function refrescarMisiones(silencio){
   // revision=aprobada: la peque solo ve misiones cuyo mensaje pasó la comprobación del servidor
-  const r = await sbSelect(T_MISIONES, "select=*&estado=eq.pendiente&revision=eq.aprobada&"+FQ+"&order=created_at.desc&limit=20");
+  // el peque solo ve misiones aprobadas por la comprobación Y no reportadas por un adulto
+  const r = await sbSelect(T_MISIONES, "select=*&estado=eq.pendiente&revision=eq.aprobada&reportada=is.false&"+FQ+"&order=created_at.desc&limit=20");
   if(r.ok && Array.isArray(r.data)){
     MisionesCache = r.data.filter(m=>!S.hechasLocal.includes(m.id));
     const h = await sbSelect(T_MISIONES, "select=id,titulo,hecha_at&estado=eq.hecha&"+FQ+"&order=hecha_at.desc&limit=4");
@@ -2321,6 +2360,19 @@ function fechaCorta(iso){
   const d = new Date(iso);
   return d.getDate()+"/"+(d.getMonth()+1)+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
 }
+/* Reportar un mensaje (D-07, capa B). Lo retira del dispositivo del peque al
+   instante — no espera a que nadie revise nada — y deja constancia en pm_reportes,
+   que no se puede borrar. El veredicto de la IA no se toca: son cosas distintas. */
+async function reportarMision(m, contenedor){
+  if(!confirm("¿Retirar este mensaje?\n\nDejará de estar disponible para tu peque ahora mismo y quedará registrado.")) return;
+  contenedor.innerHTML = `<span class="tag tag-meh">retirando…</span>`;
+  const ok1 = await sbPatch(T_MISIONES, "id=eq."+m.id+"&"+FQ, {reportada:true});
+  await sbInsert("pm_reportes", {familia:FAMILIA, mision_id:m.id, motivo:"reportado por un adulto de la familia", texto:(m.mensaje||"").slice(0,500)});
+  m.reportada = true;
+  contenedor.innerHTML = ok1 && ok1.ok
+    ? `<span class="tag tag-ayuda">🚫 mensaje retirado por un adulto de la familia</span>`
+    : `<span class="tag tag-meh">no se ha podido retirar: revisa la conexión e inténtalo otra vez</span>`;
+}
 async function cargarResultados(){
   const cont = $("papa-resultados");
   cont.innerHTML = "<p class='sub'>Cargando…</p>";
@@ -2362,6 +2414,19 @@ async function cargarResultados(){
     }).join("");
     cont.appendChild(bloque);
   }
+  // pistas que ha pedido a la mascota (tabla pm_dudas, la escribe solo el servidor)
+  try{
+    const rd = await sbSelect("pm_dudas", "select=created_at,tipo,enunciado,pista&"+FQ+"&order=created_at.desc&limit=15");
+    if(rd.ok && Array.isArray(rd.data) && rd.data.length){
+      const bd = document.createElement("div");
+      bd.style.cssText = "background:var(--lila-suave); border-radius:12px; padding:10px 14px; margin-bottom:12px;";
+      bd.innerHTML = `<b>💡 Pistas que ha pedido a ${escHtml(TEMA.mascota.nombre)} ${TEMA.mascota.emoji}</b>` + rd.data.map(x=>
+        `<div style="padding:4px 0; font-size:.92rem;">
+          <span style="font-weight:800;">${fechaCorta(x.created_at)}</span> · ${escHtml(x.enunciado||x.tipo)}<br>
+          <span style="color:var(--tinta-suave);">→ ${escHtml(x.pista)}</span></div>`).join("");
+      cont.appendChild(bd);
+    }
+  }catch(e){}
   items.forEach(it=>{
     const card = document.createElement("div");
     card.className = "res-card";
@@ -2395,6 +2460,18 @@ async function cargarResultados(){
     const msj = (it.tipo==="mision" && it.m.mensaje)
       ? `<div class="sub" style="text-align:left; margin:4px 0 0;">💬 «${escHtml(it.m.mensaje)}»</div>` : "";
     card.innerHTML = `<div class="cab">${cab}</div>` + msj + (det?`<div class="res-det">${det}</div>`:"");
+    /* botón de reportar: la comprobación automática no es infalible, así que
+       cualquier adulto de la familia puede retirar un mensaje al instante */
+    if(it.tipo==="mision" && it.m.mensaje){
+      const acc = document.createElement("div");
+      acc.style.cssText = "text-align:left; margin-top:6px;";
+      acc.innerHTML = it.m.reportada
+        ? `<span class="tag tag-ayuda">🚫 mensaje retirado por un adulto de la familia</span>`
+        : `<button class="chip" style="border:0; cursor:pointer; font-family:inherit;">⚠️ Reportar este mensaje</button>`;
+      const btn = acc.querySelector("button");
+      if(btn) btn.addEventListener("click", ()=>reportarMision(it.m, acc));
+      card.appendChild(acc);
+    }
     if(det){
       card.querySelector(".cab").addEventListener("click", ()=>card.querySelector(".res-det").classList.toggle("ver"));
     }
@@ -2543,6 +2620,7 @@ if(DEMO){
   $("btn-misiones").parentElement.classList.add("oculto");
   $("btn-papa").classList.add("oculto");
   $("btn-portal").classList.add("oculto");
+  const pista = $("btn-pista"); if(pista) pista.classList.add("oculto");
   const cinta = document.createElement("a");
   cinta.href = "../";
   cinta.textContent = "🚀 Estás en la DEMO de PequeMisiones — toca aquí para volver y apuntarte a la lista";

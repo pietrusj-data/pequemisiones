@@ -2291,7 +2291,8 @@ function pintarJoyero(){
 let MisionesCache = [], HechasCache = [], misionesSig = null;
 async function refrescarMisiones(silencio){
   // revision=aprobada: el peque solo ve misiones cuyo mensaje pasó la comprobación del servidor
-  const r = await sbSelect(T_MISIONES, "select=*&estado=eq.pendiente&revision=eq.aprobada&"+FQ+"&order=created_at.desc&limit=20");
+  // el peque solo ve misiones aprobadas por la comprobación Y no reportadas por un adulto
+  const r = await sbSelect(T_MISIONES, "select=*&estado=eq.pendiente&revision=eq.aprobada&reportada=is.false&"+FQ+"&order=created_at.desc&limit=20");
   if(r.ok && Array.isArray(r.data)){
     MisionesCache = r.data.filter(m=>!S.hechasLocal.includes(m.id));
     const h = await sbSelect(T_MISIONES, "select=id,titulo,hecha_at&estado=eq.hecha&"+FQ+"&order=hecha_at.desc&limit=5");
@@ -2659,6 +2660,19 @@ async function enviarMision(){
     okBox.textContent = "❌ No se pudo enviar (error "+r.status+"). Inténtalo de nuevo.";
   }
 }
+/* Reportar un mensaje (D-07, capa B). Lo retira del dispositivo del peque al
+   instante — no espera a que nadie revise nada — y deja constancia en pm_reportes,
+   que no se puede borrar. El veredicto de la IA no se toca: son cosas distintas. */
+async function reportarMision(m, contenedor){
+  if(!confirm("¿Retirar este mensaje?\n\nDejará de estar disponible para tu peque ahora mismo y quedará registrado.")) return;
+  contenedor.innerHTML = `<span class="tag tag-meh">retirando…</span>`;
+  const ok1 = await sbPatch(T_MISIONES, "id=eq."+m.id+"&"+FQ, {reportada:true});
+  await sbInsert("pm_reportes", {familia:FAMILIA, mision_id:m.id, motivo:"reportado por un adulto de la familia", texto:(m.mensaje||"").slice(0,500)});
+  m.reportada = true;
+  contenedor.innerHTML = ok1 && ok1.ok
+    ? `<span class="tag tag-ayuda">🚫 mensaje retirado por un adulto de la familia</span>`
+    : `<span class="tag tag-meh">no se ha podido retirar: revisa la conexión e inténtalo otra vez</span>`;
+}
 async function cargarResultados(){
   const cont = $("papa-resultados");
   cont.innerHTML = "<p class='sub'>Cargando…</p>";
@@ -2701,15 +2715,16 @@ async function cargarResultados(){
     cont.appendChild(bloque);
   }
   // pistas pedidas a la mascota (tabla pm_dudas, la escribe solo el servidor)
+  // (la función de reportar vive fuera del bucle: ver reportarMision)
   try{
     const rd = await sbSelect("pm_dudas", "select=created_at,tipo,enunciado,pista&"+FQ+"&order=created_at.desc&limit=15");
     if(rd.ok && Array.isArray(rd.data) && rd.data.length){
       const bd = document.createElement("div");
       bd.style.cssText = "background:var(--lila-suave); border-radius:12px; padding:10px 14px; margin-bottom:12px;";
-      bd.innerHTML = `<b>💡 Pistas que ha pedido a ${TEMA.mascota.nombre} ${TEMA.mascota.emoji}</b>` + rd.data.map(x=>
+      bd.innerHTML = `<b>💡 Pistas que ha pedido a ${escHtml(TEMA.mascota.nombre)} ${TEMA.mascota.emoji}</b>` + rd.data.map(x=>
         `<div style="padding:4px 0; font-size:.92rem;">
-          <span style="font-weight:800;">${fechaCorta(x.created_at)}</span> · ${x.enunciado||x.tipo}<br>
-          <span style="color:var(--tinta-suave);">→ ${x.pista}</span></div>`).join("");
+          <span style="font-weight:800;">${fechaCorta(x.created_at)}</span> · ${escHtml(x.enunciado||x.tipo)}<br>
+          <span style="color:var(--tinta-suave);">→ ${escHtml(x.pista)}</span></div>`).join("");
       cont.appendChild(bd);
     }
   }catch(e){}
@@ -2748,6 +2763,18 @@ async function cargarResultados(){
     const msj = (it.tipo==="mision" && it.m.mensaje)
       ? `<div class="sub" style="text-align:left; margin:4px 0 0;">💬 «${escHtml(it.m.mensaje)}»</div>` : "";
     card.innerHTML = `<div class="cab">${cab}</div>` + msj + (det?`<div class="res-det">${det}</div>`:"");
+    /* botón de reportar: la comprobación automática no es infalible, así que
+       cualquier adulto de la familia puede retirar un mensaje al instante */
+    if(it.tipo==="mision" && it.m.mensaje){
+      const acc = document.createElement("div");
+      acc.style.cssText = "text-align:left; margin-top:6px;";
+      acc.innerHTML = it.m.reportada
+        ? `<span class="tag tag-ayuda">🚫 mensaje retirado por un adulto de la familia</span>`
+        : `<button class="chip" style="border:0; cursor:pointer; font-family:inherit;">⚠️ Reportar este mensaje</button>`;
+      const btn = acc.querySelector("button");
+      if(btn) btn.addEventListener("click", ()=>reportarMision(it.m, acc));
+      card.appendChild(acc);
+    }
     if(det){
       card.querySelector(".cab").addEventListener("click", ()=>
         card.querySelector(".res-det").classList.toggle("ver"));
