@@ -1073,18 +1073,27 @@ function genPal(nivel){
   const dos = barajar(malas.filter(m=>m.p*10+m.s!==n)).slice(0,2);
   return {t:"pal", d:{sub, p, s, n, bandejas:barajar([{p,s}, ...dos])}};
 }
+let retRecientes = [];
 function genRet(nivel){
-  /* retrocuenta ABN: contar hacia atrás (la base de la resta) */
-  if(nivel>=2 && conProb(.35)){
-    const from = nivel===2 ? ri(4,10) : nivel===3 ? ri(6,15) : ri(10,30);
-    return {t:"ret", d:{sub:"antes", from, ops:barajar([from-2, from-1, from-3])}};
-  }
-  let desde, hasta;
-  if(nivel===1){ desde = ri(3,5); hasta = 0; }
-  else if(nivel===2){ desde = ri(6,10); hasta = 0; }
-  else if(nivel===3){ desde = ri(8,15); hasta = Math.max(0, desde-7); }
-  else { desde = ri(15,30); hasta = desde-7; }
-  return {t:"ret", d:{sub:"cohete", desde, hasta}};
+  /* retrocuenta ABN: contar hacia atrás (la base de la resta). Recuerda las
+     últimas cuentas servidas para no clavar la misma una y otra vez. */
+  let ej, clave, tope = 12;
+  do{
+    if(conProb(nivel===1 ? .3 : .35)){
+      const from = nivel===1 ? ri(4,7) : nivel===2 ? ri(4,10) : nivel===3 ? ri(6,15) : ri(10,30);
+      ej = {t:"ret", d:{sub:"antes", from, ops:barajar([from-2, from-1, from-3])}};
+    } else {
+      let desde, hasta;
+      if(nivel===1){ desde = ri(3,8); hasta = 0; }
+      else if(nivel===2){ desde = ri(6,12); hasta = 0; }
+      else if(nivel===3){ desde = ri(8,15); hasta = Math.max(0, desde-7); }
+      else { desde = ri(15,30); hasta = desde-7; }
+      ej = {t:"ret", d:{sub:"cohete", desde, hasta}};
+    }
+    clave = ej.d.sub + (ej.d.sub==="antes" ? ej.d.from : ej.d.desde);
+  } while(retRecientes.includes(clave) && --tope>0);
+  retRecientes.push(clave); if(retRecientes.length>3) retRecientes.shift();
+  return ej;
 }
 const GEN = {num:genNum, sub:genSub, pal:genPal, ret:genRet, ami:genAmi, vec:genVec, fam:genFam, sil:genSil, tra:genTra};
 function genMisionDiaria(){

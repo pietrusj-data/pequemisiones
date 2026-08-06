@@ -969,11 +969,12 @@ function genRel(nivel){
   if(r < .6){ // leer el reloj
     return {t:"rel", d:{sub:"leer", h:ri(1,12), m:m5}};
   }
-  // sumar (o restar en nivel 3) minutos
+  // sumar (o restar en nivel 3) minutos — la hora de partida siempre cae en la
+  // rejilla de 5 min, para que se pueda contar de 5 en 5 como sugiere la pista
   let h = ri(7,21), m, add, resta = false;
   if(nivel===1){ m = [0,15,30,45][ri(0,3)]; add = [10,15,30][ri(0,2)]; if(m+add>=60) m = 15; }
-  else if(nivel===2){ m = ri(0,59); add = [5,10,15,20,25,30,40,45][ri(0,7)]; }
-  else { m = ri(0,59); add = ri(11,49); resta = conProb(.3); }
+  else if(nivel===2){ m = ri(0,11)*5; add = [5,10,15,20,25,30,40,45][ri(0,7)]; }
+  else { m = ri(0,11)*5; add = ri(11,49); resta = conProb(.3); }
   return {t:"rel", d:{sub:"suma", h, m, add, resta}};
 }
 function relObjetivo(d){
