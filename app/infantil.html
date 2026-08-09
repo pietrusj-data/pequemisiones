@@ -1073,7 +1073,7 @@ function genPal(nivel){
   const dos = barajar(malas.filter(m=>m.p*10+m.s!==n)).slice(0,2);
   return {t:"pal", d:{sub, p, s, n, bandejas:barajar([{p,s}, ...dos])}};
 }
-let retRecientes = [];
+const retRecientes = [];
 function genRet(nivel){
   /* retrocuenta ABN: contar hacia atrás (la base de la resta). Recuerda las
      últimas cuentas servidas para no clavar la misma una y otra vez. */

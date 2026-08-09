@@ -86,7 +86,7 @@ const MOTORES = {
     modulos: ["num", "sub", "pal", "ret", "ami", "vec", "fam", "sil", "tra"],
     piezas: [
       "ri", "conProb", "barajar", "VOCALES", "CONS_NIVEL", "NOMBRE_LETRA",
-      "PALABRAS", "silabasDe", "distractores", "EMOJIS_CONTAR",
+      "PALABRAS", "silabasDe", "distractores", "EMOJIS_CONTAR", "retRecientes",
       "genNum", "genAmi", "genVec", "genSil", "genTra", "genFam", "genSub", "genPal", "genRet",
       "GEN", "genMisionDiaria", "genTanda",
     ],
