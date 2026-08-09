@@ -48,7 +48,7 @@ h2{font-size:1.4rem; margin:.2em 0; text-align:center; font-weight:800;}
 .perfiles{display:flex; gap:16px; flex-wrap:wrap; justify-content:center;}
 .perfil-card{width:150px; background:var(--blanco); border-radius:24px; padding:18px 10px;
   text-align:center; cursor:pointer; box-shadow:0 8px 20px rgba(139,111,224,.2);
-  border:4px solid transparent; transition:transform .1s;}
+  border:4px solid transparent; transition:transform .1s; position:relative;}
 .perfil-card:active{transform:scale(.96);}
 .perfil-card .cara{font-size:3.2rem;}
 .perfil-card .nom{font-weight:800; font-size:1.15rem; margin-top:6px;}
@@ -78,6 +78,11 @@ input[type=text]{width:100%; font-family:inherit; font-size:1.4rem; text-align:c
 .mod-chip{background:var(--blanco); border:3px solid var(--p1); color:var(--p1osc);
   border-radius:999px; padding:12px 18px; font-weight:800; font-size:1.05rem; cursor:pointer;}
 .mod-chip.sel{background:var(--p1); color:#fff;}
+/* módulo de un curso posterior: se puede activar, pero se ve que no toca todavía */
+.mod-chip.pronto{border-style:dashed; border-color:#c9bde8; color:var(--tinta-suave); font-size:.95rem;}
+.mod-chip.pronto.sel{background:var(--p2); border-color:var(--p2); color:#fff;}
+.perfil-card .ajustes{position:absolute; top:6px; right:8px; border:none; background:none;
+  font-size:1.1rem; cursor:pointer; opacity:.5; padding:4px; line-height:1;}
 .aviso-bugs{font-size:.85rem; color:var(--tinta-suave); text-align:center; max-width:480px;}
 </style>
 </head>
@@ -95,6 +100,27 @@ input[type=text]{width:100%; font-family:inherit; font-size:1.4rem; text-align:c
   <p class="sub" style="font-size:.86rem; max-width:460px;">💡 Para mandarle misiones desde tu móvil: abre esta misma página allí, pon el
     <b>mismo código de familia</b> y crea la tarjeta con el <b>mismo nombre</b>. Se encontrarán solas —
     sin cuentas, sin emails y sin que sepamos quién es.</p>
+</section>
+
+<!-- ══════════ AJUSTES DE UN PERFIL YA CREADO ══════════
+     Los módulos se elegían al crear la tarjeta y no había forma de volver a
+     tocarlos: si un peque se encontraba con algo que no había dado, no se podía
+     quitar. Aquí se cambian cuando haga falta. -->
+<section class="screen" id="s-ajustes">
+  <div class="logo">🚀 Peque<span>Misiones</span></div>
+  <div class="tarjeta">
+    <h2 id="aj-titulo">Ajustes</h2>
+    <p class="sub" id="aj-sub">Elige a qué juega. Lo que aún no dan en su curso sale avisado.</p>
+    <div class="fila" id="aj-modulos" style="margin-top:12px;"></div>
+    <h2 style="margin-top:18px; font-size:1.15rem;">🎁 Juegos de premio</h2>
+    <div class="fila" id="aj-juegos" style="margin-top:10px;"></div>
+    <p class="sub" id="aj-aviso" style="display:none; color:var(--p2osc); font-size:.95rem; margin-top:12px;">
+      Marca al menos un juego de aprender.</p>
+  </div>
+  <div class="fila" style="max-width:560px;">
+    <button class="btn btn-mini btn-p1" id="aj-atras">⬅️ Volver</button>
+    <button class="btn btn-p2" style="flex:1;" id="aj-guardar">Guardar ✅</button>
+  </div>
 </section>
 
 <!-- ══════════ WIZARD DE ALTA ══════════ -->
@@ -138,7 +164,7 @@ input[type=text]{width:100%; font-family:inherit; font-size:1.4rem; text-align:c
 
   <div id="w-paso4" class="tarjeta" style="display:none;">
     <h2>¿A qué quieres jugar?</h2>
-    <p class="sub" id="w-mod-sub">Papá o mamá pueden cambiarlo luego</p>
+    <p class="sub" id="w-mod-sub">Viene marcado lo de su curso. Lo que aún no dan sale avisado — puedes activarlo si sabes que lo lleva. Papá o mamá lo cambian luego desde el ⚙️ de la tarjeta.</p>
     <div class="fila" id="w-modulos" style="margin-top:12px;"></div>
     <h2 style="margin-top:18px; font-size:1.15rem;">🎁 Juegos de premio</h2>
     <p class="sub" style="font-size:.9rem;">Se ganan jugando — tú decides cuáles hay</p>
@@ -177,29 +203,37 @@ const LSP = {
   set(k, v){ try{ localStorage.setItem("pm_"+k, JSON.stringify(v)); }catch(e){} }
 };
 
-/* ── catálogo de módulos por etapa ── */
+/* ── catálogo de módulos por etapa ──
+   `desde` = curso en el que eso se empieza a ver en el cole. Antes de ese curso el
+   módulo sigue estando (lo manda el adulto, no la app), pero sale avisado y sin
+   marcar: es lo que evita que a una de 1º le lluevan multiplicaciones sin haberlas
+   dado nunca. `def` = curso a partir del cual además viene marcado de serie. */
 const MODULOS = {
   infantil: [
-    {id:"num", nombre:"🔢 Números", def:true},
-    {id:"sub", nombre:"👀 Ojo veloz", def:true},
-    {id:"pal", nombre:"🥢 Palillos y decenas", def:true},
-    {id:"ret", nombre:"🚀 Cuenta atrás", def:true},
-    {id:"fam", nombre:"🏠 Familias", def:false},
-    {id:"ami", nombre:"🤝 Amigos", def:true},
-    {id:"vec", nombre:"🏘️ Vecinos", def:false},
-    {id:"sil", nombre:"🔤 Sílabas", def:true},
-    {id:"tra", nombre:"✍️ Letras", def:true}
+    {id:"num", nombre:"🔢 Números", desde:"inf3", def:"inf3"},
+    {id:"sub", nombre:"👀 Ojo veloz", desde:"inf3", def:"inf3"},
+    {id:"sil", nombre:"🔤 Sílabas", desde:"inf4", def:"inf4"},
+    {id:"tra", nombre:"✍️ Letras", desde:"inf4", def:"inf4"},
+    {id:"ret", nombre:"🚀 Cuenta atrás", desde:"inf4", def:"inf4"},
+    {id:"vec", nombre:"🏘️ Vecinos", desde:"inf4", def:null},
+    {id:"ami", nombre:"🤝 Amigos", desde:"inf5", def:"inf5"},
+    {id:"pal", nombre:"🥢 Palillos y decenas", desde:"inf5", def:"inf5"},
+    {id:"fam", nombre:"🏠 Familias", desde:"inf5", def:null}
   ],
   primaria: [
-    {id:"abn", nombre:"🔮 Rejillas", def:true},
-    {id:"igu", nombre:"⚖️ Igualaciones", def:true},
-    {id:"dif", nombre:"💎 Diferencias", def:true},
-    {id:"mul", nombre:"✖️ Multiplicación", def:false},
-    {id:"div", nombre:"➗ División y repartos", def:false},
-    {id:"rel", nombre:"🕐 Relojes", def:false},
-    {id:"pes", nombre:"🧺 Pesos", def:false}
+    {id:"abn", nombre:"🔮 Rejillas", desde:"pri1", def:"pri1"},
+    {id:"igu", nombre:"⚖️ Igualaciones", desde:"pri1", def:"pri1"},
+    {id:"dif", nombre:"💎 Diferencias", desde:"pri1", def:"pri1"},
+    {id:"rel", nombre:"🕐 Relojes", desde:"pri1", def:"pri2"},
+    {id:"pes", nombre:"🧺 Pesos", desde:"pri2", def:null},
+    {id:"mul", nombre:"✖️ Multiplicación", desde:"pri2", def:"pri3"},
+    {id:"div", nombre:"➗ División y repartos", desde:"pri2", def:"pri3"}
   ]
 };
+/* los cursos en orden, para poder comparar "esto es de más adelante" */
+const ORDEN_CURSO = { inf3:0, inf4:1, inf5:2, pri1:3, pri2:4, pri3:5 };
+const tocaYa = (m, curso) => ORDEN_CURSO[curso] >= ORDEN_CURSO[m.desde];
+const vieneMarcado = (m, curso) => !!m.def && ORDEN_CURSO[curso] >= ORDEN_CURSO[m.def];
 const JUEGOS_PREMIO = [
   {id:"globos", nombre:"🎈 Globos", def:true, listo:true},
   {id:"mariposas", nombre:"🦋 Cazamariposas", def:true, listo:true},
@@ -243,6 +277,13 @@ function pintarPerfiles(){
     card.innerHTML = `<div class="cara">${t.emoji}</div><div class="nom">${p.alias}</div>
       <div class="det">${t.nombre} · ${p.cursoNombre}</div>`;
     card.addEventListener("click", ()=>entrar(p));
+    const eng = document.createElement("button");
+    eng.className = "ajustes";
+    eng.textContent = "⚙️";
+    eng.title = "Ajustes de " + p.alias;
+    eng.setAttribute("aria-label", "Ajustes de " + p.alias);
+    eng.addEventListener("click", e=>{ e.stopPropagation(); abrirAjustes(p.id); });
+    card.appendChild(eng);
     cont.appendChild(card);
   });
   const nuevo = document.createElement("div");
@@ -257,6 +298,42 @@ function entrar(perfil){
   LSP.set("perfilActivo", perfil);
   location.href = esInfantil(perfil.curso) ? "./infantil.html" : "./primaria.html";
 }
+
+/* ── ajustes de un perfil ya creado ── */
+const AJ = { id:null, curso:null, modulos:new Set(), juegos:new Set() };
+function abrirAjustes(id){
+  const p = LSP.get("perfiles", []).find(x=>x.id===id);
+  if(!p) return;
+  AJ.id = p.id; AJ.curso = p.curso;
+  AJ.modulos = new Set(p.modulos || []);
+  AJ.juegos = new Set(p.juegos || []);
+  $("aj-titulo").textContent = "Ajustes de " + p.alias;
+  $("aj-sub").textContent = `${p.cursoNombre} · elige a qué juega. Lo que aún no dan en su curso sale avisado, pero decides tú.`;
+  $("aj-aviso").style.display = "none";
+  pintarChipsModulos($("aj-modulos"), AJ.curso, AJ.modulos, ()=>{ $("aj-aviso").style.display = AJ.modulos.size ? "none" : "block"; });
+  pintarChipsJuegos($("aj-juegos"), AJ.juegos, null);
+  $("s-perfiles").classList.remove("activa");
+  $("s-ajustes").classList.add("activa");
+}
+function cerrarAjustes(){
+  $("s-ajustes").classList.remove("activa");
+  $("s-perfiles").classList.add("activa");
+}
+$("aj-atras").addEventListener("click", cerrarAjustes);
+$("aj-guardar").addEventListener("click", ()=>{
+  if(!AJ.modulos.size){ $("aj-aviso").style.display = "block"; return; }
+  const lista = LSP.get("perfiles", []);
+  const p = lista.find(x=>x.id===AJ.id);
+  if(!p){ cerrarAjustes(); return; }
+  p.modulos = [...AJ.modulos];
+  p.juegos = [...AJ.juegos];
+  LSP.set("perfiles", lista);
+  // si es el perfil con el que se está jugando, que el motor lo vea al volver
+  const activo = LSP.get("perfilActivo", null);
+  if(activo && activo.id === p.id) LSP.set("perfilActivo", p);
+  cerrarAjustes();
+  pintarPerfiles();
+});
 
 /* ── wizard ── */
 const W = { paso:1, alias:"", genero:null, curso:null, tema:null, modulos:new Set(), juegos:new Set() };
@@ -310,37 +387,48 @@ function pintarTemas(){
     cont.appendChild(c);
   });
 }
-function pintarModulos(){
-  const cont = $("w-modulos");
+/* Pinta los chips de módulos de un curso dentro de `cont`, marcando los que están
+   en `sel`. Lo comparten el alta y la pantalla de ajustes, para que las reglas de
+   "esto aún no lo dan" vivan en un solo sitio. */
+function pintarChipsModulos(cont, curso, sel, alCambiar){
   cont.innerHTML = "";
-  const etapa = esInfantil(W.curso) ? "infantil" : "primaria";
-  if(!W.modulos.size) MODULOS[etapa].forEach(m=>{ if(m.def) W.modulos.add(m.id); });
+  const etapa = esInfantil(curso) ? "infantil" : "primaria";
   MODULOS[etapa].forEach(m=>{
+    const pronto = !tocaYa(m, curso);
     const chip = document.createElement("div");
-    chip.className = "mod-chip" + (W.modulos.has(m.id) ? " sel" : "");
-    chip.textContent = m.nombre;
+    chip.className = "mod-chip" + (sel.has(m.id) ? " sel" : "") + (pronto ? " pronto" : "");
+    chip.textContent = m.nombre + (pronto ? " · aún no lo dan" : "");
+    if(pronto) chip.title = "En su curso todavía no se ve. Puedes activarlo si sabes que lo lleva.";
     chip.addEventListener("click", ()=>{
-      if(W.modulos.has(m.id)) W.modulos.delete(m.id); else W.modulos.add(m.id);
-      chip.classList.toggle("sel", W.modulos.has(m.id));
-      valida();
+      if(sel.has(m.id)) sel.delete(m.id); else sel.add(m.id);
+      chip.classList.toggle("sel", sel.has(m.id));
+      if(alCambiar) alCambiar();
     });
     cont.appendChild(chip);
   });
-  // juegos de premio (desbloqueables por el padre)
-  const cj = $("w-juegos");
-  cj.innerHTML = "";
-  if(!W.juegos.size) JUEGOS_PREMIO.forEach(j=>{ if(j.def) W.juegos.add(j.id); });
+}
+function pintarChipsJuegos(cont, sel, alCambiar){
+  cont.innerHTML = "";
   JUEGOS_PREMIO.forEach(j=>{
     const chip = document.createElement("div");
-    chip.className = "mod-chip" + (W.juegos.has(j.id) ? " sel" : "");
+    chip.className = "mod-chip" + (sel.has(j.id) ? " sel" : "");
     chip.textContent = j.nombre + (j.listo ? "" : " · pronto");
     if(!j.listo){ chip.style.opacity = ".45"; chip.style.pointerEvents = "none"; }
     chip.addEventListener("click", ()=>{
-      if(W.juegos.has(j.id)) W.juegos.delete(j.id); else W.juegos.add(j.id);
-      chip.classList.toggle("sel", W.juegos.has(j.id));
+      if(sel.has(j.id)) sel.delete(j.id); else sel.add(j.id);
+      chip.classList.toggle("sel", sel.has(j.id));
+      if(alCambiar) alCambiar();
     });
-    cj.appendChild(chip);
+    cont.appendChild(chip);
   });
+}
+function pintarModulos(){
+  const etapa = esInfantil(W.curso) ? "infantil" : "primaria";
+  // preselección por curso: solo lo que a su edad ya se ve en clase
+  if(!W.modulos.size) MODULOS[etapa].forEach(m=>{ if(vieneMarcado(m, W.curso)) W.modulos.add(m.id); });
+  if(!W.juegos.size) JUEGOS_PREMIO.forEach(j=>{ if(j.def) W.juegos.add(j.id); });
+  pintarChipsModulos($("w-modulos"), W.curso, W.modulos, valida);
+  pintarChipsJuegos($("w-juegos"), W.juegos, null);
 }
 $("w-alias").addEventListener("input", valida);
 document.querySelectorAll("[data-genero]").forEach(b=>b.addEventListener("click", ()=>{

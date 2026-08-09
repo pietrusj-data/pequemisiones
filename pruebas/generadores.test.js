@@ -161,6 +161,18 @@ describe("motor de primaria", () => {
     }
   });
 
+  /* Lo encontró una niña de 1º: le tocó repartir 12 caramelos entre 4 y se vino
+     abajo. El primer reparto es "la mitad", no una mudanza. */
+  test("genDiv · el primer reparto es de verdad para empezar", () => {
+    for (const ej of muchas(M.genDiv, 1)) {
+      const d = ej.d;
+      assert.equal(d.sub, "reparto", "el nivel 1 no reparte con resto");
+      assert.ok(d.k <= 3, `nivel 1: repartir entre ${d.k} es demasiado para empezar`);
+      assert.ok(d.N <= 12, `nivel 1: ${d.N} cosas que repartir son demasiadas`);
+      assert.ok(d.N / d.k <= 5, `nivel 1: ${d.N / d.k} a cada uno es mucha cuenta`);
+    }
+  });
+
   test("genTanda y la misión diaria entregan lo que prometen", () => {
     for (const n of [4, 6, 10]) {
       const t = M.genTanda(["abn", "igu", "rel"], 2, n);
@@ -172,6 +184,32 @@ describe("motor de primaria", () => {
       assert.equal(m.length, 6, "la misión diaria debe traer 6 ejercicios");
       m.forEach(ej => assert.ok(ej && ej.t && ej.d, "ejercicio vacío en la misión diaria"));
     }
+  });
+
+  /* El otro fallo que salió jugando: la misión del día sacaba el nivel solo de la
+     maestría acumulada, así que una niña de 1º podía acabar en nivel 3 sin haber
+     dado eso en clase. El nivel cuelga del CURSO; la maestría solo mueve un
+     escalón. Se mira a través de la división, que cambia de forma en cada nivel. */
+  test("la misión diaria no adelanta al curso del peque", () => {
+    const primero = cargaMotor("primaria", { nivel: 1 });
+    for (let i = 0; i < 200; i++) {
+      for (const ej of primero.genMisionDiaria()) {
+        if (ej.t !== "div") continue;
+        assert.equal(ej.d.sub, "reparto", "a un peque de 1º no le puede caer división de nivel 2 o 3");
+        assert.ok(ej.d.N <= 12, `a un peque de 1º le han caído ${ej.d.N} cosas que repartir`);
+      }
+    }
+  });
+
+  test("…pero al mayor tampoco lo deja atascado en el nivel 1", () => {
+    const tercero = cargaMotor("primaria", { nivel: 3 });
+    let avanzados = 0;
+    for (let i = 0; i < 200; i++) {
+      for (const ej of tercero.genMisionDiaria()) {
+        if (ej.t === "div" && ej.d.sub !== "reparto") avanzados++;
+      }
+    }
+    assert.ok(avanzados > 0, "en 3º de primaria la división debería pasar del reparto simple");
   });
 });
 

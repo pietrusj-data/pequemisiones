@@ -83,6 +83,8 @@ h2{font-size:1.5rem; margin:.15em 0; text-align:center; font-weight:800;}
 .opcion.bien{border-color:var(--verde); background:#e9fcf6;}
 .opcion.pista{animation:latido .9s ease-in-out infinite; border-color:var(--verde);}
 .opcion.apagada{opacity:.35; pointer-events:none;}
+/* rejilla congelada un momento tras un fallo: se escucha la pregunta otra vez */
+.opciones.esperando .opcion{pointer-events:none; opacity:.75;}
 @keyframes temblor{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-9px)}40%,80%{transform:translateX(9px)}}
 @keyframes latido{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 
@@ -1178,7 +1180,8 @@ let Tanda = null, EjState = null, salirArmado = false;
 function startTanda(cfg){
   Tanda = {origen:cfg.origen, misionId:cfg.misionId||null, titulo:cfg.titulo||"",
     list:cfg.ejercicios, idx:0, res:[], estrellas0:S.estrellas, t0:Date.now(),
-    nivel:cfg.nivel, fallosTotales:0, racha:0, diaria:cfg.diaria||false};
+    nivel:cfg.nivel, fallosTotales:0, racha:0, diaria:cfg.diaria||false,
+    repesca:[], enRepesca:false};
   go("s-juego");
   renderEj();
 }
@@ -1225,6 +1228,21 @@ async function pedirPista(){
 }
 $("btn-pista").addEventListener("click", pedirPista);
 
+/* REPESCA: lo que se falla vuelve a salir al final de la tanda, pero con números
+   nuevos del mismo juego — así no se resuelve de memoria, hay que saberlo. Es la
+   otra mitad del anti-toqueteo: acertar a la primera acaba antes. Máximo 2, para
+   que la misión no se haga infinita, y una repesca ya no genera otra. */
+const MAX_REPESCA = 2;
+function apuntarRepesca(ej){
+  if(ej.repesca || Tanda.enRepesca) return;
+  if(!EjState.guiada && EjState.intentos===0) return; // salió a la primera: nada que repescar
+  if(Tanda.repesca.length >= MAX_REPESCA) return;
+  if(Tanda.repesca.some(r=>r.t===ej.t)) return;      // un repaso por juego, no cuatro del mismo
+  const gen = GEN[ej.t];
+  const nuevo = gen ? gen(Tanda.nivel || 1) : {t:ej.t, d:ej.d};
+  nuevo.repesca = true;
+  Tanda.repesca.push(nuevo);
+}
 function ejCompletado(){
   if(!Tanda) return; // salió de la tanda a mitad
   const ej = Tanda.list[Tanda.idx];
@@ -1250,6 +1268,7 @@ function ejCompletado(){
   Tanda.res.push({t:ej.t, d:ej.d, intentos:EjState.intentos, guiada:EjState.guiada,
     seg: Math.round((Date.now()-EjState.t0)/1000)});
   if(!EjState.guiada && EjState.intentos===0) Tanda.racha++; else Tanda.racha = 0;
+  apuntarRepesca(ej);
   if(!EjState.guiada && (Tanda.racha===3 || Tanda.racha===5 || Tanda.racha===7)){
     premioGrande(`¡${Tanda.racha} SEGUIDAS! 🎆`);
     hablar(`¡${Tanda.racha} seguidas, ${S.nombre}! ${FEM?"¡Eres una campeona!":"¡Eres un campeón!"}`);
@@ -1269,33 +1288,51 @@ function ejCompletado(){
     else finTanda();
   }, 2100);
 }
-/* motor de opciones con acierto guiado (nunca se atasca) */
+/* motor de opciones con acierto guiado (nunca se atasca)
+
+   Ojo con el equilibrio de aquí: con tres opciones, ir tocando a lo loco acierta
+   siempre en pocos toques. Si además el toque es instantáneo, la app le está
+   enseñando al peque espabilado que probar es MÁS RÁPIDO que pensar, y se pasa la
+   misión entera sin aprender nada. Por eso un fallo congela la rejilla mientras la
+   mascota vuelve a leer la pregunta: no hay rojo, no se pierden estrellas, fallar
+   solo cuesta tiempo. Y lo que se falla vuelve a salir al final (ver `ejCompletado`). */
+const PAUSA_FALLO = 1900;
 function pintarOpciones(z, items, correctoIdx, reDecir){
   const cont = document.createElement("div"); cont.className = "opciones";
   const botones = [];
+  let bloqueado = false;
   items.forEach((it, i)=>{
     const b = document.createElement("div");
     b.className = "opcion";
     b.innerHTML = it;
     b.addEventListener("pointerdown", e=>{
       e.preventDefault();
-      if(b.classList.contains("apagada") || b.classList.contains("bien")) return;
+      if(bloqueado || b.classList.contains("apagada") || b.classList.contains("bien")) return;
       if(i===correctoIdx){
         b.classList.add("bien");
         botones.forEach(x=>{ if(x!==b) x.classList.add("apagada"); });
         ejCompletado();
       } else {
         b.classList.add("mal");
-        setTimeout(()=>b.classList.remove("mal"), 600);
         EjState.intentos++; Tanda.fallosTotales++;
         if(EjState.intentos>=2){
+          setTimeout(()=>b.classList.remove("mal"), 600);
           EjState.guiada = true;
           botones.forEach((x,xi)=>{ if(xi!==correctoIdx) x.classList.add("apagada"); });
           botones[correctoIdx].classList.add("pista");
           hablar("Mira, es este. ¡Tócalo!");
         } else {
+          // esa opción ya no vale, y la rejilla se queda quieta mientras se repite
+          // la pregunta: da tiempo a mirarla de verdad antes del siguiente toque
+          bloqueado = true;
+          cont.classList.add("esperando");
+          setTimeout(()=>{ b.classList.remove("mal"); b.classList.add("apagada"); }, 600);
           animo();
-          setTimeout(reDecir, 1300);
+          setTimeout(reDecir, 800);
+          setTimeout(()=>{
+            bloqueado = false;
+            cont.classList.remove("esperando");
+          }, PAUSA_FALLO);
         }
       }
     });
@@ -1959,6 +1996,16 @@ function renderTra(d){
 /* ═══════════ FIN DE TANDA ═══════════ */
 function hoyISO(){ return new Date().toISOString().slice(0,10); }
 function finTanda(){
+  // antes de cerrar: el repaso de lo que se atragantó
+  if(Tanda.repesca.length && !Tanda.enRepesca){
+    Tanda.enRepesca = true;
+    Tanda.list = Tanda.list.concat(Tanda.repesca);
+    // el enunciado del ejercicio se dice al pintarlo y `hablar` corta lo anterior:
+    // hay que dejar que suene el aviso antes de pintar el repaso
+    hablar("¡Y ahora el repaso! Otro igualito que el que se nos resistió.");
+    setTimeout(()=>{ if(Tanda) renderEj(); }, 1800);
+    return;
+  }
   if(Tanda.diaria){ tocaHoy(); S.hoy.diaria = true; guardar(); }
   const seg = Math.round((Date.now()-Tanda.t0)/1000);
   const ganadas = S.estrellas - Tanda.estrellas0;

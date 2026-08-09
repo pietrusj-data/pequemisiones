@@ -1027,11 +1027,14 @@ function genMul(nivel){
 function genDiv(nivel){
   /* división ABN: repartos equitativos (1-2) y rejilla de reparto (3) */
   if(nivel===1){
-    const k = ri(2,4), cada = ri(2,6);
+    /* el primer reparto es "la mitad" y poco más: entre 2 o 3, y nunca más de 12
+       cosas. Repartir 24 caramelos entre 4 no es nivel 1, es una mudanza. */
+    const k = conProb(.6) ? 2 : 3;
+    const cada = ri(2, k===2 ? 5 : 4);
     return {t:"div", d:{sub:"reparto", N:k*cada, k}};
   }
   if(nivel===2){
-    const k = ri(2,5), cada = ri(3,6), resto = conProb(.6) ? ri(1,k-1) : 0;
+    const k = ri(2,4), cada = ri(3,6), resto = conProb(.6) ? ri(1,k-1) : 0;
     return {t:"div", d:{sub:"resto", N:k*cada+resto, k}};
   }
   const k = ri(3,9);
@@ -1045,7 +1048,13 @@ function genMisionDiaria(){
   const tipos = base.filter(t=>GEN[t]);
   if(!tipos.length) tipos.push("abn");
   const chispaDe = t => S.chispa[t]===undefined ? 5 : S.chispa[t];
-  const nivelDe = t => { const ch = chispaDe(t); return ch>=8 ? 3 : ch<=2 ? 1 : 2; };
+  /* El nivel sale del CURSO, no solo de la maestría: una niña de 1º no puede
+     acabar en nivel 3 por lo bien que se le den las rejillas. La maestría solo
+     mueve un escalón arriba o abajo desde donde le toca por edad. */
+  const nivelDe = t => {
+    const ch = chispaDe(t);
+    return Math.max(1, Math.min(3, (PERFIL.nivel || 1) + (ch>=8 ? 1 : 0) - (ch<=2 ? 1 : 0)));
+  };
   const orden = tipos.slice().sort((a,b)=>chispaDe(a)-chispaDe(b));
   const lista = [];
   orden.slice(0,2).forEach(t=>{ lista.push(GEN[t](nivelDe(t)), GEN[t](nivelDe(t))); });
@@ -1126,7 +1135,8 @@ let Tanda = null, EjState = null, salirArmado = false;
 function startTanda(cfg){
   Tanda = {origen:cfg.origen, misionId:cfg.misionId||null, titulo:cfg.titulo||"",
     list:cfg.ejercicios, idx:0, res:[], gemas0:S.gemas, t0:Date.now(),
-    nivel:cfg.nivel, fallosTotales:0, diaria:cfg.diaria||false};
+    nivel:cfg.nivel, fallosTotales:0, diaria:cfg.diaria||false,
+    repesca:[], enRepesca:false};
   go("s-juego");
   renderEj();
   if(cfg.mensaje){ hada("💌 "+cfg.mensaje, 5000); }
@@ -1148,6 +1158,20 @@ function fallo(pista){
 }
 function marcarMal(celdas){
   celdas.forEach(c=>{ c.classList.add("mal"); setTimeout(()=>c.classList.remove("mal"), 650); });
+}
+/* REPESCA: lo que se falla vuelve al final de la tanda, con números nuevos del
+   mismo juego — no se resuelve de memoria, hay que saberlo. Máximo 2, y una
+   repesca nunca genera otra, para que la misión no se estire sin fin. */
+const MAX_REPESCA = 2;
+function apuntarRepesca(ej){
+  if(ej.repesca || Tanda.enRepesca) return;
+  if(!EjState.ayudado && EjState.fallosEj===0) return; // limpia a la primera
+  if(Tanda.repesca.length >= MAX_REPESCA) return;
+  if(Tanda.repesca.some(r=>r.t===ej.t)) return;
+  const gen = GEN[ej.t];
+  const nuevo = gen ? gen(Tanda.nivel || 1) : {t:ej.t, d:ej.d};
+  nuevo.repesca = true;
+  Tanda.repesca.push(nuevo);
 }
 function ejCompletado(){
   if(!Tanda) return; // salió de la tanda a mitad
@@ -1171,6 +1195,7 @@ function ejCompletado(){
   guardar(); actualizarGemas();
   Tanda.res.push({t:ej.t, d:ej.d, intentos:EjState.fallosEj, ayudado:EjState.ayudado,
     seg: Math.round((Date.now()-EjState.t0)/1000)});
+  apuntarRepesca(ej);
   if(EjState.ayudado){
     hada("¡Ya está! La siguiente la haces tú sola 💪", 2600);
   } else {
@@ -2230,6 +2255,14 @@ function renderPes(d){
 const EMOJI_TIPO = {abn:"🔮", cla:"🏰", igu:"⚖️", dif:"💎", mul:"✖️", div:"➗", rel:"🕐", pes:"🧺"};
 function hoyISO(){ return new Date().toISOString().slice(0,10); }
 function finTanda(){
+  // antes de cerrar: el repaso de lo que se atragantó
+  if(Tanda.repesca.length && !Tanda.enRepesca){
+    Tanda.enRepesca = true;
+    Tanda.list = Tanda.list.concat(Tanda.repesca);
+    hada("🔁 ¡Repaso! Otro parecido al que se te resistió", 3000);
+    renderEj();
+    return;
+  }
   if(Tanda.diaria){ tocaHoy(); S.hoy.diaria = true; guardar(); }
   const seg = Math.round((Date.now()-Tanda.t0)/1000);
   const ganadas = S.gemas - Tanda.gemas0;
@@ -2972,7 +3005,7 @@ $("btn-diaria").addEventListener("click", ()=>{
   if(limiteAlcanzado()){ despedidaLimite(); return; }
   tocaHoy();
   if(S.hoy.diaria){ hada("¡La misión de hoy ya está conseguida! Mañana habrá otra 🌞", 3200); return; }
-  startTanda({origen:"libre", diaria:true, titulo:"Misión del día 🌞", ejercicios:genMisionDiaria(), nivel:2});
+  startTanda({origen:"libre", diaria:true, titulo:"Misión del día 🌞", ejercicios:genMisionDiaria(), nivel:PERFIL.nivel || 1});
 });
 $("btn-joyero").addEventListener("click", ()=>go("s-joyero"));
 $("btn-premios").addEventListener("click", ()=>{ go("s-premios"); cargarHucha(true); });
