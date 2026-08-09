@@ -584,6 +584,13 @@ textarea{resize:vertical; min-height:64px;}
       </div>
       <p class="sub" style="text-align:left; font-size:.85rem;">Es el <b>techo</b>: ella no puede subir de ahí en el juego libre. Dentro de ese techo se ajusta sola — si encadena aciertos a la primera sube un puntito, y si el hada tiene que enseñarle, baja. Las misiones que le mandes tú van SIEMPRE al nivel que elijas al crearlas.</p>
     </div>
+    <div class="form-linea" id="pro-caja" style="display:none;">
+      <label>⭐ PequeMisiones Pro</label>
+      <div id="pro-estado" class="sub" style="text-align:left;">…</div>
+      <div class="fila" id="pro-botones" style="justify-content:flex-start;"></div>
+      <p class="sub" style="text-align:left; font-size:.85rem;">El pago se hace en Stripe y viaja con tu código de familia.
+        Tu email solo lo ve Stripe para el recibo: a nuestra base de datos no llega nunca.</p>
+    </div>
     <div class="form-linea">
       <label>Cambiar PIN</label>
       <button class="btn btn-mini btn-lila" id="btn-cambiar-pin">Cambiar PIN</button>
@@ -732,16 +739,10 @@ const sfx = {
   pop(){ tono(520,0,.05,"square",.12); tono(180,.03,.1,"sine",.15); },
   fanfarria(){ [523,523,659,784,1046,784,1046].forEach((f,i)=>tono(f,i*0.12,.18,"triangle",.15)); }
 };
-function hablar(txt){
+function hablar(txt, rate){
   if(!S.voz || !window.speechSynthesis) return;
-  try{
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(txt);
-    u.lang = "es-ES"; u.rate = 0.95; u.pitch = 1.15;
-    const v = speechSynthesis.getVoices().find(v=>v.lang && v.lang.startsWith("es"));
-    if(v) u.voice = v;
-    speechSynthesis.speak(u);
-  }catch(e){}
+  // la elección de voz y el troceo por frases viven en PM_VOZ (temas.js)
+  PM_VOZ.decir(txt, {rate: rate || 0.9, pitch: 1.15});
 }
 
 /* ═══════════════ CONFETI ═══════════════ */
@@ -1282,13 +1283,29 @@ function ejCompletado(){
    mismo ejercicio repite la misma pista sin volver a llamar. Queda registrada en
    pm_dudas y el padre la ve en Resultados. */
 let PistaBusy = false;
+/* Radiografía del ejercicio EN CURSO: cuántas casillas lleva ya bien. Lo pidió
+   el banco de pruebas: en una rejilla a medias, la pista tiene que hablar del
+   paso siguiente, no repetir la del arranque una y otra vez. */
+function estadoPista(){
+  const celdas = [...document.querySelectorAll("#zona-ejercicio .celda")]
+    .filter(c=>!c.classList.contains("fija"));
+  if(!celdas.length) return {firma:"0", texto:""};
+  const hechas = celdas.filter(c=>c.classList.contains("hecha")).length;
+  const texto = hechas===0 ? ""
+    : `YA LLEVA ${hechas} de ${celdas.length} casillas bien: dale la pista del paso SIGUIENTE, no del primero`;
+  return {firma: hechas+"de"+celdas.length, texto};
+}
 async function pedirPista(){
   if(DEMO) return; // en la demo el botón está oculto: nadie gasta pistas desde fuera
   if(!Tanda || PistaBusy) return;
   const ej = Tanda.list[Tanda.idx]; if(!ej) return;
   Tanda.pistas = Tanda.pistas || {};
-  const ya = Tanda.pistas[Tanda.idx];
-  if(ya){ hada(ya, 7000); hablar(ya); return; }
+  // la pista se recuerda POR PASO, no por ejercicio: si ha avanzado desde la
+  // última vez, se pide una nueva acorde a donde está ahora
+  const est = estadoPista();
+  const clave = Tanda.idx + "·" + est.firma;
+  const ya = Tanda.pistas[clave];
+  if(ya){ hada(ya, 7000); hablar(ya, .8); return; }
   PistaBusy = true;
   const btn = $("btn-pista"); if(btn){ btn.disabled = true; btn.textContent = "💭…"; }
   try{
@@ -1296,12 +1313,13 @@ async function pedirPista(){
       method: "POST",
       headers: {"Content-Type":"application/json", "Authorization":"Bearer "+SUPA_ANON, "apikey":SUPA_ANON},
       body: JSON.stringify({familia: FAMILIA, perfil: PERFIL_KEY, tipo: ej.t,
-        enunciado: tituloEj(ej).slice(0,180), nivel: Tanda.nivel||2, mascota: TEMA.mascota.nombre})
+        enunciado: (tituloEj(ej) + (est.texto ? " · " + est.texto : "")).slice(0,180),
+        nivel: Tanda.nivel||2, mascota: TEMA.mascota.nombre})
     });
     const d = r.ok ? await r.json() : null;
     const p = (d && d.pista) ? d.pista : "Respira hondo y ve pasito a pasito, ¡tú puedes! ✨";
-    Tanda.pistas[Tanda.idx] = p;
-    hada(p, 7000); hablar(p);
+    Tanda.pistas[clave] = p;
+    hada(p, 7000); hablar(p, .8); // las pistas, un punto más despacio: son la parte densa
   }catch(e){
     hada("Ahora no me salen las palabras… ¡pero tú puedes! 💪", 4000);
   }
@@ -3070,8 +3088,43 @@ $("pad-pin").addEventListener("pointerdown", e=>{
   const b = e.target.closest("button"); if(!b) return;
   e.preventDefault(); pinTecla(b.dataset.d);
 });
+
+/* ── plan Pro (Stripe) ──
+   La "cuenta" del pago es el código de familia: el Payment Link viaja con
+   client_reference_id y el webhook lo apunta en pm_suscripciones. Los enlaces
+   se crean en el panel de Stripe; mientras estén vacíos la caja ni aparece
+   (el producto sigue gratis) pero el estado sí se lee, por si ya son Pro. */
+const STRIPE_LINK_MENSUAL = "";
+const STRIPE_LINK_ANUAL = "";
+let esPro = false;
+async function cargarPro(){
+  const caja = $("pro-caja"); if(!caja) return;
+  const hayTienda = !!(STRIPE_LINK_MENSUAL || STRIPE_LINK_ANUAL);
+  const r = await sbSelect("pm_suscripciones", "select=estado,plan,hasta&limit=1");
+  const f = (r.ok && r.data && r.data[0]) || null;
+  esPro = !!(f && f.estado === "activa" && (!f.hasta || new Date(f.hasta) > new Date()));
+  if(!hayTienda && !f){ caja.style.display = "none"; return; }
+  caja.style.display = "";
+  $("pro-estado").innerHTML = esPro
+    ? `🟢 Esta familia es <b>Pro</b>${f.plan ? " · plan " + f.plan : ""}${f.hasta ? " · hasta el " + new Date(f.hasta).toLocaleDateString("es-ES") : ""}`
+    : f && f.estado === "impago" ? "🟠 Hay un pago pendiente: revisa el correo que te mandó Stripe"
+    : "⚪ Plan gratuito";
+  const zona = $("pro-botones"); zona.innerHTML = "";
+  if(!esPro && hayTienda){
+    [[STRIPE_LINK_MENSUAL, "mensual"], [STRIPE_LINK_ANUAL, "anual"]].forEach(([url, txt])=>{
+      if(!url) return;
+      const a = document.createElement("a");
+      a.className = "btn btn-mini btn-lila";
+      a.textContent = "⭐ Hazte Pro · " + txt;
+      a.href = url + (url.includes("?") ? "&" : "?") + "client_reference_id=" + encodeURIComponent(FAMILIA);
+      a.target = "_blank"; a.rel = "noopener";
+      zona.appendChild(a);
+    });
+  }
+}
 async function entrarPapa(){
   go("s-papa");
+  cargarPro();
   $("papa-envio-ok").classList.add("oculto");
   $("ajuste-nombre").value = S.nombre;
   document.querySelectorAll("#ajuste-limite .nivel-btn").forEach(x=>x.classList.toggle("on", parseInt(x.dataset.lim,10)===S.limiteMin));

@@ -574,6 +574,13 @@ textarea{resize:vertical; min-height:64px;}
       </div>
       <p class="sub" style="text-align:left; font-size:.85rem;">El juego libre se ajusta solo: si encadena aciertos a la primera sube un puntito, y si Nube la ayuda mucho, baja. Las misiones van SIEMPRE al nivel que tú elijas.</p>
     </div>
+    <div class="form-linea" id="pro-caja" style="display:none;">
+      <label>⭐ PequeMisiones Pro</label>
+      <div id="pro-estado" class="sub" style="text-align:left;">…</div>
+      <div class="fila" id="pro-botones" style="justify-content:flex-start;"></div>
+      <p class="sub" style="text-align:left; font-size:.85rem;">El pago se hace en Stripe y viaja con tu código de familia.
+        Tu email solo lo ve Stripe para el recibo: a nuestra base de datos no llega nunca.</p>
+    </div>
     <div class="form-linea">
       <label>Cambiar PIN</label>
       <button class="btn btn-mini btn-lila" id="btn-cambiar-pin">Cambiar PIN</button>
@@ -703,14 +710,8 @@ function hablar(txt, lento){
   clearTimeout(hablar._t);
   hablar._t = setTimeout(()=>b.classList.remove("ver"), Math.max(3200, txt.length*90));
   if(!S.sonido || !window.speechSynthesis) return;
-  try{
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(txt);
-    u.lang = "es-ES"; u.rate = lento ? 0.62 : 0.82; u.pitch = 1.15;
-    const v = speechSynthesis.getVoices().find(v=>v.lang && v.lang.startsWith("es"));
-    if(v) u.voice = v;
-    speechSynthesis.speak(u);
-  }catch(e){}
+  // la elección de voz y el troceo por frases viven en PM_VOZ (temas.js)
+  PM_VOZ.decir(txt, {rate: lento ? 0.6 : 0.8, pitch: 1.15});
 }
 function repetir(){ if(ultimaFrase) hablar(ultimaFrase); }
 
@@ -2793,8 +2794,43 @@ $("pad-pin").addEventListener("pointerdown", e=>{
   const b = e.target.closest("button"); if(!b) return;
   e.preventDefault(); pinTecla(b.dataset.d);
 });
+
+/* ── plan Pro (Stripe) ──
+   La "cuenta" del pago es el código de familia: el Payment Link viaja con
+   client_reference_id y el webhook lo apunta en pm_suscripciones. Los enlaces
+   se crean en el panel de Stripe; mientras estén vacíos la caja ni aparece
+   (el producto sigue gratis) pero el estado sí se lee, por si ya son Pro. */
+const STRIPE_LINK_MENSUAL = "";
+const STRIPE_LINK_ANUAL = "";
+let esPro = false;
+async function cargarPro(){
+  const caja = $("pro-caja"); if(!caja) return;
+  const hayTienda = !!(STRIPE_LINK_MENSUAL || STRIPE_LINK_ANUAL);
+  const r = await sbSelect("pm_suscripciones", "select=estado,plan,hasta&limit=1");
+  const f = (r.ok && r.data && r.data[0]) || null;
+  esPro = !!(f && f.estado === "activa" && (!f.hasta || new Date(f.hasta) > new Date()));
+  if(!hayTienda && !f){ caja.style.display = "none"; return; }
+  caja.style.display = "";
+  $("pro-estado").innerHTML = esPro
+    ? `🟢 Esta familia es <b>Pro</b>${f.plan ? " · plan " + f.plan : ""}${f.hasta ? " · hasta el " + new Date(f.hasta).toLocaleDateString("es-ES") : ""}`
+    : f && f.estado === "impago" ? "🟠 Hay un pago pendiente: revisa el correo que te mandó Stripe"
+    : "⚪ Plan gratuito";
+  const zona = $("pro-botones"); zona.innerHTML = "";
+  if(!esPro && hayTienda){
+    [[STRIPE_LINK_MENSUAL, "mensual"], [STRIPE_LINK_ANUAL, "anual"]].forEach(([url, txt])=>{
+      if(!url) return;
+      const a = document.createElement("a");
+      a.className = "btn btn-mini btn-lila";
+      a.textContent = "⭐ Hazte Pro · " + txt;
+      a.href = url + (url.includes("?") ? "&" : "?") + "client_reference_id=" + encodeURIComponent(FAMILIA);
+      a.target = "_blank"; a.rel = "noopener";
+      zona.appendChild(a);
+    });
+  }
+}
 async function entrarPapa(){
   go("s-papa");
+  cargarPro();
   try{ speechSynthesis.cancel(); }catch(e){}
   $("papa-envio-ok").classList.add("oculto");
   $("ajuste-nombre").value = S.nombre;
@@ -2962,12 +2998,7 @@ const FRASES_PAPA = ["¡Ánimo! 💪","Te quiero mucho ❤️","¡Qué ganas de 
 function oirMensaje(){
   const v = $("papa-msj").value.trim() || $("papa-msj").placeholder;
   try{
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(v);
-    u.lang = "es-ES"; u.rate = 0.95; u.pitch = 1.15;
-    const voz = speechSynthesis.getVoices().find(x=>x.lang && x.lang.startsWith("es"));
-    if(voz) u.voice = voz;
-    speechSynthesis.speak(u);
+    PM_VOZ.decir(v, {rate: 0.95, pitch: 1.15});
   }catch(e){}
 }
 (function(){

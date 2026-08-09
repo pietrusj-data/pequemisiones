@@ -24,8 +24,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "https://tyoavvibplxkevxkamsb.supabase.co";
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-// Todas las tablas que llevan columna `familia` (pm_errores no la lleva, a propósito)
-const TABLAS = ["pm_misiones", "pm_resultados", "pm_insignias", "pm_dudas", "pm_reportes", "pm_premios", "pm_canjes"];
+// Todas las tablas que llevan columna `familia` (pm_errores no la lleva, a propósito).
+// pm_suscripciones incluida: reforzar el código no puede dejar a nadie sin su plan Pro.
+const TABLAS = ["pm_misiones", "pm_resultados", "pm_insignias", "pm_dudas", "pm_reportes", "pm_premios", "pm_canjes", "pm_suscripciones"];
 
 const FUERTE = /^[A-ZÑ]{2,12}-[A-Z2-9]{4}-[A-Z2-9]{4}$/;    // formato de los códigos nuevos
 const VALIDO = /^[A-ZÑ]{2,12}(-[A-ZÑ0-9]{3,6}){1,3}$/;      // cualquier código aceptado por el portal
