@@ -237,9 +237,9 @@ const vieneMarcado = (m, curso) => !!m.def && ORDEN_CURSO[curso] >= ORDEN_CURSO[
 const JUEGOS_PREMIO = [
   {id:"globos", nombre:"🎈 Globos", def:true, listo:true},
   {id:"mariposas", nombre:"🦋 Cazamariposas", def:true, listo:true},
-  {id:"plataformas", nombre:"🕹️ Plataformas", def:false, listo:false},
-  {id:"naves", nombre:"🚀 Naves", def:false, listo:false},
-  {id:"dibujar", nombre:"🎨 Dibujar", def:false, listo:false}
+  {id:"plataformas", nombre:"🪜 Saltos", def:false, listo:true},
+  {id:"naves", nombre:"🚀 Naves", def:false, listo:true},
+  {id:"dibujar", nombre:"🎨 Pizarra", def:false, listo:true}
 ];
 const esInfantil = c => c.startsWith("inf");
 /* clavePerfil() y keyDe() viven en temas.js (los comparten portal y motores) */

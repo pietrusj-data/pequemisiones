@@ -17,7 +17,7 @@ al aprendizaje.** El cliente es la familia entera, no el niño. La promesa no es
 | `en/` | Landing gemela en inglés (marca **PequeMissions**) |
 | `app/` | **El producto**: portal de perfiles + los dos motores (`primaria.html`, `infantil.html`) |
 | `demo-primaria/`, `demo-infantil/` | Escaparate: redirigen al motor con `?demo=1` (no son copias) |
-| `pruebas/` | Pruebas automáticas: `node --test pruebas/` |
+| `pruebas/` | Pruebas automáticas: `node --test pruebas/` (y `pruebas/navegador/`, a mano) |
 | `rejillas/`, `tabla-100/` | Herramientas ABN gratuitas (entrada por buscador) |
 | `confianza/`, `privacidad/` | Páginas legales y de transparencia |
 | `supabase/` | Esquema, seguridad (RLS) y edge functions del servidor |
