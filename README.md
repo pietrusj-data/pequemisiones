@@ -43,7 +43,7 @@ pública), con cola offline en `localStorage` para que nunca se pierda un ejerci
 por falta de cobertura.
 
 **Privacidad por diseño:** los perfiles de los niños viven solo en el dispositivo.
-Al servidor solo llega un seudónimo y un código de familia opaco (tipo `LUNA-847`).
+Al servidor solo llega un seudónimo y un código de familia opaco e inadivinable (tipo `LUNA-K7M2-P6Q9`), que se comparte entre dispositivos por enlace.
 Ni el administrador puede saber cómo se llama un niño. Detalle en `privacidad/`.
 
 **Seguridad del canal de mensajes:** ninguna misión llega al niño sin que su texto

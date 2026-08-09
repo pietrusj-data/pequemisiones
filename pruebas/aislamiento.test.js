@@ -49,9 +49,14 @@ describe("aislamiento entre familias", () => {
   before(async () => {
     try {
       const r = await pide("pm_misiones?select=id&limit=1", { familia: CASA_A });
-      if (r.status >= 500) vivo = false;
+      // Un select con la clave anon y cabecera de familia jamás da 403 en el
+      // Supabase real (RLS responde 200 con lista vacía). Un 403, un 5xx o una
+      // respuesta que no es JSON significan proxy corporativo, red capada o
+      // proyecto en pausa: nada que el aislamiento pueda juzgar.
+      if (r.status >= 500 || r.status === 403) vivo = false;
+      else await r.clone().json().catch(() => { vivo = false; });
     } catch (_) { vivo = false; }
-    if (!vivo) console.log("\n  ⚠️  No hay respuesta del servidor (¿proyecto de Supabase en pausa?): pruebas saltadas\n");
+    if (!vivo) console.log("\n  ⚠️  Sin camino limpio hasta el servidor (¿proyecto en pausa o red bloqueada?): pruebas saltadas\n");
   });
 
   test("una familia puede crear su misión y verla", async t => {
@@ -136,6 +141,53 @@ describe("aislamiento entre familias", () => {
     });
     assert.ok(r.status === 401 || r.status === 403,
       `un cliente no debería poder inventar pistas (salió ${r.status})`);
+  });
+
+  test("rotar el código mueve el historial (y nadie puede rotar sin código fuerte)", async t => {
+    if (!vivo || !idA) return t.skip("servidor no disponible");
+    // La función `rotar` puede no estar desplegada todavía: en ese caso se
+    // avisa y se salta, igual que cuando el proyecto está en pausa.
+    const rota = (viejo, nuevo) => fetch(`${SUPA}/functions/v1/rotar`, {
+      method: "POST",
+      headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, "Content-Type": "application/json", "x-familia": viejo },
+      body: JSON.stringify({ nuevo }),
+    });
+
+    const NUEVA = `LUNA-QQ${sufijo.slice(0, 2)}-WW${sufijo.slice(2)}`.toUpperCase()
+      .replace(/[O0IL1UV]/g, "7"); // por si el pid trae caracteres fuera del alfabeto
+    let r;
+    try { r = await rota(CASA_A, NUEVA); } catch (_) { return t.skip("sin red hacia la función"); }
+    if (r.status === 404) return t.skip("la función `rotar` no está desplegada aún");
+
+    assert.ok(r.ok, `rotar con el código propio debería funcionar (salió ${r.status})`);
+
+    // el historial se ha movido: con el código viejo ya no se ve nada…
+    const conViejo = await pide(`pm_misiones?id=eq.${idA}`, { familia: CASA_A });
+    assert.deepEqual(await conViejo.json(), [], "tras rotar, el código viejo sigue viendo el historial");
+    // …y con el nuevo se ve todo
+    const conNuevo = await pide(`pm_misiones?id=eq.${idA}`, { familia: NUEVA });
+    assert.equal((await conNuevo.json()).length, 1, "tras rotar, el código nuevo no ve el historial");
+
+    // un código nuevo débil o mal formado se rechaza
+    const mal = await rota(NUEVA, "SOL-123");
+    assert.equal(mal.status, 400, "la función aceptó un código nuevo débil");
+
+    // deshacer: se rota de vuelta para que la limpieza del final funcione
+    const vuelta = await rota(NUEVA, null);
+    assert.equal(vuelta.status, 400, "la función aceptó rotar hacia un código nulo");
+    const deshacer = await fetch(`${SUPA}/functions/v1/rotar`, {
+      method: "POST",
+      headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, "Content-Type": "application/json", "x-familia": NUEVA },
+      body: JSON.stringify({ nuevo: CASA_A }),
+    });
+    // CASA_A (PRUEBAA-1234) no es formato fuerte, así que la vuelta directa se
+    // rechaza: se borra aquí mismo con el código nuevo y se avisa a la limpieza.
+    if (deshacer.status === 400) {
+      await pide(`pm_misiones?id=eq.${idA}`, { familia: NUEVA, metodo: "PATCH", cuerpo: { estado: "hecha", hecha_at: new Date().toISOString() } });
+      const del = await pide(`pm_misiones?id=eq.${idA}`, { familia: NUEVA, metodo: "DELETE" });
+      assert.ok(del.status === 204 || del.status === 200, `no se pudo limpiar la misión rotada (salió ${del.status})`);
+      idA = null; // la limpieza final ya no tiene nada que borrar
+    }
   });
 
   test("limpieza: la familia borra su propia misión", async t => {

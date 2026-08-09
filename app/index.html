@@ -97,8 +97,13 @@ input[type=text]{width:100%; font-family:inherit; font-size:1.4rem; text-align:c
   <p class="sub" id="hint-portal">Toca tu tarjeta para entrar en tu mundo</p>
   <p class="sub" style="font-size:.92rem;">👨‍👩‍👧 Código de familia: <b id="cod-familia">—</b>
     <button id="btn-cod-familia" style="border:none; background:none; color:var(--p2); font-weight:800; cursor:pointer; font-family:inherit; font-size:.92rem; text-decoration:underline;">cambiar</button></p>
-  <p class="sub" style="font-size:.86rem; max-width:460px;">💡 Para mandarle misiones desde tu móvil: abre esta misma página allí, pon el
-    <b>mismo código de familia</b> y crea la tarjeta con el <b>mismo nombre</b>. Se encontrarán solas —
+  <!-- El código es la llave de los datos: los de la primera época se podían adivinar barriendo -->
+  <p class="sub" id="aviso-codigo" style="display:none; font-size:.88rem; max-width:460px; background:#fff4e5; border-radius:14px; padding:10px 14px; color:#a05a00;">
+    ⚠️ Tu código es del formato antiguo y es fácil de adivinar.
+    <button id="btn-reforzar" style="border:none; background:none; color:#a05a00; font-weight:800; cursor:pointer; font-family:inherit; font-size:.88rem; text-decoration:underline;">reforzar ahora</button></p>
+  <button class="btn btn-mini btn-p1" id="btn-vincular">📲 Vincular otro dispositivo</button>
+  <p class="sub" style="font-size:.86rem; max-width:460px;">💡 Para mandarle misiones desde tu móvil: toca <b>📲 Vincular</b>, mándate el enlace
+    y ábrelo allí. Luego crea la tarjeta con el <b>mismo nombre</b>: se encontrarán solas —
     sin cuentas, sin emails y sin que sepamos quién es.</p>
 </section>
 
@@ -245,23 +250,111 @@ const esInfantil = c => c.startsWith("inf");
 /* clavePerfil() y keyDe() viven en temas.js (los comparten portal y motores) */
 const NIVEL_POR_CURSO = { inf3:1, inf4:2, inf5:3, pri1:1, pri2:2, pri3:3 };
 
-/* ── código de familia (opaco, cero datos personales): viaja con las misiones y permite vincular otra tablet ── */
+/* ── código de familia (opaco, cero datos personales): viaja con las misiones y permite vincular otra tablet ──
+
+   OJO: el código no es un apodo, ES LA LLAVE de los datos de la familia en el
+   servidor (las políticas RLS comparan contra él). Los códigos de la primera
+   época (LUNA-847) solo tenían 18.000 combinaciones: se podían barrer todas con
+   la clave pública. Los nuevos llevan 8 caracteres de un alfabeto sin letras
+   confundibles (ni O/0, ni I/L/1, ni U/V): unos 10^13 posibles, imposibles de
+   adivinar barriendo. El código se comparte por enlace, no hace falta teclearlo. */
+const SUPA = "https://tyoavvibplxkevxkamsb.supabase.co";
+const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5b2F2dmlicGx4a2V2eGthbXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NDA4NTAsImV4cCI6MjA5MjQxNjg1MH0.x26xzz4nV3Umtj4_4SCPu9NXQRLDEh1xZeQgGk6adrQ";
 const COD_PALABRAS = ["LUNA","SOL","NUBE","MAR","FLOR","RIO","OSO","LEON","BUHO","PINO","MIEL","CIELO","PERLA","COCO","DUNA","FARO","IRIS","KIWI","LIMA","NIDO"];
+const COD_ALFABETO = "ABCDEFGHJKMNPQRSTWXYZ23456789"; // sin O/0, I/L/1, U/V: se puede dictar por teléfono sin dudas
+function azar(n){
+  const a = new Uint32Array(n);
+  if(typeof crypto !== "undefined" && crypto.getRandomValues) crypto.getRandomValues(a);
+  else for(let i=0;i<n;i++) a[i] = Math.floor(Math.random()*4294967296);
+  return a;
+}
+function nuevoCodigoFamilia(){
+  const idx = azar(9);
+  let s = "";
+  for(let i=1;i<9;i++) s += COD_ALFABETO[idx[i] % COD_ALFABETO.length];
+  return COD_PALABRAS[idx[0] % COD_PALABRAS.length] + "-" + s.slice(0,4) + "-" + s.slice(4);
+}
+const esCodigoDebil = c => /^[A-ZÑ]{2,12}-\d{3}$/.test(c || "");           // primera época: adivinable
+const esCodigoValido = c => /^[A-ZÑ]{2,12}(-[A-ZÑ0-9]{3,6}){1,3}$/.test(c || ""); // acepta viejos y nuevos
 function codigoFamilia(){
   let c = LSP.get("familia", null);
   if(!c){
-    c = COD_PALABRAS[Math.floor(Math.random()*COD_PALABRAS.length)]+"-"+(100+Math.floor(Math.random()*900));
+    c = nuevoCodigoFamilia();
     LSP.set("familia", c);
   }
   return c;
 }
-function pintarCodigo(){ $("cod-familia").textContent = codigoFamilia(); }
+function pintarCodigo(){
+  const c = codigoFamilia();
+  $("cod-familia").textContent = c;
+  $("aviso-codigo").style.display = esCodigoDebil(c) ? "block" : "none";
+}
 $("btn-cod-familia").addEventListener("click", ()=>{
   const v = prompt("Tu código de familia viaja con las misiones (sin ningún dato personal).\nPara vincular esta tablet a una familia que ya existe, escribe aquí su código:", codigoFamilia());
   if(v===null) return;
   const limpio = v.trim().toUpperCase();
-  if(!/^[A-ZÑ]{2,12}-\d{3}$/.test(limpio)){ alert("Formato: PALABRA-123 (por ejemplo LUNA-847)"); return; }
+  if(!esCodigoValido(limpio)){ alert("Formato: PALABRA-XXXX-XXXX (por ejemplo LUNA-K7M2-P6Q9)"); return; }
   LSP.set("familia", limpio); pintarCodigo();
+});
+
+/* Vincular otro dispositivo sin teclear: se comparte un enlace con el código y
+   al abrirlo allí, ese dispositivo se une a la familia (previa confirmación). */
+$("btn-vincular").addEventListener("click", async ()=>{
+  const url = location.origin + location.pathname + "?vincular=" + encodeURIComponent(codigoFamilia());
+  const texto = "Abre este enlace en el otro dispositivo para unirlo a nuestra familia de PequeMisiones:";
+  if(navigator.share){
+    try{ await navigator.share({title:"PequeMisiones", text:texto, url}); return; }catch(e){ /* canceló: probamos el portapapeles */ }
+  }
+  try{
+    await navigator.clipboard.writeText(url);
+    alert("Enlace copiado 📋 Pégalo en un WhatsApp para ti y ábrelo en el otro dispositivo.");
+  }catch(e){
+    prompt("Copia este enlace y ábrelo en el otro dispositivo:", url);
+  }
+});
+(function leerVinculo(){
+  const cod = new URLSearchParams(location.search).get("vincular");
+  if(!cod) return;
+  history.replaceState(null, "", location.pathname); // que el código no se quede en la barra ni en el historial
+  const limpio = cod.trim().toUpperCase();
+  if(!esCodigoValido(limpio)) return;
+  const actual = LSP.get("familia", null);
+  if(limpio === actual){ alert("Este dispositivo ya está en la familia " + limpio + " 👍"); return; }
+  const aviso = actual
+    ? "Este dispositivo ahora usa el código " + actual + ".\n¿Cambiarlo por " + limpio + "? Las misiones y la hucha pasarán a ser las de esa familia."
+    : "¿Unir este dispositivo a la familia " + limpio + "?\nCompartirá misiones y hucha con quien te mandó el enlace.";
+  if(!confirm(aviso)) return;
+  LSP.set("familia", limpio);
+})();
+
+/* Reforzar un código de la primera época: pide al servidor que mueva TODO el
+   historial (misiones, resultados, hucha…) al código nuevo. Si la función aún no
+   está desplegada o no hay red, no se cambia nada: mejor débil que partido. */
+let codigoPropuesto = null; // estable durante la sesión: si falla a mitad, reintentar continúa el mismo cambio
+$("btn-reforzar").addEventListener("click", async ()=>{
+  const viejo = codigoFamilia();
+  if(!esCodigoDebil(viejo)) return;
+  if(!codigoPropuesto) codigoPropuesto = nuevoCodigoFamilia();
+  const nuevo = codigoPropuesto;
+  if(!confirm("Tu código " + viejo + " es de la primera época y es fácil de adivinar.\n\nSe cambiará por:  " + nuevo + "\n\nTodo el historial (misiones, resultados, hucha) se mueve con él. Después tendrás que volver a vincular los demás dispositivos con el código nuevo (botón 📲).\n\n¿Cambiar ahora?")) return;
+  const b = $("btn-reforzar"); b.disabled = true; b.textContent = "cambiando…";
+  try{
+    const r = await fetch(SUPA + "/functions/v1/rotar", {
+      method:"POST",
+      headers:{ apikey:ANON, Authorization:"Bearer "+ANON, "Content-Type":"application/json", "x-familia":viejo },
+      body: JSON.stringify({ nuevo })
+    });
+    const d = await r.json().catch(()=>({}));
+    if(r.ok && d.ok){
+      LSP.set("familia", nuevo); codigoPropuesto = null; pintarCodigo();
+      alert("¡Hecho! Tu código nuevo es " + nuevo + " 🎉\nVincula ahora los demás dispositivos con el botón 📲.");
+    } else {
+      alert("No se pudo cambiar el código (" + (d.error || r.status) + "). No se ha tocado nada; inténtalo más tarde.");
+    }
+  }catch(e){
+    alert("Sin conexión con el servidor. No se ha tocado nada; inténtalo con internet.");
+  }
+  b.disabled = false; b.textContent = "reforzar ahora";
 });
 
 /* ── selector de perfiles ── */

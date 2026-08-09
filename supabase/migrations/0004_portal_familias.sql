@@ -11,9 +11,13 @@
 -- servidor responde 401. El código es la llave: quien lo tiene, entra — por eso
 -- se genera opaco y se puede cambiar desde el portal.
 --
--- LÍMITE CONOCIDO: la llave es permanente y compartida. El siguiente paso
--- (Supabase Auth para el adulto + emparejamiento temporal por QR) está en el
--- roadmap P0, antes de cobrar. Ver peques-app/SEGURIDAD.md.
+-- LA LLAVE (actualizado 9-ago-2026): los códigos de la primera época (LUNA-847,
+-- 18.000 combinaciones) se podían adivinar barriendo. El portal ya solo genera
+-- códigos PALABRA-XXXX-XXXX (~10^13) y las familias antiguas pueden reforzar el
+-- suyo con la función `rotar` (migración 0011), que mueve el historial entero.
+-- LÍMITE QUE QUEDA: la llave sigue siendo compartida y permanente — no se puede
+-- expulsar UN dispositivo, solo rotar la llave entera. El siguiente paso (Auth
+-- anónima por dispositivo + tabla de miembros) sigue en el roadmap, antes de cobrar.
 
 -- Lee el código de familia que viene en la cabecera de la petición.
 -- Devuelve null si no viene o viene vacía → ninguna política casa → no ve nada.
