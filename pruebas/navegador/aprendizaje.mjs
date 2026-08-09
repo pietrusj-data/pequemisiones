@@ -151,6 +151,26 @@ const mision = await pag.evaluate(() => {
 if (mision.malas.length) errores.push(`nivel por curso: a un peque de 1º le caen multiplicaciones de más (${mision.malas.join(", ")})`);
 else ok(`${mision.cuantas} multiplicaciones generadas para 1º, todas de las tablas del 2, 5 y 10`);
 
+/* ───── 6. la dificultad que pone el adulto manda ───── */
+console.log("Dificultad del adulto (primaria)…");
+const techo = await pag.evaluate(async () => {
+  S.nivelLibre = 1; guardar();          // el adulto la baja al mínimo
+  const divs = new Set();
+  for (let i = 0; i < 200; i++) genMisionDiaria().forEach(ej => { if (ej.t === "div") divs.add(ej.d.sub); });
+  go("s-libre"); pintarLibre();
+  const elegibles = [...document.querySelectorAll("#libre-niveles [data-nivel]")]
+    .filter(b => b.style.display !== "none").map(b => b.dataset.nivel);
+  // y al subirla, el juego libre vuelve a abrirse
+  S.nivelLibre = 3; guardar(); pintarLibre();
+  const elegiblesArriba = [...document.querySelectorAll("#libre-niveles [data-nivel]")]
+    .filter(b => b.style.display !== "none").map(b => b.dataset.nivel);
+  return { divs:[...divs], elegibles, elegiblesArriba };
+});
+if (techo.divs.some(d => d !== "reparto")) errores.push(`dificultad: con el techo en 1 siguen saliendo divisiones de más (${techo.divs})`);
+else if (techo.elegibles.join() !== "1") errores.push(`dificultad: con el techo en 1 el juego libre deja elegir ${techo.elegibles}`);
+else if (techo.elegiblesArriba.join() !== "1,2,3") errores.push(`dificultad: al subir el techo el juego libre no se reabre (${techo.elegiblesArriba})`);
+else ok("el techo del adulto manda: baja la misión del día y limita lo que puede elegir en juego libre");
+
 await navegador.close();
 if (errores.length) { console.log("\n✗ FALLOS:\n" + errores.map(e => "  · " + e).join("\n")); process.exit(1); }
 console.log("\n✓ Anti-toqueteo, repesca, ajustes del portal y nivel por curso: comprobado en navegador");

@@ -576,6 +576,15 @@ textarea{resize:vertical; min-height:64px;}
       <input type="text" id="ajuste-nombre" maxlength="20">
     </div>
     <div class="form-linea">
+      <label>Dificultad (juego libre y misión del día)</label>
+      <div class="nivel-sel" id="ajuste-nivel-libre">
+        <button class="nivel-btn on" data-n="1">Nivel 1<br><small>fáciles, alguna llevada</small></button>
+        <button class="nivel-btn" data-n="2">Nivel 2<br><small>con llevadas</small></button>
+        <button class="nivel-btn" data-n="3">Nivel 3<br><small>dobles sumas, sumirrestas</small></button>
+      </div>
+      <p class="sub" style="text-align:left; font-size:.85rem;">Es el <b>techo</b>: ella no puede subir de ahí en el juego libre. Dentro de ese techo se ajusta sola — si encadena aciertos a la primera sube un puntito, y si el hada tiene que enseñarle, baja. Las misiones que le mandes tú van SIEMPRE al nivel que elijas al crearlas.</p>
+    </div>
+    <div class="form-linea">
       <label>Cambiar PIN</label>
       <button class="btn btn-mini btn-lila" id="btn-cambiar-pin">Cambiar PIN</button>
     </div>
@@ -670,6 +679,10 @@ const S = {
   hoy    : LS.get("hoy", {fecha:"", gemas:0, ej:0}),  // lo conseguido hoy
   chispa : LS.get("chispa", {}),           // maestría por juego (0-10) para el nivel automático del juego libre
   limiteMin: LS.get("limiteMin", 0),       // límite de uso diario en minutos (0 = sin límite); cierre amable
+  // Dificultad, la fija el adulto en la zona de padres (igual que en infantil).
+  // Es el TECHO: de aquí cuelgan la misión del día y lo que puede elegir ella en
+  // el juego libre. Arranca en el nivel que le toca por curso.
+  nivelLibre: LS.get("nivelLibre", PERFIL.nivel || 1),
   stats  : LS.get("stats", {misiones:0, perfectas:0, abnOk:0, claOk:0, iguOk:0, difOk:0, globos:0, dias:[], nivel3:0, dobleOk:0}),
   cola   : LS.get("cola", []),             // envíos pendientes si no hay internet
   hechasLocal: LS.get("hechasLocal", []),  // ids de misiones ya hechas (por si falla el PATCH)
@@ -679,6 +692,7 @@ function guardar(){
   LS.set("nombreCustom",S.nombre); LS.set("gemas",S.gemas); LS.set("sonido",S.sonido); LS.set("voz",S.voz);
   LS.set("pin",S.pin); LS.set("insig",S.insig); LS.set("stats",S.stats); LS.set("cola",S.cola); LS.set("chispa",S.chispa); LS.set("limiteMin",S.limiteMin);
   LS.set("hechasLocal",S.hechasLocal); LS.set("hoy",S.hoy);
+  LS.set("nivelLibre",S.nivelLibre);
 }
 function tocaHoy(){
   const f = new Date().toISOString().slice(0,10);
@@ -1104,7 +1118,7 @@ function genMisionDiaria(){
      mueve un escalón arriba o abajo desde donde le toca por edad. */
   const nivelDe = t => {
     const ch = chispaDe(t);
-    return Math.max(1, Math.min(3, (PERFIL.nivel || 1) + (ch>=8 ? 1 : 0) - (ch<=2 ? 1 : 0)));
+    return Math.max(1, Math.min(3, (S.nivelLibre || PERFIL.nivel || 1) + (ch>=8 ? 1 : 0) - (ch<=2 ? 1 : 0)));
   };
   const orden = tipos.slice().sort((a,b)=>chispaDe(a)-chispaDe(b));
   const lista = [];
@@ -3061,6 +3075,7 @@ async function entrarPapa(){
   $("papa-envio-ok").classList.add("oculto");
   $("ajuste-nombre").value = S.nombre;
   document.querySelectorAll("#ajuste-limite .nivel-btn").forEach(x=>x.classList.toggle("on", parseInt(x.dataset.lim,10)===S.limiteMin));
+  document.querySelectorAll("#ajuste-nivel-libre .nivel-btn").forEach(x=>x.classList.toggle("on", parseInt(x.dataset.n,10)===S.nivelLibre));
   tocaHoy(); $("ajuste-uso-hoy").textContent = Math.round((S.hoy.seg||0)/60);
   const ping = await sbSelect(T_MISIONES, "select=id&limit=1");
   const c = $("papa-conexion");
@@ -3416,7 +3431,7 @@ $("btn-diaria").addEventListener("click", ()=>{
   if(limiteAlcanzado()){ despedidaLimite(); return; }
   tocaHoy();
   if(S.hoy.diaria){ hada("¡La misión de hoy ya está conseguida! Mañana habrá otra 🌞", 3200); return; }
-  startTanda({origen:"libre", diaria:true, titulo:"Misión del día 🌞", ejercicios:genMisionDiaria(), nivel:PERFIL.nivel || 1});
+  startTanda({origen:"libre", diaria:true, titulo:"Misión del día 🌞", ejercicios:genMisionDiaria(), nivel:S.nivelLibre});
 });
 $("btn-joyero").addEventListener("click", ()=>go("s-joyero"));
 $("btn-premios").addEventListener("click", ()=>{ go("s-premios"); cargarHucha(true); });
@@ -3444,19 +3459,30 @@ $("btn-salir-juego").addEventListener("click", ()=>{
 });
 
 /* juego libre */
-const Libre = {tipo:"abn", nivel: PERFIL.nivel || 1};
+const Libre = {tipo:"abn", nivel: S.nivelLibre};
 const NOMBRE_TIPO = {abn:"Rejillas", cla:"Cuentas", igu:"Igualaciones", dif:"Diferencias", mul:"Multiplicar", div:"Repartir", rel:"Relojes", pes:"Pesos"};
 function pintarLibre(){
   document.querySelectorAll("#s-libre [data-tipo]").forEach(b=>
     b.style.opacity = b.dataset.tipo===Libre.tipo ? "1" : ".55");
-  document.querySelectorAll("#libre-niveles [data-nivel]").forEach(b=>
-    b.style.opacity = parseInt(b.dataset.nivel,10)===Libre.nivel ? "1" : ".55");
+  // los niveles por encima de lo que ha puesto el adulto no se pueden elegir
+  if(Libre.nivel > S.nivelLibre) Libre.nivel = S.nivelLibre;
+  document.querySelectorAll("#libre-niveles [data-nivel]").forEach(b=>{
+    const n = parseInt(b.dataset.nivel,10);
+    const vetado = n > S.nivelLibre;
+    b.disabled = vetado;
+    b.style.display = vetado ? "none" : "";
+    b.style.opacity = n===Libre.nivel ? "1" : ".55";
+  });
   $("libre-info").textContent = NOMBRE_TIPO[Libre.tipo]+" · Nivel "+Libre.nivel+" · 5 ejercicios";
 }
 document.querySelectorAll("#s-libre [data-tipo]").forEach(b=>
   b.addEventListener("click", ()=>{ Libre.tipo = b.dataset.tipo; sfx.click(); pintarLibre(); }));
 document.querySelectorAll("#libre-niveles [data-nivel]").forEach(b=>
-  b.addEventListener("click", ()=>{ Libre.nivel = parseInt(b.dataset.nivel,10); sfx.click(); pintarLibre(); }));
+  b.addEventListener("click", ()=>{
+    const n = parseInt(b.dataset.nivel,10);
+    if(n > S.nivelLibre) return;   // techo puesto por el adulto
+    Libre.nivel = n; sfx.click(); pintarLibre();
+  }));
 $("btn-libre-empezar").addEventListener("click", ()=>{
   if(limiteAlcanzado()){ despedidaLimite(); return; }
   // nivel automático: el nivel elegido ± su maestría en ese juego (SOLO juego libre; las misiones van al nivel de papá)
@@ -3488,6 +3514,13 @@ $("ajuste-nombre").addEventListener("change", ()=>{
   const n = $("ajuste-nombre").value.trim();
   if(n){ S.nombre = n.charAt(0).toUpperCase()+n.slice(1); guardar(); pintarHome(); }
 });
+document.querySelectorAll("#ajuste-nivel-libre .nivel-btn").forEach(b=>
+  b.addEventListener("click", ()=>{
+    S.nivelLibre = parseInt(b.dataset.n,10); guardar();
+    document.querySelectorAll("#ajuste-nivel-libre .nivel-btn").forEach(x=>x.classList.toggle("on", x===b));
+    pintarLibre();
+    hada(`Dificultad puesta en nivel ${S.nivelLibre} 👍`, 2600);
+  }));
 document.querySelectorAll("#ajuste-limite .nivel-btn").forEach(b=>
   b.addEventListener("click", ()=>{
     S.limiteMin = parseInt(b.dataset.lim,10); guardar();
