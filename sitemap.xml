@@ -46,4 +46,43 @@
     <priority>0.9</priority>
   </url>
 
+  <!-- Páginas legales y de confianza. Van en el sitemap a propósito: que sean
+       fáciles de encontrar es parte del argumento de venta ("mira lo que NO
+       hacemos con los datos de tu hijo"), no solo un requisito. -->
+  <url>
+    <loc>https://pequemisiones.com/confianza/</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pequemisiones.com/confianza/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pequemisiones.com/en/trust/"/>
+    <lastmod>2026-08-10</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://pequemisiones.com/en/trust/</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pequemisiones.com/confianza/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pequemisiones.com/en/trust/"/>
+    <lastmod>2026-08-10</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://pequemisiones.com/privacidad/</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pequemisiones.com/privacidad/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pequemisiones.com/en/privacy/"/>
+    <lastmod>2026-08-10</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <url>
+    <loc>https://pequemisiones.com/en/privacy/</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pequemisiones.com/privacidad/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pequemisiones.com/en/privacy/"/>
+    <lastmod>2026-08-10</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
 </urlset>
