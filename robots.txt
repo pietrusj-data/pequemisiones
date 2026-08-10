@@ -1,0 +1,11 @@
+# PequeMisiones — https://pequemisiones.com
+#
+# Todo abierto: no hay nada que esconder y nos interesa que se indexe.
+# Las páginas que no deben salir en Google (los stubs de demo) lo dicen ellas
+# mismas con <meta name="robots" content="noindex">, que es lo correcto:
+# bloquear aquí impediría a Google LEER la etiqueta y por tanto obedecerla.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://pequemisiones.com/sitemap.xml

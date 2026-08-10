@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Solo las páginas que queremos que Google indexe.
+
+  Fuera a propósito:
+   · demo-primaria/ y demo-infantil/ — son stubs con noindex que redirigen al
+     motor con ?demo=1; indexar un redirector no sirve de nada.
+   · app/ — el portal de la familia, que es zona de uso, no de escaparate.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <url>
+    <loc>https://pequemisiones.com/</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pequemisiones.com/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pequemisiones.com/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pequemisiones.com/"/>
+    <lastmod>2026-08-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://pequemisiones.com/en/</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pequemisiones.com/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pequemisiones.com/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pequemisiones.com/"/>
+    <lastmod>2026-08-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Las dos páginas-herramienta: son la puerta de entrada del SEO (el nicho
+       lo dominan PDFs de blogs, y estas son interactivas y gratis). -->
+  <url>
+    <loc>https://pequemisiones.com/rejillas/</loc>
+    <lastmod>2026-08-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://pequemisiones.com/tabla-100/</loc>
+    <lastmod>2026-08-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+</urlset>
