@@ -210,13 +210,28 @@ describe("aislamiento entre familias", () => {
       body: JSON.stringify({ nuevo }),
     });
 
-    const NUEVA = `LUNA-QQ${sufijo.slice(0, 2)}-WW${sufijo.slice(2)}`.toUpperCase()
-      .replace(/[O0IL1UV]/g, "7"); // por si el pid trae caracteres fuera del alfabeto
+    // El código nuevo tiene que ser del formato fuerte PALABRA-XXXX-XXXX, y los
+    // dos bloques usan un alfabeto sin caracteres confundibles (ni O/0, ni I/L/1,
+    // ni U/V: los códigos se dictan por teléfono). El sufijo viene del pid, así
+    // que puede traer un 0 o un 1 y hay que sustituirlos.
+    //
+    // OJO: sanear SOLO los bloques, nunca la palabra. Antes se aplicaba el
+    // reemplazo a la cadena entera y se cargaba la palabra misma
+    // (LUNA-QQ85-WW40 → 77NA-QQ85-WW47), que ya no es formato fuerte porque
+    // empieza por dígitos. La función respondía 400 y esta prueba fallaba. No se
+    // vio en su día porque `rotar` no estaba desplegada y la prueba se saltaba
+    // siempre: por eso MAR, que no tiene ninguna letra de las prohibidas.
+    // Cada rotación deja su fila de auditoría en pm_rotaciones a propósito (es lo
+    // que permite deshacer un secuestro), así que esta prueba no limpia del todo:
+    // suma 1 al contador global de 40/día de la función. Pasar la tanda 40 veces
+    // en un mismo día empezaría a dar 429 aquí — y no sería un fallo del código.
+    const bloque = s => s.replace(/[O0IL1UV]/g, "7");
+    const NUEVA = `MAR-QQ${bloque(sufijo.slice(0, 2))}-WW${bloque(sufijo.slice(2))}`.toUpperCase();
     let r;
     try { r = await rota(CASA_A, NUEVA); } catch (_) { return t.skip("sin red hacia la función"); }
     if (r.status === 404) return t.skip("la función `rotar` no está desplegada aún");
 
-    assert.ok(r.ok, `rotar con el código propio debería funcionar (salió ${r.status})`);
+    assert.ok(r.ok, `rotar con el código propio debería funcionar (salió ${r.status}: ${await r.clone().text()})`);
 
     // el historial se ha movido: con el código viejo ya no se ve nada…
     const conViejo = await pide(`pm_misiones?id=eq.${idA}`, { familia: CASA_A });
