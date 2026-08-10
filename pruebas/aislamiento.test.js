@@ -78,37 +78,55 @@ describe("aislamiento entre familias", () => {
     assert.equal((await propia.json()).length, 1, "la familia no ve su propia misión");
   });
 
-  test("una misión CON mensaje nace pendiente y el niño no la ve", async t => {
+  test("un mensaje del adulto NO se aprueba solo: la misión nace pendiente", async t => {
     if (!vivo) return t.skip("servidor no disponible");
-    // La otra mitad de la regla, y la que de verdad protege a la niña: en cuanto
-    // hay texto libre del adulto, la misión nace sin aprobar y es INVISIBLE para
-    // la clave pública hasta que la moderación la apruebe. Se comprueba contra
-    // mates_misiones porque es donde juega Paula y donde 0013 puso la regla en
-    // la propia base de datos (`select` filtra por revision='aprobada'), no en
-    // la app. Fail-closed: si `moderar` está caída, la niña no ve nada — que es
-    // mejor que oír lo que no debe.
-    const marca = `·prueba-aislamiento-${sufijo}·`;
-    // Sin `return=representation` a propósito: con RETURNING, PostgreSQL exige
-    // que la política de lectura permita ver la fila recién creada, así que la
-    // creación entera se cae con un 401. Eso también demuestra que la misión
-    // está escondida, pero por un camino demasiado sutil para dejarlo escrito
-    // como la aserción de esta prueba (y le enseñaría al futuro lector el
-    // error equivocado). Se crea a ciegas y se comprueba leyendo después.
-    const r = await pide("mates_misiones", {
-      familia: CASA_A, metodo: "POST",
-      cuerpo: { titulo: "Título escrito a mano", mensaje: marca, nivel: 1, ejercicios: [{ t: "abn", d: { op: "suma", a: 3, b: 4 } }] },
+    // La otra mitad de la regla de 0014, y la que de verdad protege a la niña:
+    // en cuanto hay texto libre del adulto, el trigger NO aprueba nada y la
+    // misión se queda esperando a la moderación. Fail-closed: si `moderar` está
+    // caída, la niña no ve nada — mejor que oír lo que no debe.
+    const r = await pide("pm_misiones", {
+      familia: CASA_A, metodo: "POST", prefer: "return=representation",
+      cuerpo: {
+        familia: CASA_A, perfil: PERFIL, nivel: 1,
+        titulo: "Título escrito a mano por papá",
+        mensaje: "Un mensaje cualquiera que sí hay que revisar",
+        ejercicios: [{ t: "abn", d: { op: "suma", a: 3, b: 4 } }],
+      },
     });
     assert.equal(r.status, 201, `crear la misión con mensaje debería funcionar (salió ${r.status})`);
+    const fila = (await r.json())[0];
+    assert.equal(fila.revision, "pendiente", "¡GRAVE! una misión con mensaje del adulto se ha aprobado sola");
+    assert.equal(fila.revision_motivo, null, "no debería haber veredicto todavía");
 
-    const busca = await pide(`mates_misiones?mensaje=eq.${encodeURIComponent(marca)}`, { familia: CASA_A });
-    assert.deepEqual(await busca.json(), [],
-      "¡GRAVE! una misión con mensaje sin moderar se puede leer con la clave pública");
+    // Limpieza (aquí sí se puede: en pm_misiones el borrado propio está permitido).
+    await pide(`pm_misiones?id=eq.${fila.id}`, { familia: CASA_A, metodo: "PATCH", cuerpo: { estado: "hecha", hecha_at: new Date().toISOString() } });
+    await pide(`pm_misiones?id=eq.${fila.id}`, { familia: CASA_A, metodo: "DELETE" });
+  });
 
-    // Limpieza: el borrado no pasa por la política de lectura, así que se puede
-    // quitar aunque no se vea. (Si esto fallara, quedaría una fila invisible:
-    // la recoge el barrido de borrado por plazos de 0007.)
-    const del = await pide(`mates_misiones?mensaje=eq.${encodeURIComponent(marca)}`, { familia: CASA_A, metodo: "DELETE" });
-    assert.ok(del.status === 204 || del.status === 200, `no se pudo limpiar la misión de prueba (salió ${del.status})`);
+  test("en las apps de las niñas, lo no aprobado no se puede leer con la clave pública", async t => {
+    if (!vivo) return t.skip("servidor no disponible");
+    // Donde juegan Paula y Jimena, 0013 puso la regla en el RLS y no en la app:
+    // `select` filtra por revision='aprobada'. Se comprueba sin escribir nada,
+    // a propósito — y no es por pereza:
+    //
+    // una fila 'pendiente' de estas tablas NO SE PUEDE BORRAR con la clave
+    // pública. En PostgreSQL, un DELETE cuyo WHERE lee columnas pasa también
+    // por la política de SELECT, así que la fila escondida es intocable para el
+    // cliente (bien: la niña no puede desbloquear un mensaje retenido; y ojo:
+    // el adulto tampoco puede quitarlo desde la app, solo el servidor). Si esta
+    // prueba insertara para comprobar, dejaría una fila indestructible en la
+    // tabla real de la niña en cada ejecución.
+    for (const tabla of ["mates_misiones", "jim_misiones"]) {
+      const r = await pide(`${tabla}?revision=neq.aprobada&select=id,revision`, {});
+      assert.equal(r.status, 200, `leer ${tabla} debería dar 200 y dio ${r.status}`);
+      assert.deepEqual(await r.json(), [],
+        `¡GRAVE! ${tabla} deja leer misiones sin aprobar con la clave pública`);
+
+      const todas = await pide(`${tabla}?select=revision&limit=200`, {});
+      const revisiones = [...new Set((await todas.json()).map(f => f.revision))];
+      assert.ok(revisiones.every(v => v === "aprobada"),
+        `¡GRAVE! ${tabla} devuelve revisiones que no son 'aprobada': ${revisiones.join(", ")}`);
+    }
   });
 
   test("otra familia NO ve esa misión", async t => {
