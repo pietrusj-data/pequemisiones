@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-motor="portal" data-version="2026-08-05">
+<html lang="es" data-motor="portal" data-version="2026-08-10">
 <head>
 <meta charset="utf-8">
 <!-- el zoom del móvil se deja LIBRE (accesibilidad): quien no ve bien tiene que
@@ -96,15 +96,51 @@ input[type=text]{width:100%; font-family:inherit; font-size:1.4rem; text-align:c
   <div class="perfiles" id="lista-perfiles"></div>
   <p class="sub" id="hint-portal">Toca tu tarjeta para entrar en tu mundo</p>
   <p class="sub" style="font-size:.92rem;">👨‍👩‍👧 Código de familia: <b id="cod-familia">—</b>
-    <button id="btn-cod-familia" style="border:none; background:none; color:var(--p2); font-weight:800; cursor:pointer; font-family:inherit; font-size:.92rem; text-decoration:underline;">cambiar</button></p>
+    <button id="btn-cod-familia" style="border:none; background:none; color:var(--p2); font-weight:800; cursor:pointer; font-family:inherit; font-size:.92rem; text-decoration:underline;">escribir otro</button></p>
   <!-- El código es la llave de los datos: los de la primera época se podían adivinar barriendo -->
   <p class="sub" id="aviso-codigo" style="display:none; font-size:.88rem; max-width:460px; background:#fff4e5; border-radius:14px; padding:10px 14px; color:#a05a00;">
     ⚠️ Tu código es del formato antiguo y es fácil de adivinar.
     <button id="btn-reforzar" style="border:none; background:none; color:#a05a00; font-weight:800; cursor:pointer; font-family:inherit; font-size:.88rem; text-decoration:underline;">reforzar ahora</button></p>
   <button class="btn btn-mini btn-p1" id="btn-vincular">📲 Vincular otro dispositivo</button>
-  <p class="sub" style="font-size:.86rem; max-width:460px;">💡 Para mandarle misiones desde tu móvil: toca <b>📲 Vincular</b>, mándate el enlace
-    y ábrelo allí. Luego crea la tarjeta con el <b>mismo nombre</b>: se encontrarán solas —
-    sin cuentas, sin emails y sin que sepamos quién es.</p>
+  <p class="sub" style="font-size:.86rem; max-width:460px;">💡 Para mandarle misiones desde tu móvil: toca
+    <b>📲 Vincular</b>, mándate el enlace y ábrelo allí. El código <b>y las tarjetas</b> viajan
+    en el enlace: no hay que crear nada a mano — sin cuentas, sin emails y sin que sepamos quién es.</p>
+</section>
+
+<!-- ══════════ UNIRSE A UNA FAMILIA (llega por enlace 📲 o con el código a mano) ══════════
+     Antes esto era un confirm() nativo en plena carga: los navegadores de dentro
+     de WhatsApp/Instagram y las apps a pantalla completa se lo tragan sin
+     mostrarlo, y el dispositivo acababa autogenerándose OTRO código en silencio
+     ("la vinculación no funciona"). Una pantalla normal no se la traga nadie. -->
+<section class="screen" id="s-unir">
+  <div class="logo">🚀 Peque<span>Misiones</span></div>
+  <div style="font-size:3rem;">👨‍👩‍👧</div>
+  <div class="tarjeta" id="unir-caja"></div>
+  <div class="fila" style="max-width:560px;">
+    <button class="btn btn-mini btn-p1" id="unir-no">Ahora no</button>
+    <button class="btn btn-p2" style="flex:1;" id="unir-si">Unir este dispositivo ✅</button>
+  </div>
+</section>
+
+<!-- ══════════ ESCRIBIR UN CÓDIGO A MANO (antes era un prompt(), mismo problema) ══════════ -->
+<section class="screen" id="s-codigo">
+  <div class="logo">🚀 Peque<span>Misiones</span></div>
+  <div class="tarjeta">
+    <h2>Escribir un código de familia</h2>
+    <p class="sub">Sirve si el enlace 📲 no te llega: escribe el código que sale en la pantalla
+      de tarjetas del otro dispositivo.</p>
+    <input type="text" id="cod-input" maxlength="24" placeholder="LUNA-K7M2-P6Q9" autocomplete="off"
+      autocapitalize="characters" spellcheck="false" style="margin:14px 0; text-transform:uppercase;">
+    <p class="sub" id="cod-aviso" style="display:none; color:var(--p2osc); font-size:.95rem;">
+      El formato es PALABRA-XXXX-XXXX (o el antiguo PALABRA-123).</p>
+    <p class="sub" style="font-size:.88rem;">Con el código a mano las tarjetas no viajan: crea la de tu
+      peque con su <b>mismo nombre</b> y se encontrarán solas. (Con el enlace 📲 sí llegan solas.)</p>
+    <p class="sub" id="cod-actual" style="font-size:.88rem;"></p>
+  </div>
+  <div class="fila" style="max-width:560px;">
+    <button class="btn btn-mini btn-p1" id="cod-atras">⬅️ Volver</button>
+    <button class="btn btn-p2" style="flex:1;" id="cod-unir">Unirme ✅</button>
+  </div>
 </section>
 
 <!-- ══════════ AJUSTES DE UN PERFIL YA CREADO ══════════
@@ -292,19 +328,103 @@ function pintarCodigo(){
   $("cod-familia").textContent = c;
   $("aviso-codigo").style.display = esCodigoDebil(c) ? "block" : "none";
 }
+/* Escapa texto que acaba en innerHTML (alias de las tarjetas: lo escribe un
+   adulto o llega en un enlace de vinculación — nunca debe poder pintar HTML). */
+function escHtml(t){ return String(t==null?"":t).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+const NOMBRES_CURSO = { inf3:"1º Infantil", inf4:"2º Infantil", inf5:"3º Infantil", pri1:"1º Primaria", pri2:"2º Primaria", pri3:"3º Primaria" };
+
+/* ── unirse a una familia: el enlace 📲 lleva el código Y las tarjetas ──
+   Viajan en el fragmento (#unir=…), que no sale del navegador: no llega al
+   servidor ni a sus registros. Antes solo viajaba el código y en el otro
+   dispositivo había que recrear cada tarjeta con el nombre exacto: ahora
+   aparecen solas al aceptar. */
+function codificarUnion(obj){
+  const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  let bin = ""; bytes.forEach(b=>{ bin += String.fromCharCode(b); });
+  return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function descodificarUnion(s){
+  try{
+    s = String(s).replace(/-/g,"+").replace(/_/g,"/");
+    while(s.length % 4) s += "=";
+    const bin = atob(s);
+    return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c=>c.charCodeAt(0))));
+  }catch(e){ return null; }
+}
+/* Un perfil que llega por enlace se limpia a fondo: solo valores del catálogo,
+   alias sin nada raro y la key con el formato de siempre. */
+function perfilDeUnion(x){
+  if(!x || typeof x !== "object") return null;
+  const alias = String(x.alias||"").replace(/[^\p{L}\p{M}\p{N} .·'-]/gu,"").trim().slice(0,16);
+  const curso = NOMBRES_CURSO[x.curso] ? String(x.curso) : null;
+  if(alias.length < 2 || !curso) return null;
+  const etapa = esInfantil(curso) ? "infantil" : "primaria";
+  const idsMod = new Set(MODULOS[etapa].map(m=>m.id));
+  const idsJue = new Set(JUEGOS_PREMIO.map(j=>j.id));
+  let modulos = (Array.isArray(x.modulos)?x.modulos:[]).filter(id=>idsMod.has(id));
+  if(!modulos.length) modulos = MODULOS[etapa].filter(m=>vieneMarcado(m, curso)).map(m=>m.id);
+  let juegos = (Array.isArray(x.juegos)?x.juegos:[]).filter(id=>idsJue.has(id));
+  if(!juegos.length) juegos = JUEGOS_PREMIO.filter(j=>j.def).map(j=>j.id);
+  return {
+    id: "p" + Math.random().toString(36).slice(2,9),
+    key: clavePerfil(String(x.key || alias)),
+    alias: alias.charAt(0).toUpperCase() + alias.slice(1),
+    genero: x.genero === "nino" ? "nino" : "nina",
+    curso, cursoNombre: NOMBRES_CURSO[curso],
+    nivel: NIVEL_POR_CURSO[curso],
+    tema: TEMAS[x.tema] ? String(x.tema) : "unicornios",
+    modulos, juegos,
+    creado: new Date().toISOString().slice(0,10),
+    // quien acepta la unión declara el consentimiento en ESTE dispositivo (art. 7 LOPDGDD)
+    tutor: { declarado:true, fecha:new Date().toISOString(), politica:"2026-08-05", via:"vinculo" }
+  };
+}
+function unirFamilia(codigo, perfilesIn){
+  LSP.set("familia", codigo);
+  const res = { importados: [], sinSitio: 0 };
+  if(perfilesIn && perfilesIn.length){
+    const lista = LSP.get("perfiles", []);
+    const claves = new Set(lista.map(keyDe));
+    perfilesIn.forEach(x=>{
+      const p = perfilDeUnion(x);
+      if(!p || claves.has(p.key)) return;           // la tarjeta ya está: no se pisa
+      if(lista.length >= MAX_PEQUES){ res.sinSitio++; return; }
+      lista.push(p); claves.add(p.key); res.importados.push(p.alias);
+    });
+    LSP.set("perfiles", lista);
+  }
+  return res;
+}
+
+function mostrarPantalla(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("activa", s.id===id));
+}
+function volverAPerfiles(){ pintarPerfiles(); mostrarPantalla("s-perfiles"); }
+
 $("btn-cod-familia").addEventListener("click", ()=>{
-  const v = prompt("Tu código de familia viaja con las misiones (sin ningún dato personal).\nPara vincular esta tablet a una familia que ya existe, escribe aquí su código:", codigoFamilia());
-  if(v===null) return;
-  const limpio = v.trim().toUpperCase();
-  if(!esCodigoValido(limpio)){ alert("Formato: PALABRA-XXXX-XXXX (por ejemplo LUNA-K7M2-P6Q9)"); return; }
-  LSP.set("familia", limpio); pintarCodigo();
+  $("cod-input").value = "";
+  $("cod-aviso").style.display = "none";
+  $("cod-actual").textContent = "El código de este dispositivo ahora mismo: " + codigoFamilia();
+  mostrarPantalla("s-codigo");
+});
+$("cod-atras").addEventListener("click", volverAPerfiles);
+$("cod-unir").addEventListener("click", ()=>{
+  const limpio = $("cod-input").value.trim().toUpperCase();
+  if(!esCodigoValido(limpio)){ $("cod-aviso").style.display = "block"; return; }
+  if(limpio === LSP.get("familia", null)){ volverAPerfiles(); return; }
+  unirFamilia(limpio, null);
+  pintarUnionExito(limpio, { importados: [], sinSitio: 0 }, true);
 });
 
-/* Vincular otro dispositivo sin teclear: se comparte un enlace con el código y
-   al abrirlo allí, ese dispositivo se une a la familia (previa confirmación). */
+/* Vincular otro dispositivo sin teclear: se comparte un enlace que lleva el
+   código y las tarjetas; al abrirlo allí sale la pantalla de unión. */
 $("btn-vincular").addEventListener("click", async ()=>{
-  const url = location.origin + location.pathname + "?vincular=" + encodeURIComponent(codigoFamilia());
-  const texto = "Abre este enlace en el otro dispositivo para unirlo a nuestra familia de PequeMisiones:";
+  const perfiles = LSP.get("perfiles", []).map(p=>({
+    key: keyDe(p), alias: p.alias, genero: p.genero, curso: p.curso,
+    tema: p.tema, modulos: p.modulos||[], juegos: p.juegos||[]
+  }));
+  const url = location.origin + location.pathname + "#unir=" + codificarUnion({ f: codigoFamilia(), p: perfiles });
+  const texto = "Abre este enlace en el otro dispositivo para unirlo a nuestra familia de PequeMisiones (las tarjetas viajan con él):";
   if(navigator.share){
     try{ await navigator.share({title:"PequeMisiones", text:texto, url}); return; }catch(e){ /* canceló: probamos el portapapeles */ }
   }
@@ -315,20 +435,109 @@ $("btn-vincular").addEventListener("click", async ()=>{
     prompt("Copia este enlace y ábrelo en el otro dispositivo:", url);
   }
 });
-(function leerVinculo(){
-  const cod = new URLSearchParams(location.search).get("vincular");
-  if(!cod) return;
-  history.replaceState(null, "", location.pathname); // que el código no se quede en la barra ni en el historial
-  const limpio = cod.trim().toUpperCase();
-  if(!esCodigoValido(limpio)) return;
+
+/* La pantalla de unión sustituye al confirm() de antes: aquel diálogo salía en
+   plena carga y los navegadores de dentro de WhatsApp y las apps instaladas se
+   lo tragaban — y este dispositivo se quedaba con OTRO código autogenerado, en
+   silencio. El enlace se limpia de la barra YA (la llave no debe quedarse en el
+   historial), pero la decisión espera en pantalla: nada se pierde sin avisar. */
+let UNION_SI = null, UNION_NO = null;
+$("unir-si").addEventListener("click", ()=>{ if(UNION_SI) UNION_SI(); });
+$("unir-no").addEventListener("click", ()=>{ if(UNION_NO) UNION_NO(); });
+function leerEnlaceUnion(){
+  let union = null;
+  const hash = location.hash || "";
+  if(hash.startsWith("#unir=")){
+    const d = descodificarUnion(hash.slice(6));
+    union = (d && typeof d.f === "string")
+      ? { codigo: d.f.trim().toUpperCase(), perfiles: Array.isArray(d.p) ? d.p : [] }
+      : { error: true };
+  } else {
+    const cod = new URLSearchParams(location.search).get("vincular"); // enlaces de la primera época
+    if(cod) union = { codigo: cod.trim().toUpperCase(), perfiles: [] };
+  }
+  if(!union) return null;
+  history.replaceState(null, "", location.pathname);
+  if(!union.error && !esCodigoValido(union.codigo)) union = { error: true };
+  return union;
+}
+function pintarUnion(u){
+  const caja = $("unir-caja");
+  const si = $("unir-si"), no = $("unir-no");
+  si.style.display = ""; no.style.display = "";
+  if(u.error){
+    caja.innerHTML = `<h2>Este enlace no ha llegado bien 😕</h2>
+      <p class="sub">Pide que te lo manden otra vez desde el otro dispositivo (botón 📲),
+      o escribe el código de familia a mano.</p>`;
+    si.textContent = "Escribir el código ⌨️"; si.disabled = false;
+    no.textContent = "Volver";
+    UNION_SI = ()=>{ $("btn-cod-familia").click(); };
+    UNION_NO = volverAPerfiles;
+    mostrarPantalla("s-unir");
+    return;
+  }
   const actual = LSP.get("familia", null);
-  if(limpio === actual){ alert("Este dispositivo ya está en la familia " + limpio + " 👍"); return; }
-  const aviso = actual
-    ? "Este dispositivo ahora usa el código " + actual + ".\n¿Cambiarlo por " + limpio + "? Las misiones y la hucha pasarán a ser las de esa familia."
-    : "¿Unir este dispositivo a la familia " + limpio + "?\nCompartirá misiones y hucha con quien te mandó el enlace.";
-  if(!confirm(aviso)) return;
-  LSP.set("familia", limpio);
-})();
+  if(u.codigo === actual){
+    caja.innerHTML = `<h2>¡Ya estáis juntos! 👍</h2>
+      <p class="sub">Este dispositivo ya es de la familia <b>${escHtml(u.codigo)}</b>.</p>`;
+    si.textContent = "¡A jugar! 🎉"; si.disabled = false;
+    no.style.display = "none";
+    UNION_SI = volverAPerfiles; UNION_NO = null;
+    mostrarPantalla("s-unir");
+    return;
+  }
+  const validos = (u.perfiles||[]).map(perfilDeUnion).filter(Boolean);
+  const lista = validos.map(p=>{
+    const t = TEMAS[p.tema] || TEMAS.unicornios;
+    return `<div style="display:flex; align-items:center; gap:10px; padding:6px 2px;">
+      <span style="font-size:1.8rem;">${t.emoji}</span>
+      <b>${escHtml(p.alias)}</b>
+      <span style="color:var(--tinta-suave); font-size:.95rem;">${escHtml(p.cursoNombre)}</span></div>`;
+  }).join("");
+  const avisoCambio = (actual && LSP.get("perfiles", []).length)
+    ? `<p class="sub" style="font-size:.9rem; background:#fff4e5; border-radius:14px; padding:10px 14px; color:#a05a00;">
+        ⚠️ Este dispositivo ahora usa el código <b>${escHtml(actual)}</b>. Al unirlo, sus misiones
+        y su hucha pasarán a ser las de la familia nueva.</p>` : "";
+  const consent = validos.length
+    ? `<label style="display:flex; gap:10px; align-items:flex-start; text-align:left; margin-top:14px;
+        background:#f7f3ff; border-radius:14px; padding:12px 14px; cursor:pointer;">
+        <input type="checkbox" id="unir-tutor" style="width:22px; height:22px; flex:0 0 auto; margin-top:2px;">
+        <span style="font-size:.95rem; line-height:1.4;">Soy su <b>madre, padre o tutor legal</b>.
+        He leído la <a href="../privacidad/" target="_blank" rel="noopener">política de privacidad</a>.</span></label>` : "";
+  caja.innerHTML = `<h2>¿Unir este dispositivo a la familia<br><span style="color:var(--p2osc);">${escHtml(u.codigo)}</span>?</h2>
+    <p class="sub">Compartirá las misiones y la hucha con quien te mandó el enlace.</p>
+    ${validos.length ? `<p class="sub" style="margin-top:10px;"><b>Llegarán estas tarjetas:</b></p>${lista}` : ""}
+    ${avisoCambio}${consent}`;
+  si.textContent = "Unir este dispositivo ✅";
+  si.disabled = !!validos.length; // con tarjetas, primero la casilla del tutor
+  no.textContent = "Ahora no";
+  if(validos.length){
+    $("unir-tutor").addEventListener("change", e=>{ si.disabled = !e.target.checked; });
+  }
+  UNION_SI = ()=>{
+    const res = unirFamilia(u.codigo, u.perfiles);
+    pintarUnionExito(u.codigo, res, false);
+  };
+  UNION_NO = volverAPerfiles;
+  mostrarPantalla("s-unir");
+}
+function pintarUnionExito(codigo, res, viaCodigo){
+  const caja = $("unir-caja");
+  const si = $("unir-si"), no = $("unir-no");
+  let extra = "";
+  if(res.importados.length) extra += `<p class="sub">Han llegado las tarjetas de <b>${res.importados.map(escHtml).join(", ")}</b> 🎉</p>`;
+  if(res.sinSitio) extra += `<p class="sub" style="color:var(--p2osc);">${res.sinSitio} tarjeta(s) no cupieron (máximo ${MAX_PEQUES} peques). Haz sitio quitando alguna desde su ⚙️ y vuelve a abrir el enlace.</p>`;
+  if(viaCodigo) extra += `<p class="sub">Ahora crea la tarjeta de tu peque con su <b>mismo nombre</b> y se encontrarán solas.</p>`;
+  caja.innerHTML = `<h2>✅ ¡Hecho!</h2>
+    <p class="sub">Este dispositivo ya es de la familia <b>${escHtml(codigo)}</b>.</p>${extra}
+    <p class="sub" style="font-size:.86rem; margin-top:10px;">💡 Si abriste el enlace dentro de WhatsApp y luego
+    en la app no salen las tarjetas, vuelve al chat y ábrelo otra vez con Chrome o Safari
+    (menú ⋮ → "Abrir en el navegador").</p>`;
+  si.textContent = "¡A jugar! 🎉"; si.disabled = false;
+  no.style.display = "none";
+  UNION_SI = volverAPerfiles; UNION_NO = null;
+  mostrarPantalla("s-unir");
+}
 
 /* Reforzar un código de la primera época: pide al servidor que mueva TODO el
    historial (misiones, resultados, hucha…) al código nuevo. Si la función aún no
@@ -375,8 +584,8 @@ function pintarPerfiles(){
     const card = document.createElement("div");
     card.className = "perfil-card";
     card.style.borderColor = t.colores.p1;
-    card.innerHTML = `<div class="cara">${t.emoji}</div><div class="nom">${p.alias}</div>
-      <div class="det">${t.nombre} · ${p.cursoNombre}</div>`;
+    card.innerHTML = `<div class="cara">${t.emoji}</div><div class="nom">${escHtml(p.alias)}</div>
+      <div class="det">${t.nombre} · ${escHtml(p.cursoNombre)}</div>`;
     card.addEventListener("click", ()=>entrar(p));
     const eng = document.createElement("button");
     eng.className = "ajustes";
@@ -575,7 +784,6 @@ $("w-sigue").addEventListener("click", ()=>{
   if(W.paso===1) W.alias = $("w-alias").value.trim();
   if(W.paso<4){ W.paso++; pintarPaso(); return; }
   // crear perfil y entrar
-  const NOMBRES_CURSO = { inf3:"1º Infantil", inf4:"2º Infantil", inf5:"3º Infantil", pri1:"1º Primaria", pri2:"2º Primaria", pri3:"3º Primaria" };
   const cursoTxt = NOMBRES_CURSO[W.curso];
   const perfil = {
     id: "p" + Math.random().toString(36).slice(2,9),
@@ -599,7 +807,10 @@ $("w-sigue").addEventListener("click", ()=>{
   entrar(perfil);
 });
 
-pintarPerfiles();
+/* arranque: si llega un enlace de unión, la decisión ANTES que nada — que el
+   dispositivo no se autogenere un código mientras el adulto aún no ha dicho sí */
+const UNION = leerEnlaceUnion();
+if(UNION) pintarUnion(UNION); else pintarPerfiles();
 </script>
 </body>
 </html>
