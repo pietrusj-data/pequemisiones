@@ -74,12 +74,14 @@ const S = { chispa: {}, nivelLibre: NIVEL_PRUEBA };
 const MOTORES = {
   primaria: {
     archivo: "app/primaria.html",
-    modulos: ["abn", "cla", "igu", "dif", "mul", "div", "rel", "pes"],
+    modulos: ["abn", "cla", "igu", "dif", "mul", "div", "rel", "pes", "geo"],
     piezas: [
       "ri", "llevaSuma", "llevaResta", "conProb", "mayorPrimero", "barajar",
       "PERSONAJES", "ITEMS", "HORAS_TXT", "fmtHM", "horaEnPalabras",
       "nombreP", "fraseIgu", "relObjetivo", "pesoEnTexto", "pesTotal",
-      "genAbn", "genCla", "genIgu", "genDif", "genRel", "genPes", "genMul", "genDiv",
+      "MAPA_ES", "MAPA_MU", "TOPE_GEO", "piezasMapa", "piezaGeo", "piezasGeo",
+      "conArtGeo", "opcionesGeo",
+      "genAbn", "genCla", "genIgu", "genDif", "genRel", "genPes", "genMul", "genDiv", "genGeo",
       "GEN", "genMisionDiaria", "genTanda",
     ],
   },

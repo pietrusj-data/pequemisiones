@@ -173,6 +173,52 @@ describe("motor de primaria", () => {
     }
   });
 
+  /* Geografía. Aquí "imposible" no es una cuenta que no sale, es un mapa en el
+     que la pieza que se pide no existe o no se puede tocar: si el generador
+     nombra una comunidad que no está dibujada, la niña se queda mirando el mapa
+     sin nada que hacer. */
+  test("genGeo · lo que se pregunta está siempre dibujado en el mapa", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genGeo, nivel)) {
+        const d = ej.d;
+        assert.equal(ej.t, "geo");
+        assert.ok(d.mapa === "es" || d.mapa === "mu", `mapa desconocido: ${d.mapa}`);
+        const p = M.piezaGeo(d.mapa, d.id);
+        assert.ok(p, `nivel ${nivel}: pide "${d.id}", que no está en el mapa`);
+        assert.ok(p.d && p.d.length > 20, `${p.n} no tiene trazado que tocar`);
+        assert.ok(Number.isFinite(p.cx) && Number.isFinite(p.cy), `${p.n} no tiene punto donde señalar`);
+      }
+    }
+  });
+
+  test("genGeo · las opciones son sanas y del mismo tipo", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genGeo, nivel)) {
+        const d = ej.d;
+        if (d.sub !== "cual") continue;
+        const nombre = M.piezaGeo(d.mapa, d.id).n;
+        opcionesSanas(d.ops, d.id, `geo nivel ${nivel} (${nombre})`);
+        assert.equal(d.ops.length, nivel >= 3 ? 4 : 3, `geo nivel ${nivel}: número de opciones raro`);
+        /* nunca se mezcla un océano con un continente: la pregunta se
+           contestaría sola sin mirar el mapa */
+        const clases = new Set(d.ops.map(id => M.piezaGeo(d.mapa, id).k || "r"));
+        assert.equal(clases.size, 1, `geo nivel ${nivel}: las opciones mezclan tipos [${[...clases]}]`);
+      }
+    }
+  });
+
+  test("genGeo · el nivel 1 no pregunta por Ceuta ni por el Glacial Ártico", () => {
+    for (const ej of muchas(M.genGeo, 1)) {
+      const d = ej.d, p = M.piezaGeo(d.mapa, d.id);
+      if (d.mapa === "es") assert.equal(p.niv, 1, `nivel 1 preguntando por ${p.n}`);
+      else assert.ok(!/Glacial/.test(p.n), `nivel 1 preguntando por ${p.n}`);
+    }
+    /* y en el 3 sí sale el mapa entero */
+    const vistos = new Set(muchas(M.genGeo, 3, 1200).map(ej => ej.d.id));
+    ["can", "bal", "ceu", "mel"].forEach(id =>
+      assert.ok(vistos.has(id), `el nivel 3 no llega a preguntar por ${M.piezaGeo("es", id).n}`));
+  });
+
   test("genTanda y la misión diaria entregan lo que prometen", () => {
     for (const n of [4, 6, 10]) {
       const t = M.genTanda(["abn", "igu", "rel"], 2, n);
