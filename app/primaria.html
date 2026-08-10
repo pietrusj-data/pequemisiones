@@ -618,6 +618,20 @@ svg.lamina{max-width:340px;}
       <div class="chips" id="premio-sugeridos" style="margin-top:8px;"></div>
       <button class="btn btn-mini btn-lila" id="btn-premio-add" style="margin-top:8px;">➕ Añadir premio</button>
     </div>
+    <div class="form-linea" style="margin-top:14px;">
+      <label>Añadir gemas por cosas de casa</label>
+      <p class="sub" style="text-align:left; font-size:.88rem; margin:4px 0 8px;">Recoger la mesa, los deberes del cole… lo que valga en tu casa también llena la hucha.</p>
+      <div class="fila" style="gap:8px; align-items:center;">
+        <input type="number" id="hucha-extra-num" min="1" max="100" step="1" value="5" style="flex:0 0 92px;">
+        <button class="btn btn-mini btn-rosa" id="btn-hucha-extra" style="flex:1;">💎 Añadir a la hucha</button>
+      </div>
+      <div class="chips" id="hucha-extra-motivos" style="margin-top:8px;">
+        <button class="chip-sel on" data-m="por ayudar en casa 🏡">🏡 Ayudar en casa</button>
+        <button class="chip-sel" data-m="por los deberes del cole 📚">📚 Deberes del cole</button>
+        <button class="chip-sel" data-m="por portarse genial 💖">💖 Portarse genial</button>
+        <button class="chip-sel" data-m="un regalo de la familia 💝">💝 Regalo</button>
+      </div>
+    </div>
     <div id="hucha-canjes" class="sub" style="text-align:left; margin-top:14px;"></div>
   </div>
 
@@ -3767,20 +3781,24 @@ function papaTab(nombre){
      · hucha          → TODAS las gemas ganadas en la vida del perfil, menos lo canjeado
 
    El saldo no necesita contador nuevo: se calcula desde el servidor (suma de
-   pm_resultados menos pm_canjes), así cuadra solo entre el móvil y la tablet. */
-const Hucha = { saldo:0, premios:[], canjes:[], cargada:false };
+   pm_resultados, más los extras de casa de pm_ajustes, menos pm_canjes), así
+   cuadra solo entre el móvil y la tablet. */
+const Hucha = { saldo:0, premios:[], canjes:[], ajustes:[], cargada:false };
 async function cargarHucha(silencio){
-  const [res, pre, can] = await Promise.all([
+  const [res, pre, can, aju] = await Promise.all([
     sbSelect(T_RESULT, "select=gemas&"+FQ+"&limit=2000"),
     sbSelect("pm_premios", "select=*&"+FQ+"&activo=is.true&order=coste.asc"),
-    sbSelect("pm_canjes",  "select=*&"+FQ+"&order=created_at.desc&limit=20")
+    sbSelect("pm_canjes",  "select=*&"+FQ+"&order=created_at.desc&limit=20"),
+    sbSelect("pm_ajustes", "select=*&"+FQ+"&order=created_at.desc&limit=200")
   ]);
   if(!res.ok) return false;
   const ganadas = (res.data||[]).reduce((s,r)=>s+(r.gemas||0), 0);
   Hucha.premios = pre.ok ? (pre.data||[]) : [];
   Hucha.canjes  = can.ok ? (can.data||[]) : [];
+  Hucha.ajustes = aju.ok ? (aju.data||[]) : [];
+  const extras   = Hucha.ajustes.reduce((s,a)=>s+(a.delta||0), 0);
   const gastadas = Hucha.canjes.reduce((s,c)=>s+(c.coste||0), 0);
-  Hucha.saldo = Math.max(0, ganadas - gastadas);
+  Hucha.saldo = Math.max(0, ganadas + extras - gastadas);
   Hucha.cargada = true;
   if(!silencio) pintarHuchaPapa();
   pintarHuchaPeque();
@@ -3817,10 +3835,14 @@ function pintarHuchaPapa(){
       l.appendChild(fila);
     });
   }
-  $("hucha-canjes").innerHTML = Hucha.canjes.length
+  const extrasHtml = Hucha.ajustes.slice(0,5).map(a=>
+    `${fechaCorta(a.created_at)} · ${a.delta>0?"+":""}${a.delta} 💎 ${escHtml(a.motivo||"")}`).join("<br>");
+  $("hucha-canjes").innerHTML =
+    (extrasHtml ? "<b>Últimos añadidos de casa:</b><br>" + extrasHtml + "<br><br>" : "") +
+    (Hucha.canjes.length
     ? "<b>Premios ya entregados:</b><br>" + Hucha.canjes.map(c=>
         `${fechaCorta(c.created_at)} · ${escHtml(c.nombre)} (${c.coste} 💎)`).join("<br>")
-    : "";
+    : "");
   const sug = $("premio-sugeridos");
   if(sug && !sug.children.length){
     [["Elegir la peli del viernes",100],["Una tarde en el parque",200],
@@ -3839,6 +3861,24 @@ async function canjear(p){
   await cargarHucha();
   alert("¡Premio entregado! 🎉\n\nDíselo tú, que es la mejor parte.");
 }
+/* Extras de casa: lo que vale en cada familia (recoger la mesa, deberes…)
+   también llena la hucha. Motivos de lista cerrada: nada de texto libre. */
+document.querySelectorAll("#hucha-extra-motivos .chip-sel").forEach(b=>
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll("#hucha-extra-motivos .chip-sel").forEach(x=>x.classList.toggle("on", x===b));
+  }));
+$("btn-hucha-extra").addEventListener("click", async ()=>{
+  const n = parseInt($("hucha-extra-num").value, 10);
+  if(!n || n < 1 || n > 100){ alert("Entre 1 y 100 💎"); return; }
+  const chip = document.querySelector("#hucha-extra-motivos .chip-sel.on");
+  const motivo = chip ? chip.dataset.m : "un regalo de la familia 💝";
+  const b = $("btn-hucha-extra"); b.disabled = true;
+  const r = await sbInsert("pm_ajustes", {familia:FAMILIA, perfil:PERFIL_KEY, delta:n, motivo, estado:"aplicado"});
+  b.disabled = false;
+  if(!r.ok){ alert("No se pudo guardar (¿hay internet?)"); return; }
+  $("hucha-extra-num").value = 5;
+  await cargarHucha();
+});
 /* Lo que ve el peque: cuánto lleva y cuánto le falta para el siguiente premio. */
 function pintarHuchaPeque(){
   const caja = $("hucha-caja"); if(!caja) return;
