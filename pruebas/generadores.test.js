@@ -219,6 +219,67 @@ describe("motor de primaria", () => {
       assert.ok(vistos.has(id), `el nivel 3 no llega a preguntar por ${M.piezaGeo("es", id).n}`));
   });
 
+  /* Naturaleza. Los tres modos fallan de maneras distintas: señalar una parte que
+     no está dibujada, un ciclo con pasos repetidos o que falten (y entonces no se
+     puede terminar de ordenar), y una cesta a la que no va ninguna de las cosas
+     que salen. */
+  test("genCie · señalar: la parte pedida está dibujada y se puede tocar", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genSenala, nivel)) {
+        const d = ej.d;
+        const L = M.laminaDe(d.lam);
+        assert.ok(L, `lámina desconocida: ${d.lam}`);
+        const p = M.parteLam(d.lam, d.id);
+        assert.ok(p, `nivel ${nivel}: pide "${d.id}", que no está en ${d.lam}`);
+        assert.ok(p.niv <= nivel, `nivel ${nivel} preguntando por ${p.n} (es de nivel ${p.niv})`);
+        assert.ok(p.d.length > 20 && p.rr > 3, `${p.n} no se puede señalar ni tocar`);
+        if (d.modo === "cual") opcionesSanas(d.ops, d.id, `cie ${d.lam} nivel ${nivel}`);
+      }
+    }
+  });
+
+  test("genCie · ordenar: están todos los pasos del ciclo, una sola vez", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genOrdena, nivel)) {
+        const c = M.CICLOS.find(x => x.id === ej.d.ciclo);
+        assert.ok(c, `ciclo desconocido: ${ej.d.ciclo}`);
+        assert.ok(c.niv <= nivel, `nivel ${nivel} sacando "${c.n}"`);
+        const orden = ej.d.orden.slice().sort((a, b) => a - b);
+        assert.deepEqual(orden, c.pasos.map((_, i) => i),
+          `"${c.n}": los pasos barajados no cuadran con el ciclo`);
+      }
+    }
+  });
+
+  test("genCie · clasificar: cada cosa tiene su cesta y no se repite ninguna", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genClasifica, nivel)) {
+        const c = M.CESTAS.find(x => x.id === ej.d.cesta);
+        assert.ok(c, `clasificación desconocida: ${ej.d.cesta}`);
+        assert.ok(c.niv <= nivel, `nivel ${nivel} sacando "${c.n}"`);
+        const claves = c.cestas.map(x => x[0]);
+        assert.ok(ej.d.cosas.length >= 3, "hacen falta al menos 3 cosas que clasificar");
+        const emojis = ej.d.cosas.map(x => x[0]);
+        assert.equal(new Set(emojis).size, emojis.length, `"${c.n}": sale la misma cosa dos veces`);
+        ej.d.cosas.forEach(([emo, k]) => {
+          assert.ok(claves.includes(k), `"${c.n}": ${emo} va a una cesta que no existe (${k})`);
+          const real = c.cosas.find(x => x[0] === emo);
+          assert.equal(real[1], k, `"${c.n}": ${emo} está mal clasificado`);
+        });
+        /* con 3 cestas y 4 cosas alguna se queda vacía; con 2 nunca */
+        if (claves.length === 2)
+          assert.equal(new Set(ej.d.cosas.map(x => x[1])).size, 2, `"${c.n}": todas las cosas van a la misma cesta`);
+      }
+    }
+  });
+
+  test("genCie · reparte los tres modos de preguntar", () => {
+    const modos = {};
+    for (const ej of muchas(M.genCie, 3, 600)) modos[ej.d.sub] = (modos[ej.d.sub] || 0) + 1;
+    ["senala", "ordena", "clasifica"].forEach(m =>
+      assert.ok(modos[m] > 30, `el modo "${m}" casi no sale (${modos[m] || 0} de 600)`));
+  });
+
   test("genTanda y la misión diaria entregan lo que prometen", () => {
     for (const n of [4, 6, 10]) {
       const t = M.genTanda(["abn", "igu", "rel"], 2, n);

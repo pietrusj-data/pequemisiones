@@ -268,6 +268,35 @@ svg.mapa-mu{max-width:620px;}
 .opcion-geo.bien{background:var(--menta); border-color:var(--menta-osc); color:#fff;}
 .opcion-geo.malo{background:#ffd6dc; border-color:#e8879b;}
 .opcion-geo.apagada{opacity:.35; pointer-events:none;}
+/* láminas mudas, ciclos y cestas (naturaleza) */
+svg.lamina{max-width:340px;}
+.lamina .pieza{stroke-width:2.4;}
+.lamina .pieza.bien{fill:var(--menta) !important; stroke:var(--menta-osc) !important;}
+.lamina .pieza.malo{fill:#ffaebb !important;}
+.lamina .pieza.brilla{stroke:#f0a52b !important; stroke-width:4.5;}
+.lamina .pieza.guia{stroke:#f0a52b !important; stroke-width:5;}
+/* ciclos */
+.tira-ciclo{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; min-height:46px;
+  background:var(--lila-suave); border-radius:14px; padding:8px 10px; width:100%; max-width:520px;}
+.ficha-ciclo{background:#fff; border:2px solid var(--lila); border-radius:12px; padding:4px 10px;
+  font-weight:800; color:var(--lila-osc); font-size:1.15rem;}
+.pasos-ciclo{gap:10px; max-width:560px;}
+.paso-ciclo{display:flex; align-items:center; gap:10px; text-align:left; cursor:pointer;
+  border:3px solid var(--cielo, #7dd3fc); background:#fff; border-radius:16px; padding:10px 14px;
+  font-family:inherit; font-weight:700; font-size:1rem; color:var(--tinta, #3b2c57); flex:1 1 240px;}
+.paso-ciclo .paso-emo{font-size:1.9rem; line-height:1;}
+.paso-ciclo.puesta{opacity:.35; border-style:dashed; cursor:default;}
+.paso-ciclo.malo{background:#ffd6dc; border-color:#e8879b;}
+/* cestas */
+.cosa-clasificar{font-size:4.6rem; line-height:1.1; transition:transform .4s, opacity .4s;}
+.cosa-clasificar.vuela{transform:translateY(-40px) scale(.4); opacity:0;}
+.cestas{gap:12px;}
+.cesta-btn{display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;
+  border:3px solid var(--lila); background:#fff; border-radius:18px; padding:12px 18px; min-width:120px;
+  font-family:inherit; font-weight:800; font-size:1rem; color:var(--lila-osc);}
+.cesta-btn .cesta-emo{font-size:2.1rem; line-height:1;}
+.cesta-btn.bien{background:var(--menta); border-color:var(--menta-osc); color:#fff;}
+.cesta-btn.malo{background:#ffd6dc; border-color:#e8879b;}
 #fx{position:fixed; inset:0; pointer-events:none; z-index:80;}
 .oculto{display:none !important;}
 .centrado{text-align:center;}
@@ -367,7 +396,8 @@ svg.mapa-mu{max-width:620px;}
     <button class="btn btn-rosa" style="flex:1; min-width:150px;" data-tipo="pes">🧺 Pesos</button>
   </div>
     <div class="fila">
-    <button class="btn btn-cielo" style="flex:1; min-width:150px; max-width:320px;" data-tipo="geo">🌍 Geografía</button>
+    <button class="btn btn-cielo" style="flex:1; min-width:150px;" data-tipo="geo">🌍 Geografía</button>
+    <button class="btn btn-menta" style="flex:1; min-width:150px;" data-tipo="cie">🌿 Naturaleza</button>
   </div>
   <h2 style="font-size:1.2rem;">Elige nivel</h2>
   <div class="fila" id="libre-niveles">
@@ -534,6 +564,7 @@ svg.mapa-mu{max-width:620px;}
         <button class="chip-sel" data-t="rel">🕐 Relojes</button>
         <button class="chip-sel" data-t="pes">🧺 Pesos</button>
         <button class="chip-sel" data-t="geo">🌍 Geografía (mapas)</button>
+        <button class="chip-sel" data-t="cie">🌿 Naturaleza</button>
       </div>
     </div>
     <div class="form-linea">
@@ -668,7 +699,7 @@ svg.mapa-mu{max-width:620px;}
    quedaba atrás cada vez que el motor cambiaba; ahora no puede desincronizarse. */
 const DEMO = new URLSearchParams(location.search).has("demo");
 const PERFIL_DEMO = { id:"demo", alias:"Princesa", genero:"nina", curso:"pri2", nivel:2,
-  tema:"princesas", modulos:["abn","igu","dif","mul","div","rel","pes","geo"],
+  tema:"princesas", modulos:["abn","igu","dif","mul","div","rel","pes","geo","cie"],
   juegos:["globos","mariposas","naves","plataformas","dibujar"] };
 /* ── PequeMisiones: perfil del portal ── */
 const PERFIL = DEMO ? PERFIL_DEMO
@@ -1359,7 +1390,311 @@ function renderGeo(d){
   };
 }
 
-const GEN = {abn:genAbn, cla:genCla, igu:genIgu, dif:genDif, mul:genMul, div:genDiv, rel:genRel, pes:genPes, geo:genGeo};
+/* ═══════════════ NATURALEZA: LÁMINAS, CICLOS Y CESTAS ═══════════════
+   Conocimiento del Medio de 3º. Tres maneras de preguntar, las tres del cole:
+     · señalar en una lámina muda (las partes de la planta, de la flor, de un río)
+     · ordenar los pasos de un ciclo (el agua, la semilla, la polinización)
+     · clasificar en cestas (vivo o no, con huesos o sin ellos, qué come…)
+   La primera es el mismo juego que los mapas mudos de Geografía con otro dibujo
+   debajo: "toca el pistilo" es exactamente "toca Andalucía". */
+const LAMINAS = {"planta":{"w":380,"h":540,"titulo":"una planta","fondo":[{"d":"M0 0L380 0L380 384L0 384Z","fill":"#eaf6ff"},{"d":"M0 384L380 384L380 540L0 540Z","fill":"#efdcc0"},{"d":"M352 62L351.3 68.2L349.4 74.2L346.3 79.6L342.1 84.3L337 88L331.3 90.5L325.1 91.8L318.9 91.8L312.7 90.5L307 88L301.9 84.3L297.7 79.6L294.6 74.2L292.7 68.2L292 62L292.7 55.8L294.6 49.8L297.7 44.4L301.9 39.7L307 36L312.7 33.5L318.9 32.2L325.1 32.2L331.3 33.5L337 36L342.1 39.7L346.3 44.4L349.4 49.8L351.3 55.8Z","fill":"#ffe08a"},{"d":"M199.8 218.1L201.7 217.3L204 216.1L206.7 214.8L209.7 213.3L212.9 211.7L216.3 210.2L219.6 208.8L222.8 207.7L225.9 206.8L228.6 206.2L231.2 206L234.2 206L237.5 206.3L240.8 206.7L244.1 207.3L247.3 207.9L250.3 208.6L253.1 209.2L255.4 209.6L257.3 209.9L258.7 202.1L257 201.7L254.8 201.2L252.1 200.6L249 199.9L245.6 199.2L242.1 198.5L238.4 198L234.7 197.6L231 197.5L227.4 197.8L223.9 198.5L220.2 199.5L216.5 200.8L212.9 202.2L209.3 203.8L205.9 205.3L202.9 206.8L200.1 208.1L197.9 209.2L196.2 209.9Z","fill":"#4c9d63"}],"encima":[],"partes":[{"id":"flor","n":"Flor","art":"la","niv":1,"fill":"#ffb3d1","borde":"#e07aa6","d":"M190 18L195.2 18.8L200.2 21.1L204.7 24.9L208.6 29.9L211.7 36L213.8 42.9L214.9 50.2L214.9 57.8L213.8 65.1L211.7 72L208.6 78.1L204.7 83.1L200.2 86.9L195.2 89.2L190 90L184.8 89.2L179.8 86.9L175.3 83.1L171.4 78.1L168.3 72L166.2 65.1L165.1 57.8L165.1 50.2L166.2 42.9L168.3 36L171.4 29.9L175.3 24.9L179.8 21.1L184.8 18.8ZM261 59L262.9 63.9L263.4 69.4L262.4 75.2L260 81L256.3 86.8L251.4 92L245.5 96.7L239 100.4L232.1 103.2L225.1 104.8L218.3 105.1L212 104.3L206.4 102.2L201.9 99.1L198.7 95L196.7 90.1L196.3 84.6L197.3 78.8L199.7 73L203.4 67.3L208.3 62L214.1 57.3L220.7 53.6L227.6 50.8L234.6 49.3L241.4 48.9L247.7 49.7L253.2 51.8L257.7 54.9ZM261 141L257.7 145.1L253.2 148.2L247.7 150.3L241.4 151.1L234.6 150.8L227.6 149.2L220.7 146.4L214.1 142.7L208.3 138L203.4 132.8L199.7 127L197.3 121.2L196.3 115.4L196.7 109.9L198.7 105L201.9 100.9L206.4 97.8L212 95.7L218.3 94.9L225.1 95.3L232.1 96.8L239 99.6L245.5 103.3L251.4 108L256.3 113.3L260 119L262.4 124.8L263.4 130.6L262.9 136.1ZM190 182L184.8 181.2L179.8 178.9L175.3 175.1L171.4 170.1L168.3 164L166.2 157.1L165.1 149.8L165.1 142.2L166.2 134.9L168.3 128L171.4 121.9L175.3 116.9L179.8 113.1L184.8 110.8L190 110L195.2 110.8L200.2 113.1L204.7 116.9L208.6 121.9L211.7 128L213.8 134.9L214.9 142.2L214.9 149.8L213.8 157.1L211.7 164L208.6 170.1L204.7 175.1L200.2 178.9L195.2 181.2ZM119 141L117.1 136.1L116.6 130.6L117.6 124.8L120 119L123.7 113.3L128.6 108L134.5 103.3L141 99.6L147.9 96.8L154.9 95.3L161.7 94.9L168 95.7L173.6 97.8L178.1 100.9L181.3 105L183.3 109.9L183.7 115.4L182.7 121.2L180.3 127L176.6 132.8L171.7 138L165.9 142.7L159.3 146.4L152.4 149.2L145.4 150.8L138.6 151.1L132.3 150.3L126.8 148.2L122.3 145.1ZM119 59L122.3 54.9L126.8 51.8L132.3 49.7L138.6 48.9L145.4 49.3L152.4 50.8L159.3 53.6L165.9 57.3L171.7 62L176.6 67.3L180.3 73L182.7 78.8L183.7 84.6L183.3 90.1L181.3 95L178.1 99.1L173.6 102.2L168 104.3L161.7 105.1L154.9 104.8L147.9 103.2L141 100.4L134.5 96.7L128.6 92L123.7 86.8L120 81L117.6 75.2L116.6 69.4L117.1 63.9ZM214 100L213.5 105L211.9 109.8L209.4 114.1L206.1 117.8L202 120.8L197.4 122.8L192.5 123.9L187.5 123.9L182.6 122.8L178 120.8L173.9 117.8L170.6 114.1L168.1 109.8L166.5 105L166 100L166.5 95L168.1 90.2L170.6 85.9L173.9 82.2L178 79.2L182.6 77.2L187.5 76.1L192.5 76.1L197.4 77.2L202 79.2L206.1 82.2L209.4 85.9L211.9 90.2L213.5 95Z","cx":190,"cy":47.5,"rr":23.3},{"id":"tallo","n":"Tallo","art":"el","niv":1,"fill":"#4c9d63","borde":"#3d8250","d":"M178 142L202 142L209 384L171 384Z","cx":190,"cy":364.6,"rr":18.4},{"id":"hoja","n":"Hojas","art":"las","niv":1,"fill":"#84cf90","borde":"#4c9d63","d":"M182 262L177.7 256L173.4 250.1L169.1 244.4L164.7 239.1L160.1 234.2L155.5 229.8L150.7 226L145.7 222.9L140.6 220.5L135.3 218.9L129.8 217.9L124.1 217.7L118.3 218.2L112.3 219.4L106.1 221.2L99.9 223.5L93.5 226.2L87 229.3L80.5 232.6L74 236L74 236L78.3 242L82.6 247.9L86.9 253.6L91.3 258.9L95.9 263.8L100.5 268.2L105.3 272L110.3 275.1L115.4 277.5L120.7 279.1L126.2 280.1L131.9 280.3L137.7 279.8L143.7 278.6L149.9 276.8L156.1 274.5L162.5 271.8L169 268.7L175.5 265.4L182 262ZM200 332L206.2 335.9L212.4 339.7L218.6 343.3L224.7 346.5L230.7 349.2L236.6 351.4L242.4 353L248 353.9L253.6 354.1L258.9 353.4L264.2 352.1L269.2 349.9L274.2 347L279 343.4L283.7 339.2L288.3 334.5L292.8 329.3L297.2 323.7L301.6 317.9L306 312L306 312L299.8 308.1L293.6 304.3L287.4 300.7L281.3 297.5L275.3 294.8L269.4 292.6L263.6 291L258 290.1L252.4 289.9L247.1 290.6L241.8 291.9L236.8 294.1L231.8 297L227 300.6L222.3 304.8L217.7 309.5L213.2 314.7L208.8 320.3L204.4 326.1L200 332Z","cx":255,"cy":321.4,"rr":31.4},{"id":"fruto","n":"Fruto","art":"el","niv":2,"fill":"#f2777a","borde":"#d4585c","d":"M311 220L310.3 225.8L308.3 231.4L305.1 236.5L300.7 240.8L295.5 244.2L289.6 246.6L283.2 247.8L276.8 247.8L270.4 246.6L264.5 244.2L259.3 240.8L254.9 236.5L251.7 231.4L249.7 225.8L249 220L249.7 214.2L251.7 208.6L254.9 203.5L259.3 199.2L264.5 195.8L270.4 193.4L276.8 192.2L283.2 192.2L289.6 193.4L295.5 195.8L300.7 199.2L305.1 203.5L308.3 208.6L310.3 214.2Z","cx":280,"cy":220,"rr":27.8},{"id":"raiz","n":"Raíz","art":"la","niv":1,"fill":"#c79a68","borde":"#9d7346","d":"M168 379L168.8 382.2L169.6 386.4L170.4 391.3L171.3 396.7L172.2 402.4L173.1 408.4L173.9 414.3L174.6 419.9L175.3 425.1L175.8 429.7L176.3 433.7L176.6 437.6L176.8 441.5L177 445.4L177.1 449.2L177.2 453.1L177.3 457L177.3 461L177.5 465L177.7 469.2L178 473.4L178.3 477.8L178.6 482.3L179 486.8L179.3 491.1L179.7 495.3L180.1 499.2L180.6 502.6L181 505.5L181.5 507.8L190.5 508.2L191.2 506L191.9 503.1L192.6 499.7L193.4 495.9L194.2 491.9L194.9 487.6L195.8 483.2L196.6 478.9L197.4 474.7L198.3 470.8L199.2 467.2L200.2 463.7L201.2 460.1L202.3 456.4L203.4 452.6L204.5 448.6L205.5 444.4L206.5 440L207.4 435.3L208.2 430.3L208.8 425L209.3 419.1L209.7 413L210 406.8L210.3 400.6L210.6 394.6L210.9 389L211.2 384.1L211.5 380.1L212 377ZM184 400L180.1 403.3L175.8 406.2L171.4 409L166.9 411.8L162.4 414.6L158 417.4L153.8 420.5L149.9 423.7L146.1 427.1L142.7 430.8L139.5 434.7L136.7 438.9L134 443.3L131.6 447.8L129.4 452.6L127.3 457.4L125.2 462.2L123 467L120.7 471.7L118 476L118 476L121.9 472.7L126.2 469.8L130.6 467L135.1 464.2L139.6 461.4L144 458.6L148.2 455.5L152.1 452.3L155.9 448.9L159.3 445.2L162.5 441.3L165.3 437.1L168 432.7L170.4 428.2L172.6 423.4L174.7 418.6L176.8 413.8L179 409L181.3 404.3L184 400ZM186 444L183.3 447.2L180.2 450.1L177 453L173.8 455.9L170.6 458.7L167.5 461.6L164.5 464.7L161.7 467.8L159.1 471.1L156.8 474.5L154.7 478.1L152.9 481.8L151.3 485.7L149.9 489.6L148.6 493.7L147.4 497.9L146.2 502L145 506.1L143.7 510.2L142 514L142 514L144.7 510.8L147.8 507.9L151 505L154.2 502.1L157.4 499.3L160.5 496.4L163.5 493.3L166.3 490.2L168.9 486.9L171.2 483.5L173.3 479.9L175.1 476.2L176.7 472.3L178.1 468.4L179.4 464.3L180.6 460.1L181.8 456L183 451.9L184.3 447.8L186 444ZM196 402L198.5 406L200.6 410.2L202.6 414.7L204.5 419.1L206.5 423.6L208.6 427.9L210.8 432.1L213.2 436.1L215.9 439.9L218.9 443.4L222.1 446.7L225.6 449.7L229.4 452.5L233.4 455.1L237.5 457.6L241.7 459.9L246 462.3L250.2 464.6L254.3 467.2L258 470L258 470L255.5 466L253.4 461.8L251.4 457.3L249.5 452.9L247.5 448.4L245.4 444.1L243.2 439.9L240.8 435.9L238.1 432.1L235.1 428.6L231.9 425.3L228.4 422.3L224.6 419.5L220.6 416.9L216.5 414.4L212.3 412.1L208 409.7L203.8 407.4L199.7 404.8L196 402ZM194 446L195.6 449.5L196.8 453.3L197.9 457.1L199 461L200.1 464.9L201.3 468.7L202.7 472.4L204.2 475.9L205.9 479.4L207.9 482.7L210.1 485.8L212.6 488.7L215.3 491.6L218.1 494.3L221.1 496.9L224.2 499.4L227.3 501.9L230.4 504.5L233.4 507.1L236 510L236 510L234.4 506.5L233.2 502.7L232.1 498.9L231 495L229.9 491.1L228.7 487.3L227.3 483.6L225.8 480.1L224.1 476.6L222.1 473.3L219.9 470.2L217.4 467.3L214.7 464.4L211.9 461.7L208.9 459.1L205.8 456.6L202.7 454.1L199.6 451.5L196.6 448.9L194 446Z","cx":190.8,"cy":426.3,"rr":15.3}]},"flor":{"w":424,"h":424,"titulo":"una flor","fondo":[{"d":"M0 0L424 0L424 424L0 424Z","fill":"#f4fbf6"}],"encima":[],"partes":[{"id":"petalo","n":"Pétalos","art":"los","niv":1,"fill":"#ffb3d1","borde":"#e07aa6","d":"M212 28L220.7 29.4L229.1 33.4L236.7 39.8L243.2 48.5L248.4 59L251.9 70.8L253.8 83.5L253.8 96.5L251.9 109.2L248.4 121L243.2 131.5L236.7 140.2L229.1 146.6L220.7 150.6L212 152L203.3 150.6L194.9 146.6L187.3 140.2L180.8 131.5L175.6 121L172.1 109.2L170.2 96.5L170.2 83.5L172.1 70.8L175.6 59L180.8 48.5L187.3 39.8L194.9 33.4L203.3 29.4ZM348.8 107L352 115.2L352.7 124.5L350.9 134.3L346.7 144.3L340.2 154L331.7 163L321.6 170.9L310.4 177.4L298.5 182.2L286.5 185L274.8 185.8L264 184.5L254.6 181.1L247 175.9L241.4 169L238.3 160.8L237.5 151.5L239.4 141.7L243.6 131.7L250.1 122L258.6 113L268.6 105.1L279.9 98.6L291.8 93.8L303.8 91L315.5 90.2L326.2 91.5L335.6 94.9L343.3 100.1ZM348.8 265L343.3 271.9L335.6 277.1L326.2 280.5L315.5 281.8L303.8 281L291.8 278.2L279.9 273.4L268.6 266.9L258.6 259L250.1 250L243.6 240.3L239.4 230.3L237.5 220.5L238.3 211.2L241.4 203L247 196.1L254.6 190.9L264 187.5L274.8 186.2L286.5 187L298.5 189.8L310.4 194.6L321.6 201.1L331.7 209L340.2 218L346.7 227.7L350.9 237.7L352.7 247.5L352 256.8ZM212 344L203.3 342.6L194.9 338.6L187.3 332.2L180.8 323.5L175.6 313L172.1 301.2L170.2 288.5L170.2 275.5L172.1 262.8L175.6 251L180.8 240.5L187.3 231.8L194.9 225.4L203.3 221.4L212 220L220.7 221.4L229.1 225.4L236.7 231.8L243.2 240.5L248.4 251L251.9 262.8L253.8 275.5L253.8 288.5L251.9 301.2L248.4 313L243.2 323.5L236.7 332.2L229.1 338.6L220.7 342.6ZM75.2 265L72 256.8L71.3 247.5L73.1 237.7L77.3 227.7L83.8 218L92.3 209L102.4 201.1L113.6 194.6L125.5 189.8L137.5 187L149.2 186.2L160 187.5L169.4 190.9L177 196.1L182.6 203L185.7 211.2L186.5 220.5L184.6 230.3L180.4 240.3L173.9 250L165.4 259L155.4 266.9L144.1 273.4L132.2 278.2L120.2 281L108.5 281.8L97.8 280.5L88.4 277.1L80.7 271.9ZM75.2 107L80.7 100.1L88.4 94.9L97.8 91.5L108.5 90.2L120.2 91L132.2 93.8L144.1 98.6L155.4 105.1L165.4 113L173.9 122L180.4 131.7L184.6 141.7L186.5 151.5L185.7 160.8L182.6 169L177 175.9L169.4 181.1L160 184.5L149.2 185.8L137.5 185L125.5 182.2L113.6 177.4L102.4 170.9L92.3 163L83.8 154L77.3 144.3L73.1 134.3L71.3 124.5L72 115.2Z","cx":212,"cy":91.2,"rr":41.8},{"id":"tallo","n":"Tallo","art":"el","niv":1,"fill":"#4c9d63","borde":"#3d8250","d":"M195 304L229 304L233 424L191 424Z","cx":212,"cy":402.4,"rr":20.3},{"id":"sepalo","n":"Sépalos","art":"los","niv":2,"fill":"#84cf90","borde":"#4c9d63","d":"M196 298L190.2 297.4L184.4 296.9L178.7 296.5L173.1 296.3L167.7 296.4L162.4 296.7L157.2 297.5L152.3 298.6L147.6 300.1L143.1 302.1L138.8 304.5L134.7 307.4L130.8 310.7L127.2 314.3L123.7 318.4L120.3 322.7L117.1 327.3L114 332.1L111 337L108 342L108 342L113.8 342.6L119.6 343.1L125.3 343.5L130.9 343.7L136.3 343.6L141.6 343.3L146.8 342.5L151.7 341.4L156.4 339.9L160.9 337.9L165.2 335.5L169.3 332.6L173.2 329.3L176.8 325.7L180.3 321.6L183.7 317.3L186.9 312.7L190 307.9L193 303L196 298ZM228 298L231 303L234 307.9L237.1 312.7L240.3 317.3L243.7 321.6L247.2 325.7L250.8 329.3L254.7 332.6L258.8 335.5L263.1 337.9L267.6 339.9L272.3 341.4L277.2 342.5L282.4 343.3L287.7 343.6L293.1 343.7L298.7 343.5L304.4 343.1L310.2 342.6L316 342L316 342L313 337L310 332.1L306.9 327.3L303.7 322.7L300.3 318.4L296.8 314.3L293.2 310.7L289.3 307.4L285.2 304.5L280.9 302.1L276.4 300.1L271.7 298.6L266.8 297.5L261.6 296.7L256.3 296.4L250.9 296.3L245.3 296.5L239.6 296.9L233.8 297.4L228 298ZM198 294L195.9 298.2L193.8 302.5L191.8 306.7L190.1 310.9L188.6 315L187.4 319.1L186.5 323.2L186 327.3L185.8 331.2L186.1 335.2L186.8 339L188 342.9L189.5 346.6L191.4 350.3L193.6 354L196.1 357.7L198.8 361.3L201.8 364.9L204.9 368.4L208 372L208 372L210.1 367.8L212.2 363.5L214.2 359.3L215.9 355.1L217.4 351L218.6 346.9L219.5 342.8L220 338.7L220.2 334.8L219.9 330.8L219.2 327L218 323.1L216.5 319.4L214.6 315.7L212.4 312L209.9 308.3L207.2 304.7L204.2 301.1L201.1 297.6L198 294Z","cx":153.8,"cy":319,"rr":19.7},{"id":"estambre","n":"Estambres","art":"los","niv":3,"fill":"#ffd166","borde":"#dda52f","d":"M247 125.4L250.4 127.8L253.2 130.9L255.3 134.6L256.6 138.5L257 142.7L256.6 146.9L255.3 150.8L253.2 154.5L250.4 157.6L247 160L243.2 161.7L239.1 162.6L234.9 162.6L230.8 161.7L227 160L223.6 157.6L220.8 154.5L218.7 150.8L217.4 146.9L217 142.7L217.4 138.5L218.7 134.6L220.8 130.9L223.6 127.8L227 125.4L230.8 123.7L234.9 122.8L239.1 122.8L243.2 123.7ZM282 186L281.6 190.2L280.3 194.1L278.2 197.8L275.4 200.9L272 203.3L268.2 205L264.1 205.9L259.9 205.9L255.8 205L252 203.3L248.6 200.9L245.8 197.8L243.7 194.1L242.4 190.2L242 186L242.4 181.8L243.7 177.9L245.8 174.2L248.6 171.1L252 168.7L255.8 167L259.9 166.1L264.1 166.1L268.2 167L272 168.7L275.4 171.1L278.2 174.2L280.3 177.9L281.6 181.8ZM247 246.6L243.2 248.3L239.1 249.2L234.9 249.2L230.8 248.3L227 246.6L223.6 244.2L220.8 241.1L218.7 237.4L217.4 233.5L217 229.3L217.4 225.1L218.7 221.2L220.8 217.5L223.6 214.4L227 212L230.8 210.3L234.9 209.4L239.1 209.4L243.2 210.3L247 212L250.4 214.4L253.2 217.5L255.3 221.2L256.6 225.1L257 229.3L256.6 233.5L255.3 237.4L253.2 241.1L250.4 244.2ZM177 246.6L173.6 244.2L170.8 241.1L168.7 237.4L167.4 233.5L167 229.3L167.4 225.1L168.7 221.2L170.8 217.5L173.6 214.4L177 212L180.8 210.3L184.9 209.4L189.1 209.4L193.2 210.3L197 212L200.4 214.4L203.2 217.5L205.3 221.2L206.6 225.1L207 229.3L206.6 233.5L205.3 237.4L203.2 241.1L200.4 244.2L197 246.6L193.2 248.3L189.1 249.2L184.9 249.2L180.8 248.3ZM142 186L142.4 181.8L143.7 177.9L145.8 174.2L148.6 171.1L152 168.7L155.8 167L159.9 166.1L164.1 166.1L168.2 167L172 168.7L175.4 171.1L178.2 174.2L180.3 177.9L181.6 181.8L182 186L181.6 190.2L180.3 194.1L178.2 197.8L175.4 200.9L172 203.3L168.2 205L164.1 205.9L159.9 205.9L155.8 205L152 203.3L148.6 200.9L145.8 197.8L143.7 194.1L142.4 190.2ZM177 125.4L180.8 123.7L184.9 122.8L189.1 122.8L193.2 123.7L197 125.4L200.4 127.8L203.2 130.9L205.3 134.6L206.6 138.5L207 142.7L206.6 146.9L205.3 150.8L203.2 154.5L200.4 157.6L197 160L193.2 161.7L189.1 162.6L184.9 162.6L180.8 161.7L177 160L173.6 157.6L170.8 154.5L168.7 150.8L167.4 146.9L167 142.7L167.4 138.5L168.7 134.6L170.8 130.9L173.6 127.8Z","cx":262.4,"cy":186,"rr":19.5},{"id":"pistilo","n":"Pistilo","art":"el","niv":3,"fill":"#f0a52b","borde":"#c07d10","d":"M240 186L239.4 191.8L237.6 197.4L234.7 202.5L230.7 206.8L226 210.2L220.7 212.6L214.9 213.8L209.1 213.8L203.3 212.6L198 210.2L193.3 206.8L189.3 202.5L186.4 197.4L184.6 191.8L184 186L184.6 180.2L186.4 174.6L189.3 169.5L193.3 165.2L198 161.8L203.3 159.4L209.1 158.2L214.9 158.2L220.7 159.4L226 161.8L230.7 165.2L234.7 169.5L237.6 174.6L239.4 180.2Z","cx":212,"cy":186,"rr":27.8}]},"rio":{"w":520,"h":340,"titulo":"un río","fondo":[{"d":"M0 0L520 0L520 76L0 76Z","fill":"#eaf6ff"},{"d":"M0 76L520 76L520 340L0 340Z","fill":"#d9edcb"},{"d":"M492 40L491.5 45L489.9 49.8L487.4 54.1L484.1 57.8L480 60.8L475.4 62.8L470.5 63.9L465.5 63.9L460.6 62.8L456 60.8L451.9 57.8L448.6 54.1L446.1 49.8L444.5 45L444 40L444.5 35L446.1 30.2L448.6 25.9L451.9 22.2L456 19.2L460.6 17.2L465.5 16.1L470.5 16.1L475.4 17.2L480 19.2L484.1 22.2L487.4 25.9L489.9 30.2L491.5 35Z","fill":"#ffe08a"}],"encima":[{"d":"M92 126L122 64L152 126L134 114L118 128L104 116Z","fill":"#ffffff"},{"d":"M109 300L108.7 301.9L107.9 303.7L106.5 305.3L104.7 306.7L102.5 307.8L100 308.6L97.4 309L94.6 309L92 308.6L89.5 307.8L87.3 306.7L85.5 305.3L84.1 303.7L83.3 301.9L83 300L83.3 298.1L84.1 296.3L85.5 294.7L87.3 293.3L89.5 292.2L92 291.4L94.6 291L97.4 291L100 291.4L102.5 292.2L104.7 293.3L106.5 294.7L107.9 296.3L108.7 298.1Z","fill":"#bcdda4"},{"d":"M165 316L164.7 318.1L163.7 320.1L162.1 321.9L160 323.4L157.5 324.7L154.6 325.5L151.6 325.9L148.4 325.9L145.4 325.5L142.5 324.7L140 323.4L137.9 321.9L136.3 320.1L135.3 318.1L135 316L135.3 313.9L136.3 311.9L137.9 310.1L140 308.6L142.5 307.3L145.4 306.5L148.4 306.1L151.6 306.1L154.6 306.5L157.5 307.3L160 308.6L162.1 310.1L163.7 311.9L164.7 313.9Z","fill":"#bcdda4"},{"d":"M264 300L263.7 301.9L262.8 303.7L261.3 305.3L259.4 306.7L257 307.8L254.3 308.6L251.5 309L248.5 309L245.7 308.6L243 307.8L240.6 306.7L238.7 305.3L237.2 303.7L236.3 301.9L236 300L236.3 298.1L237.2 296.3L238.7 294.7L240.6 293.3L243 292.2L245.7 291.4L248.5 291L251.5 291L254.3 291.4L257 292.2L259.4 293.3L261.3 294.7L262.8 296.3L263.7 298.1Z","fill":"#bcdda4"}],"partes":[{"id":"montana","n":"Montaña","art":"la","niv":1,"fill":"#c0ad93","borde":"#8e7c65","d":"M26 262L122 64L218 262Z","cx":122,"cy":202.6,"rr":59.4},{"id":"rio","n":"Río","art":"el","niv":1,"fill":"#7fc4e8","borde":"#4aa3cf","d":"M133.3 166.1L134.9 166.9L137 168L139.8 169.3L143 171L146.6 172.7L150.4 174.5L154.6 176.3L158.8 178.1L163.3 179.7L167.9 181L172.6 182.1L177.8 182.7L183.3 182.4L188.5 181.4L193 179.9L197 178.2L200.5 176.5L203.5 174.9L206.2 173.6L208.4 172.7L210.1 172.1L211.1 171.9L211.4 172L211.4 172.1L211.8 172.4L213 173.1L214.8 174.3L217.2 176.1L220 178.3L223 180.9L226.4 183.7L230.1 186.7L234.1 189.7L238.5 192.6L243.6 195.2L249.3 197.4L255.3 198.7L260.9 199.1L266.1 199L270.8 198.5L275 197.8L278.7 197.2L281.9 196.7L284.7 196.3L286.8 196.2L288.4 196.3L289.5 196.5L290.3 196.8L291.6 197.5L293.5 198.6L295.8 200.1L298.4 202.1L301.3 204.4L304.5 207L307.8 209.8L311.3 212.8L315.1 215.9L319 218.9L323.3 221.9L327.8 224.7L332.1 227.1L336.3 229.2L340.6 231.2L344.8 233.1L349 234.9L352.9 236.5L356.7 238.1L360.2 239.5L363.4 240.7L366 241.8L368.1 242.7L369.8 243.5L386.2 200.5L384 199.8L381.3 199L378.4 198.1L375.2 197.1L371.8 196.1L368.3 195L364.7 193.8L361.1 192.5L357.6 191.2L354.2 189.9L351 188.5L348.2 187.3L345.8 186L343.2 184.4L340.2 182.4L337 180.1L333.5 177.5L329.8 174.7L325.9 171.9L321.7 169L317.3 166.2L312.6 163.6L307.4 161.2L301.7 159.2L295.5 157.9L289.5 157.5L284.1 157.8L279.2 158.5L274.8 159.4L271 160.3L267.7 161.2L264.9 161.8L262.6 162.3L260.8 162.5L259.6 162.6L258.7 162.6L257.6 162.4L255.8 161.6L253.5 160.3L250.7 158.5L247.6 156.3L244.2 153.9L240.6 151.2L236.7 148.5L232.5 145.9L227.9 143.4L222.6 141.3L216.6 139.9L210.3 139.6L204.6 140.5L199.6 142L195.3 143.9L191.6 145.9L188.5 147.8L185.7 149.6L183.3 151L181.4 152.1L179.9 152.8L179 153.1L178.2 153.3L176.7 153.3L174.3 153L171.4 152.3L168.1 151.4L164.6 150.3L161.1 149L157.5 147.6L154.1 146.2L150.8 144.9L147.8 143.7L145 142.6L142.7 141.9Z","cx":355.9,"cy":214.4,"rr":21.5},{"id":"afluente","n":"Afluente","art":"el","niv":3,"fill":"#7fc4e8","borde":"#4aa3cf","d":"M271.3 90.9L271.7 93.4L272.2 96.6L272.9 100L273.7 103.8L274.4 107.7L275.1 111.5L275.6 115.2L275.9 118.4L275.9 121L275.8 122.2L275.6 122.2L275.4 122.4L274.7 123.3L273.4 124.9L271.5 127.1L269.2 130L266.7 133.7L264.3 138.7L262.6 145.1L262.5 152.4L264 159L266.2 164.5L268.7 169.4L271.5 174L274.4 178.3L277.1 182.3L279.7 185.9L281.9 188.9L283.4 191.2L284.4 192.8L315.6 171.2L313.9 169L311.7 166.2L309.2 163.2L306.7 160.1L304.1 156.9L301.8 153.8L299.8 150.9L298.4 148.6L297.6 147.3L297.5 147.6L297.4 149.3L297 150.4L296.9 150.4L297.5 149.3L298.7 147.4L300.6 144.8L302.8 141.4L305.1 137.1L307.1 131.8L308.2 125.8L308.3 120.3L307.8 115.3L307.1 110.4L306.1 105.7L305.1 101.1L304 96.8L302.9 92.9L302 89.5L301.2 87L300.7 85.1Z","cx":289.1,"cy":167,"rr":18.1},{"id":"nacimiento","n":"Nacimiento","art":"el","niv":2,"fill":"#7fc4e8","borde":"#4aa3cf","d":"M168 150L167.3 155L165.2 159.8L161.9 164.1L157.4 167.8L152 170.8L145.9 172.8L139.3 173.9L132.7 173.9L126.1 172.8L120 170.8L114.6 167.8L110.1 164.1L106.8 159.8L104.7 155L104 150L104.7 145L106.8 140.2L110.1 135.9L114.6 132.2L120 129.2L126.1 127.2L132.7 126.1L139.3 126.1L145.9 127.2L152 129.2L157.4 132.2L161.9 135.9L165.2 140.2L167.3 145Z","cx":134.7,"cy":150,"rr":23.9},{"id":"desembocadura","n":"Desembocadura","art":"la","niv":3,"fill":"#7fc4e8","borde":"#4aa3cf","d":"M368 208L404 186L438 176L444 206L452 238L430 262L398 254L368 238Z","cx":411.7,"cy":222.4,"rr":33.9},{"id":"mar","n":"Mar","art":"el","niv":1,"fill":"#5fb2dd","borde":"#3d8fba","d":"M436 76L520 76L520 340L436 340L436 340L443 319.7L444.8 299.4L439.8 279.1L432 258.8L427.2 238.5L429 218.2L436.2 197.8L443.1 177.5L444.7 157.2L439.7 136.9L431.9 116.6L427.2 96.3L429.1 76Z","cx":473.6,"cy":234.4,"rr":45.9}]}};
+
+/* los ciclos: el orden es EL de la lista, y así se corrige */
+const CICLOS = [
+  {id:"agua", n:"El ciclo del agua", niv:1, pasos:[
+    ["☀️","El sol calienta el agua del mar"],
+    ["💨","El agua sube en forma de vapor"],
+    ["☁️","Arriba hace frío y se forman las nubes"],
+    ["🌧️","De las nubes cae la lluvia"],
+    ["🏞️","El agua vuelve por los ríos al mar"]]},
+  {id:"semilla", n:"De la semilla a la planta", niv:1, pasos:[
+    ["🌰","Se siembra la semilla en la tierra"],
+    ["🌱","Le sale la raíz y un brote"],
+    ["🪴","Crecen el tallo y las hojas"],
+    ["🌻","La planta da su flor"]]},
+  {id:"polen", n:"La polinización", niv:2, pasos:[
+    ["🌼","La flor guarda el polen en los estambres"],
+    ["🐝","La abeja se posa y se lo lleva pegado"],
+    ["🌸","Lo deja en el pistilo de otra flor"],
+    ["🍎","De esa flor nace el fruto con semillas"]]},
+  {id:"estaciones", n:"Las estaciones del año", niv:1, pasos:[
+    ["🌸","En primavera salen las flores"],
+    ["☀️","En verano hace calor y los días son largos"],
+    ["🍂","En otoño se caen las hojas"],
+    ["❄️","En invierno hace frío y llueve o nieva"]]}
+];
+/* las cestas: cada cosa lleva la cesta a la que va */
+const CESTAS = [
+  {id:"vivo", n:"¿Está vivo o no?", niv:1, pista:"Los seres vivos nacen, crecen y necesitan comer",
+   cestas:[["vivo","Seres vivos","🌱"],["no","Cosas sin vida","🪨"]],
+   cosas:[["🐕","vivo"],["🌳","vivo"],["🐟","vivo"],["🦋","vivo"],["🌻","vivo"],["🐝","vivo"],
+          ["🪨","no"],["🚲","no"],["📕","no"],["🥄","no"],["🪑","no"],["⚽","no"]]},
+  {id:"nace", n:"¿Cómo nace?", niv:2, pista:"Los que ponen huevos son ovíparos; los que salen de la tripa de su madre, vivíparos",
+   cestas:[["huevo","De un huevo","🥚"],["madre","De su madre","🍼"]],
+   cosas:[["🐦","huevo"],["🐢","huevo"],["🐍","huevo"],["🐟","huevo"],["🦆","huevo"],["🐊","huevo"],
+          ["🐕","madre"],["🐈","madre"],["🐄","madre"],["🐘","madre"],["🐬","madre"],["🐴","madre"]]},
+  {id:"vert", n:"¿Tiene huesos por dentro?", niv:2, pista:"Si tiene esqueleto por dentro es vertebrado; si no, invertebrado",
+   cestas:[["vert","Vertebrados","🐟"],["inv","Invertebrados","🐌"]],
+   cosas:[["🐕","vert"],["🐦","vert"],["🐟","vert"],["🐸","vert"],["🐍","vert"],["🐘","vert"],
+          ["🐌","inv"],["🦋","inv"],["🕷️","inv"],["🐛","inv"],["🦀","inv"],["🐙","inv"]]},
+  {id:"comida", n:"¿Qué come?", niv:3, pista:"Herbívoro come plantas, carnívoro come carne y omnívoro come de todo",
+   cestas:[["herb","Herbívoro","🌿"],["carn","Carnívoro","🍖"],["omni","Omnívoro","🍽️"]],
+   cosas:[["🐄","herb"],["🐰","herb"],["🐑","herb"],["🐴","herb"],["🦌","herb"],
+          ["🦁","carn"],["🐺","carn"],["🦈","carn"],["🦅","carn"],["🐆","carn"],
+          ["🐻","omni"],["🐷","omni"],["🐔","omni"],["🐭","omni"],["🦝","omni"]]},
+  {id:"estado", n:"¿Sólido, líquido o gas?", niv:3, pista:"El sólido mantiene su forma, el líquido se derrama y el gas no se ve",
+   cestas:[["sol","Sólido","🧊"],["liq","Líquido","💧"],["gas","Gas","💨"]],
+   cosas:[["🧊","sol"],["🪨","sol"],["🪵","sol"],["🔑","sol"],["🧱","sol"],
+          ["💧","liq"],["🥛","liq"],["🧃","liq"],["🍯","liq"],["🌊","liq"],
+          ["💨","gas"],["🌬️","gas"],["🎈","gas"],["🫧","gas"]]}
+];
+
+const laminaDe = id => LAMINAS[id];
+const partesLam = (lam, nivel) => LAMINAS[lam].partes.filter(p => p.niv <= nivel);
+const parteLam = (lam, id) => LAMINAS[lam].partes.find(p => p.id === id);
+const conArtCie = p => (p.art ? p.art + " " : "") + p.n.toLowerCase();
+/* "los sépalos" y "las hojas" piden el verbo en plural */
+const plurCie = p => p.art === "los" || p.art === "las";
+
+function genCie(nivel){
+  const dado = Math.random();
+  if(dado < .45) return genSenala(nivel);
+  if(dado < .75) return genOrdena(nivel);
+  return genClasifica(nivel);
+}
+function genSenala(nivel){
+  const laminas = Object.keys(LAMINAS);
+  const lam = laminas[ri(0, laminas.length-1)];
+  const pool = partesLam(lam, nivel);
+  const obj = pool[ri(0, pool.length-1)];
+  const modo = conProb(nivel===1 ? .6 : nivel===2 ? .4 : .25) ? "cual" : "toca";
+  const d = {sub:"senala", lam, id:obj.id, modo};
+  if(modo === "cual"){
+    const n = Math.min(nivel>=3 ? 4 : 3, LAMINAS[lam].partes.length);
+    const otros = barajar(LAMINAS[lam].partes.filter(p => p.id !== obj.id)).slice(0, n-1);
+    d.ops = barajar([obj.id].concat(otros.map(p => p.id)));
+  }
+  return {t:"cie", d};
+}
+function genOrdena(nivel){
+  const pool = CICLOS.filter(c => c.niv <= nivel);
+  const c = pool[ri(0, pool.length-1)];
+  return {t:"cie", d:{sub:"ordena", ciclo:c.id, orden:barajar(c.pasos.map((_,i) => i))}};
+}
+function genClasifica(nivel){
+  const pool = CESTAS.filter(c => c.niv <= nivel);
+  const c = pool[ri(0, pool.length-1)];
+  /* se cogen 4 cosas repartidas entre las cestas, para que ninguna quede vacía */
+  const porCesta = {};
+  c.cosas.forEach(([e, k]) => (porCesta[k] = porCesta[k] || []).push(e));
+  const claves = c.cestas.map(x => x[0]);
+  const elegidas = [];
+  claves.forEach(k => { const l = barajar(porCesta[k] || []); if(l.length) elegidas.push([l[0], k]); });
+  const sobrantes = barajar(c.cosas.filter(([e]) => !elegidas.some(x => x[0] === e)));
+  while(elegidas.length < 4 && sobrantes.length) elegidas.push(sobrantes.pop());
+  return {t:"cie", d:{sub:"clasifica", cesta:c.id, cosas:barajar(elegidas)}};
+}
+
+/* ── render ── */
+function renderCie(d){
+  const z = $("zona-ejercicio");
+  $("pad").classList.add("oculto");
+  let hecho = false;
+  const miIdx = Tanda.idx;
+  const vivo = () => Tanda && Tanda.idx === miIdx && !hecho;
+  const completar = () => { if(hecho) return; hecho = true; ejCompletado(); };
+  const enunciado = txt => {
+    const e = document.createElement("div");
+    e.className = "enunciado-txt"; e.style.fontWeight = "800";
+    e.textContent = txt; z.appendChild(e);
+    hablar(txt.replace(/[\u{1F300}-\u{1FAFF}☀-➿️✨🗺️]/gu, "").trim());
+  };
+
+  /* ═══ señalar en la lámina muda ═══ */
+  if(d.sub === "senala"){
+    const L = laminaDe(d.lam), obj = parteLam(d.lam, d.id);
+    enunciado(d.modo === "toca"
+      ? `Toca ${conArtCie(obj)} en el dibujo 🔍`
+      : `¿Cómo se llama la parte que brilla de ${L.titulo}? ✨`);
+    const svg = svgEl("svg", {viewBox:`0 0 ${L.w} ${L.h}`, class:"mapa lamina"});
+    L.fondo.forEach(f => svg.appendChild(svgEl("path", {d:f.d, fill:f.fill})));
+    const nodos = {};
+    L.partes.forEach(p => {
+      const n = svgEl("path", {d:p.d, class:"pieza", style:"fill:"+p.fill+";stroke:"+p.borde});
+      svg.appendChild(n); nodos[p.id] = [n];
+      if(d.modo === "toca") n.addEventListener("pointerdown", ev => { ev.preventDefault(); tocarParte(p.id); });
+    });
+    L.encima.forEach(f => svg.appendChild(svgEl("path", {d:f.d, fill:f.fill, "pointer-events":"none"})));
+    const wrap = document.createElement("div");
+    wrap.className = "mapa-wrap"; wrap.appendChild(svg); z.appendChild(wrap);
+    const marca = (id, c) => (nodos[id] || []).forEach(e => e.classList.add(c));
+    const desmarca = (id, c) => (nodos[id] || []).forEach(e => e.classList.remove(c));
+
+    if(d.modo === "cual"){
+      marca(d.id, "brilla");
+      const fila = document.createElement("div");
+      fila.className = "fila opciones-geo";
+      const botones = {};
+      d.ops.forEach(id => {
+        const p = parteLam(d.lam, id);
+        const b = document.createElement("button");
+        b.className = "opcion-geo"; b.textContent = p.n; botones[id] = b;
+        b.addEventListener("pointerdown", ev => {
+          ev.preventDefault(); if(hecho) return; sfx.click();
+          if(id === d.id){
+            b.classList.add("bien");
+            fila.querySelectorAll(".opcion-geo").forEach(x => { if(x !== b) x.classList.add("apagada"); });
+            completar();
+          } else {
+            b.classList.add("malo");
+            setTimeout(() => { b.classList.remove("malo"); b.classList.add("apagada"); }, 650);
+            fallo(`Empieza por la letra ${obj.n[0].toUpperCase()} ✏️`);
+          }
+        });
+        fila.appendChild(b);
+      });
+      z.appendChild(fila);
+      window.__solucion = () => {
+        if(!vivo()) return;
+        Object.keys(botones).forEach(id => botones[id].classList.add(id === d.id ? "bien" : "apagada"));
+        const es = plurCie(obj) ? "Son" : "Es";
+        hada(`${es} ${conArtCie(obj)} 💛`, 3200); hablar(es + " " + conArtCie(obj));
+        setTimeout(completar, 1400);
+      };
+      return;
+    }
+    function tocarParte(id){
+      if(hecho) return;
+      if(id === d.id){ marca(id, "bien"); sfx.ok(); completar(); return; }
+      const p = parteLam(d.lam, id);
+      marca(id, "malo"); setTimeout(() => desmarca(id, "malo"), 650);
+      const arriba = obj.cy < L.h * .4, abajo = obj.cy > L.h * .68;
+      fallo(`Eso es ${conArtCie(p)}. ${arriba ? "Lo que buscas está más arriba" : abajo ? "Lo que buscas está más abajo" : "Míralo por el centro del dibujo"} 🔍`);
+    }
+    window.__solucion = () => {
+      if(!vivo()) return;
+      L.partes.forEach(p => { if(p.id !== d.id) marca(p.id, "apagada"); });
+      marca(d.id, "guia");
+      const frase = plurCie(obj)
+        ? `${conArtCie(obj)} son estas. ¡Tócalas tú!`
+        : `${conArtCie(obj)} es esta. ¡Tócala tú!`;
+      hada("Mira: " + frase + " 💛", 5200);
+      hablar(frase);
+      setTimeout(() => { if(vivo()){ marca(d.id, "bien"); completar(); } }, 6500);
+    };
+    return;
+  }
+
+  /* ═══ ordenar los pasos de un ciclo ═══ */
+  if(d.sub === "ordena"){
+    const c = CICLOS.find(x => x.id === d.ciclo);
+    enunciado(`${c.n}: ponlo en orden 🔢`);
+    const tira = document.createElement("div");
+    tira.className = "tira-ciclo"; z.appendChild(tira);
+    const sueltas = document.createElement("div");
+    sueltas.className = "fila pasos-ciclo"; z.appendChild(sueltas);
+    let sig = 0;
+    const cartas = {};
+    d.orden.forEach(i => {
+      const [emo, txt] = c.pasos[i];
+      const b = document.createElement("button");
+      b.className = "paso-ciclo";
+      b.innerHTML = `<span class="paso-emo">${emo}</span><span class="paso-txt"></span>`;
+      b.querySelector(".paso-txt").textContent = txt;
+      cartas[i] = b;
+      b.addEventListener("pointerdown", ev => { ev.preventDefault(); poner(i); });
+      sueltas.appendChild(b);
+    });
+    function colocar(i){
+      const b = cartas[i];
+      b.classList.add("puesta"); b.disabled = true;
+      const ficha = document.createElement("span");
+      ficha.className = "ficha-ciclo";
+      ficha.textContent = (sig + 1) + " " + c.pasos[i][0];
+      tira.appendChild(ficha);
+      sig++;
+      if(sig === c.pasos.length) completar();
+    }
+    function poner(i){
+      if(hecho || cartas[i].disabled) return;
+      if(i === sig){ sfx.click(); colocar(i); }
+      else {
+        cartas[i].classList.add("malo");
+        setTimeout(() => cartas[i].classList.remove("malo"), 650);
+        fallo(sig === 0 ? "Busca lo que pasa PRIMERO de todo 🔢"
+                        : `Después de «${c.pasos[sig-1][1]}», ¿qué pasa? 🔢`);
+      }
+    }
+    window.__solucion = () => {
+      if(!vivo()) return;
+      hada("Mira cómo va el orden 💛", 3000);
+      const pasoAPaso = () => {
+        if(!vivo() || sig >= c.pasos.length) return;
+        colocar(sig);
+        if(sig < c.pasos.length) setTimeout(pasoAPaso, 750);
+      };
+      pasoAPaso();
+    };
+    return;
+  }
+
+  /* ═══ clasificar en cestas ═══ */
+  const c = CESTAS.find(x => x.id === d.cesta);
+  enunciado(c.n);
+  const marcador = document.createElement("p");
+  marcador.className = "sub"; z.appendChild(marcador);
+  const cosaEl = document.createElement("div");
+  cosaEl.className = "cosa-clasificar"; z.appendChild(cosaEl);
+  const fila = document.createElement("div");
+  fila.className = "fila cestas"; z.appendChild(fila);
+  const botones = {};
+  c.cestas.forEach(([clave, nombre, emo]) => {
+    const b = document.createElement("button");
+    b.className = "cesta-btn";
+    b.innerHTML = `<span class="cesta-emo">${emo}</span><span class="cesta-txt"></span>`;
+    b.querySelector(".cesta-txt").textContent = nombre;
+    botones[clave] = b;
+    b.addEventListener("pointerdown", ev => { ev.preventDefault(); echar(clave); });
+    fila.appendChild(b);
+  });
+  let idx = 0;
+  const pintarCosa = () => {
+    cosaEl.textContent = d.cosas[idx][0];
+    marcador.textContent = `${idx+1} de ${d.cosas.length}`;
+    Object.values(botones).forEach(b => b.classList.remove("bien", "malo"));
+  };
+  pintarCosa();
+  function echar(clave){
+    if(hecho) return;
+    const bien = d.cosas[idx][1];
+    if(clave === bien){
+      sfx.click(); botones[clave].classList.add("bien");
+      cosaEl.classList.add("vuela");
+      setTimeout(() => {
+        cosaEl.classList.remove("vuela");
+        idx++;
+        if(idx >= d.cosas.length) completar(); else pintarCosa();
+      }, 420);
+    } else {
+      botones[clave].classList.add("malo");
+      setTimeout(() => botones[clave].classList.remove("malo"), 650);
+      fallo(c.pista + " 💡");
+    }
+  }
+  window.__solucion = () => {
+    if(!vivo()) return;
+    const bien = d.cosas[idx][1];
+    botones[bien].classList.add("bien");
+    hada(`Este va aquí 💛`, 2600);
+    setTimeout(() => {
+      if(!vivo()) return;
+      idx++;
+      if(idx >= d.cosas.length) completar(); else { pintarCosa(); EjState.fallosRow = 0; }
+    }, 1200);
+  };
+}
+
+const GEN = {abn:genAbn, cla:genCla, igu:genIgu, dif:genDif, mul:genMul, div:genDiv, rel:genRel, pes:genPes, geo:genGeo, cie:genCie};
 function genMisionDiaria(){
   /* misión del día: refuerza los 2 módulos más flojos del perfil y estira el resto, según la maestría */
   const base = (PERFIL.modulos && PERFIL.modulos.length ? PERFIL.modulos : ["abn"]);
@@ -1415,6 +1750,16 @@ function tituloEj(ej){
     if(d.sub==="pon") return `Hay que pesar ${pesoEnTexto(d.q)}. ¿Qué pesas pones?`;
     return `Pesas: ${d.n1}×1kg + ${d.nm}×½kg + ${d.nq}×¼kg. ¿Cuánto es?`;
   }
+  if(ej.t==="cie"){
+    if(d.sub==="senala"){
+      const p = parteLam(d.lam, d.id);
+      const pl = plurCie(p);
+      const q = d.modo==="toca" ? (pl ? "¿dónde están" : "¿dónde está") : (pl ? "¿cómo se llaman" : "¿cómo se llama");
+      return `Partes de ${laminaDe(d.lam).titulo}: ${q} ${conArtCie(p)}?`;
+    }
+    if(d.sub==="ordena") return `Ordenar: ${CICLOS.find(c=>c.id===d.ciclo).n}`;
+    return `Clasificar: ${CESTAS.find(c=>c.id===d.cesta).n}`;
+  }
   if(ej.t==="geo"){
     const p = piezaGeo(d.mapa, d.id), donde = d.mapa==="es" ? "Mapa de España" : "Mapa del mundo";
     return d.sub==="toca" ? `${donde}: ¿dónde está ${p.n}?` : `${donde}: ¿cómo se llama ${p.n}?`;
@@ -1443,6 +1788,11 @@ function resultadoEj(ej){
     if(d.sub==="lee") return pesoEnTexto(pesTotal(d));
     const kg = Math.floor(d.q/4), r = d.q%4;
     return `${kg}×1kg` + (r>=2 ? " + 1×½kg" : "") + (r%2 ? " + 1×¼kg" : "");
+  }
+  if(ej.t==="cie"){
+    if(d.sub==="senala") return parteLam(d.lam, d.id).n;
+    if(d.sub==="ordena") return CICLOS.find(c=>c.id===d.ciclo).pasos.map(p=>p[0]).join(" → ");
+    return d.cosas.map(c=>c[0]).join(" ");
   }
   if(ej.t==="geo") return piezaGeo(d.mapa, d.id).n;
   if(ej.t==="mul") return d.sub==="rejilla" ? d.N*d.m : d.sub==="inverso" ? d.b : d.a*d.b;
@@ -1473,8 +1823,8 @@ function renderEj(){
   EjState = {fallosEj:0, fallosRow:0, ayudado:false, t0:Date.now()};
   $("pad").classList.remove("oculto");
   const btnPista = $("btn-pista");
-  if(btnPista) btnPista.style.display = ej.t==="geo" ? "none" : "";
-  ({abn:renderAbn, cla:renderCla, igu:renderIgu, dif:renderDif, mul:renderMul, div:renderDiv, rel:renderRel, pes:renderPes, geo:renderGeo})[ej.t](ej.d);
+  if(btnPista) btnPista.style.display = (ej.t==="geo"||ej.t==="cie") ? "none" : "";
+  ({abn:renderAbn, cla:renderCla, igu:renderIgu, dif:renderDif, mul:renderMul, div:renderDiv, rel:renderRel, pes:renderPes, geo:renderGeo, cie:renderCie})[ej.t](ej.d);
 }
 function fallo(pista){
   EjState.fallosEj++; EjState.fallosRow++; Tanda.fallosTotales++;
@@ -1514,6 +1864,7 @@ function ejCompletado(){
     if(ej.t==="mul") S.stats.mulOk = (S.stats.mulOk||0)+1;
     if(ej.t==="div") S.stats.divOk = (S.stats.divOk||0)+1;
     if(ej.t==="geo") S.stats.geoOk = (S.stats.geoOk||0)+1;
+    if(ej.t==="cie") S.stats.cieOk = (S.stats.cieOk||0)+1;
   }
   // maestría: sube con aciertos a la primera, baja si el hada tuvo que enseñar
   const ch = S.chispa[ej.t]===undefined ? 5 : S.chispa[ej.t];
@@ -2595,7 +2946,7 @@ function renderPes(d){
 }
 
 /* ═══════════════ FIN DE TANDA Y RESUMEN ═══════════════ */
-const EMOJI_TIPO = {abn:"🔮", cla:"🏰", igu:"⚖️", dif:"💎", mul:"✖️", div:"➗", rel:"🕐", pes:"🧺", geo:"🌍"};
+const EMOJI_TIPO = {abn:"🔮", cla:"🏰", igu:"⚖️", dif:"💎", mul:"✖️", div:"➗", rel:"🕐", pes:"🧺", geo:"🌍", cie:"🌿"};
 function hoyISO(){ return new Date().toISOString().slice(0,10); }
 function finTanda(){
   // antes de cerrar: el repaso de lo que se atragantó
@@ -3773,7 +4124,7 @@ $("btn-salir-juego").addEventListener("click", ()=>{
 
 /* juego libre */
 const Libre = {tipo:"abn", nivel: S.nivelLibre};
-const NOMBRE_TIPO = {abn:"Rejillas", cla:"Cuentas", igu:"Igualaciones", dif:"Diferencias", mul:"Multiplicar", div:"Repartir", rel:"Relojes", pes:"Pesos", geo:"Geografía"};
+const NOMBRE_TIPO = {abn:"Rejillas", cla:"Cuentas", igu:"Igualaciones", dif:"Diferencias", mul:"Multiplicar", div:"Repartir", rel:"Relojes", pes:"Pesos", geo:"Geografía", cie:"Naturaleza"};
 function pintarLibre(){
   document.querySelectorAll("#s-libre [data-tipo]").forEach(b=>
     b.style.opacity = b.dataset.tipo===Libre.tipo ? "1" : ".55");
