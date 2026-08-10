@@ -1205,10 +1205,30 @@ function piezasGeo(mapa, nivel){
 }
 const conArtGeo = p => (p.art ? p.art + " " : "") + p.n;
 
+/* Bolsa persistente: saca piezas SIN repetir hasta agotar el montón, y entonces
+   rebaraja (evitando que lo primero del montón nuevo sea lo último servido).
+   Vive en localStorage: que "¿dónde está Castilla-La Mancha?" no vuelva a salir
+   tres tardes seguidas. Si el montón cambia (otro nivel, piezas nuevas), se
+   detecta por la firma y se estrena bolsa. */
+const Bolsas = LS.get("bolsas", {});
+function sacarDeBolsa(clave, ids){
+  const firma = ids.slice().sort().join(",");
+  let b = Bolsas[clave];
+  if(!b || b.firma !== firma || !b.quedan.length){
+    const ultimo = b && b.ultimo;
+    const quedan = barajar(ids.slice());
+    if(quedan.length > 1 && quedan[0] === ultimo) quedan.push(quedan.shift());
+    b = Bolsas[clave] = {firma, quedan, ultimo:null};
+  }
+  b.ultimo = b.quedan.shift();
+  LS.set("bolsas", Bolsas);
+  return b.ultimo;
+}
+
 function genGeo(nivel){
   const mapa = conProb(.5) ? "es" : "mu";
   const pool = piezasGeo(mapa, nivel);
-  const obj = pool[ri(0, pool.length-1)];
+  const obj = piezaGeo(mapa, sacarDeBolsa("geo-"+mapa+"-n"+nivel, pool.map(p => p.id)));
   /* reconocer ("¿cómo se llama esto que brilla?") es más fácil que localizar
      ("tócalo en el mapa"): se empieza reconociendo y se acaba localizando */
   const sub = conProb(nivel===1 ? .7 : nivel===2 ? .45 : .25) ? "cual" : "toca";
@@ -1478,9 +1498,9 @@ function genCie(nivel){
 }
 function genSenala(nivel){
   const laminas = Object.keys(LAMINAS);
-  const lam = laminas[ri(0, laminas.length-1)];
-  const pool = partesLam(lam, nivel);
-  const obj = pool[ri(0, pool.length-1)];
+  const parejas = laminas.flatMap(l => partesLam(l, nivel).map(p => l + ":" + p.id));
+  const [lam, idParte] = sacarDeBolsa("cie-sen-n" + nivel, parejas).split(":");
+  const obj = parteLam(lam, idParte);
   const modo = conProb(nivel===1 ? .6 : nivel===2 ? .4 : .25) ? "cual" : "toca";
   const d = {sub:"senala", lam, id:obj.id, modo};
   if(modo === "cual"){
@@ -1492,12 +1512,14 @@ function genSenala(nivel){
 }
 function genOrdena(nivel){
   const pool = CICLOS.filter(c => c.niv <= nivel);
-  const c = pool[ri(0, pool.length-1)];
+  const sacado = sacarDeBolsa("cie-ord-n" + nivel, pool.map(x => x.id));
+  const c = pool.find(x => x.id === sacado);
   return {t:"cie", d:{sub:"ordena", ciclo:c.id, orden:barajar(c.pasos.map((_,i) => i))}};
 }
 function genClasifica(nivel){
   const pool = CESTAS.filter(c => c.niv <= nivel);
-  const c = pool[ri(0, pool.length-1)];
+  const sacado = sacarDeBolsa("cie-cla-n" + nivel, pool.map(x => x.id));
+  const c = pool.find(x => x.id === sacado);
   /* se cogen 4 cosas repartidas entre las cestas, para que ninguna quede vacía */
   const porCesta = {};
   c.cosas.forEach(([e, k]) => (porCesta[k] = porCesta[k] || []).push(e));
@@ -1837,7 +1859,7 @@ function renderEj(){
   EjState = {fallosEj:0, fallosRow:0, ayudado:false, t0:Date.now()};
   $("pad").classList.remove("oculto");
   const btnPista = $("btn-pista");
-  if(btnPista) btnPista.style.display = (ej.t==="geo"||ej.t==="cie") ? "none" : "";
+  if(btnPista) btnPista.style.display = "";
   ({abn:renderAbn, cla:renderCla, igu:renderIgu, dif:renderDif, mul:renderMul, div:renderDiv, rel:renderRel, pes:renderPes, geo:renderGeo, cie:renderCie})[ej.t](ej.d);
 }
 function fallo(pista){
@@ -1920,10 +1942,32 @@ function estadoPista(){
     : `YA LLEVA ${hechas} de ${celdas.length} casillas bien: dale la pista del paso SIGUIENTE, no del primero`;
   return {firma: hechas+"de"+celdas.length, texto};
 }
+/* Geografía y Naturaleza llevan pista local de método (orientación, posición
+   en la lámina, definiciones): el ayudante del servidor es para el paso a paso
+   de mates. Igual que aquel: no cuesta gemas ni marca ayudado. */
+function pistaLocal(ej){
+  if(ej.t === "geo"){
+    const p = piezaGeo(ej.d.mapa, ej.d.id);
+    if(ej.d.sub === "cual") return `Empieza por la letra ${p.n[0]} ✏️ Y ${rumboGeo(p, ej.d.mapa).toLowerCase()}`;
+    return rumboGeo(p, ej.d.mapa);
+  }
+  if(ej.t !== "cie") return null;
+  const d = ej.d;
+  if(d.sub === "ordena") return "Busca lo que pasa PRIMERO de todo y sigue el orden 🔢";
+  if(d.sub === "clasifica"){
+    const c = CESTAS.find(x => x.id === d.cesta);
+    return c ? c.pista + " 🧺" : "Piensa a qué cesta va cada cosa 🧺";
+  }
+  const L = laminaDe(d.lam), p = parteLam(d.lam, d.id);
+  if(d.modo === "cual") return `Empieza por la letra ${p.n[0].toUpperCase()} ✏️`;
+  const alto = p.cy < L.h * .4 ? "la parte de arriba" : p.cy > L.h * .68 ? "la parte de abajo" : "el medio";
+  return `Busca por ${alto} del dibujo 🔍`;
+}
 async function pedirPista(){
   if(DEMO) return; // en la demo el botón está oculto: nadie gasta pistas desde fuera
   if(!Tanda || PistaBusy) return;
   const ej = Tanda.list[Tanda.idx]; if(!ej) return;
+  if(ej.t === "geo" || ej.t === "cie"){ hada("💡 " + pistaLocal(ej), 4200); return; }
   Tanda.pistas = Tanda.pistas || {};
   // la pista se recuerda POR PASO, no por ejercicio: si ha avanzado desde la
   // última vez, se pide una nueva acorde a donde está ahora

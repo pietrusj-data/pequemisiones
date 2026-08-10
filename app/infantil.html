@@ -170,10 +170,11 @@ h2{font-size:1.5rem; margin:.15em 0; text-align:center; font-weight:800;}
   font-size:1.1rem; font-weight:700; box-shadow:0 6px 18px rgba(61,54,96,.2);
   opacity:0; transform:translateY(8px); transition:all .25s;}
 #nube .burbuja.ver{opacity:1; transform:translateY(0);}
-#btn-repetir{position:fixed; right:12px; bottom:12px; z-index:50; width:64px; height:64px;
+#btn-repetir, #btn-pista{position:fixed; right:12px; bottom:12px; z-index:50; width:64px; height:64px;
   border:none; border-radius:999px; font-size:1.9rem; background:var(--oro);
   box-shadow:0 5px 0 var(--oro-osc); cursor:pointer;}
-#btn-repetir:active{transform:translateY(4px);}
+#btn-pista{bottom:86px; background:var(--lila); box-shadow:0 5px 0 var(--lila-osc);}
+#btn-repetir:active, #btn-pista:active{transform:translateY(4px);}
 
 #superpremio{position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:60; pointer-events:none;}
 #superpremio .texto{font-size:2.8rem; font-weight:800; color:#fff; text-align:center; padding:24px 34px;
@@ -623,6 +624,7 @@ textarea{resize:vertical; min-height:64px;}
   <div class="burbuja" id="nube-burbuja"></div>
 </div>
 <button id="btn-repetir" class="oculto" title="Repetir">🔊</button>
+<button id="btn-pista" class="oculto" title="Pista">💡</button>
 
 <div id="superpremio"><div class="texto" id="superpremio-txt">¡MUY BIEN!</div></div>
 <div id="unicornio-volador">🦄</div>
@@ -932,6 +934,7 @@ function go(id){
   window.scrollTo(0,0);
   actualizarEstrellas();
   $("btn-repetir").classList.toggle("oculto", id==="s-portada" || id==="s-papa" || id==="s-pin");
+  $("btn-pista").classList.toggle("oculto", id!=="s-juego");
   if(id==="s-home") pintarHome();
   if(id==="s-misiones"){ pintarMisiones(); refrescarMisiones(true); }
   if(id==="s-cofre") pintarCofre();
@@ -3251,6 +3254,28 @@ $("btn-cofre").addEventListener("click", ()=>go("s-cofre"));
 $("btn-papa").addEventListener("click", abrirPin);
 $("btn-sonido").addEventListener("click", ()=>{ S.sonido = !S.sonido; guardar(); pintarSonido(); if(S.sonido){ sfx.ok(); hablar("¡Sonido encendido!"); } });
 $("btn-repetir").addEventListener("click", repetir);
+/* ── pista de la mascota: cómo se hace, dicho con la voz (peques que no leen) ── */
+function pistaInfantil(ej){
+  const d = ej.d || {};
+  if(ej.t === "num") return d.sub === "serie" ? "Ve contando en voz alta despacito: el que falta es el siguiente que digas"
+    : "Cuenta tocando de uno en uno, sin saltarte ninguno";
+  if(ej.t === "sub") return "No hace falta contarlos: mira el dibujo que forman los puntos, como en un dado";
+  if(ej.t === "pal") return "Cada manojo atado son diez palillos, y los sueltos se cuentan de uno en uno";
+  if(ej.t === "ret") return "Di los números hacia atrás en voz alta, bajando como el cohete";
+  if(ej.t === "ami") return "Cuenta los que hay, y sigue contando huequitos hasta el final: esos son los amigos que faltan";
+  if(ej.t === "vec") return "El vecino de antes es uno menos, y el vecino de después es uno más";
+  if(ej.t === "fam") return "Fíjate en cómo empieza el número: esa primera parte dice su familia";
+  if(ej.t === "sil") return "Dila despacio y alargada, y fíjate con qué letra empieza";
+  if(ej.t === "tra") return "Empieza en la bolita y sigue el caminito despacio, sin levantar el dedo";
+  return "Míralo despacito, que tú puedes";
+}
+$("btn-pista").addEventListener("click", ()=>{
+  if(typeof Tanda === "undefined" || !Tanda || !Tanda.list) return;
+  const ej = Tanda.list[Tanda.idx];
+  if(!ej) return;
+  sfx.click();
+  hablar("Una pista: " + pistaInfantil(ej));
+});
 document.querySelectorAll(".btn-volver").forEach(b=>b.addEventListener("click", ()=>go("s-home")));
 $("btn-resumen-volver").addEventListener("click", ()=>go("s-home"));
 JUEGOS.forEach(j=>{
