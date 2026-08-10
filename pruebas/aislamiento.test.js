@@ -66,10 +66,49 @@ describe("aislamiento entre familias", () => {
     const fila = (await r.json())[0];
     idA = fila.id;
     assert.equal(fila.familia, CASA_A);
-    assert.equal(fila.revision, "pendiente", "toda misión nace sin revisar: el niño no la ve hasta que se aprueba");
+    // Desde 0014 esto lo decide la propia base de datos: sin mensaje y con
+    // título autogenerado no hay nada que moderar, así que la misión sale
+    // aprobada al instante — y llega al niño aunque la función `moderar` esté
+    // caída o a medio desplegar. Es lo que queremos: la IA solo se paga (y solo
+    // hace esperar) cuando hay texto libre de verdad.
+    assert.equal(fila.revision, "aprobada", "una misión sin texto libre debería fluir sola");
+    assert.equal(fila.revision_motivo, "sin_texto", "y constar por qué se aprobó sin pasar por la IA");
 
     const propia = await pide(`pm_misiones?id=eq.${idA}`, { familia: CASA_A });
     assert.equal((await propia.json()).length, 1, "la familia no ve su propia misión");
+  });
+
+  test("una misión CON mensaje nace pendiente y el niño no la ve", async t => {
+    if (!vivo) return t.skip("servidor no disponible");
+    // La otra mitad de la regla, y la que de verdad protege a la niña: en cuanto
+    // hay texto libre del adulto, la misión nace sin aprobar y es INVISIBLE para
+    // la clave pública hasta que la moderación la apruebe. Se comprueba contra
+    // mates_misiones porque es donde juega Paula y donde 0013 puso la regla en
+    // la propia base de datos (`select` filtra por revision='aprobada'), no en
+    // la app. Fail-closed: si `moderar` está caída, la niña no ve nada — que es
+    // mejor que oír lo que no debe.
+    const marca = `·prueba-aislamiento-${sufijo}·`;
+    // Sin `return=representation` a propósito: con RETURNING, PostgreSQL exige
+    // que la política de lectura permita ver la fila recién creada, así que la
+    // creación entera se cae con un 401. Eso también demuestra que la misión
+    // está escondida, pero por un camino demasiado sutil para dejarlo escrito
+    // como la aserción de esta prueba (y le enseñaría al futuro lector el
+    // error equivocado). Se crea a ciegas y se comprueba leyendo después.
+    const r = await pide("mates_misiones", {
+      familia: CASA_A, metodo: "POST",
+      cuerpo: { titulo: "Título escrito a mano", mensaje: marca, nivel: 1, ejercicios: [{ t: "abn", d: { op: "suma", a: 3, b: 4 } }] },
+    });
+    assert.equal(r.status, 201, `crear la misión con mensaje debería funcionar (salió ${r.status})`);
+
+    const busca = await pide(`mates_misiones?mensaje=eq.${encodeURIComponent(marca)}`, { familia: CASA_A });
+    assert.deepEqual(await busca.json(), [],
+      "¡GRAVE! una misión con mensaje sin moderar se puede leer con la clave pública");
+
+    // Limpieza: el borrado no pasa por la política de lectura, así que se puede
+    // quitar aunque no se vea. (Si esto fallara, quedaría una fila invisible:
+    // la recoge el barrido de borrado por plazos de 0007.)
+    const del = await pide(`mates_misiones?mensaje=eq.${encodeURIComponent(marca)}`, { familia: CASA_A, metodo: "DELETE" });
+    assert.ok(del.status === 204 || del.status === 200, `no se pudo limpiar la misión de prueba (salió ${del.status})`);
   });
 
   test("otra familia NO ve esa misión", async t => {
