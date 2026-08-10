@@ -297,6 +297,9 @@ textarea{resize:vertical; min-height:64px;}
   <div id="hucha-caja" class="tarjeta oculto" style="max-width:480px; width:100%;"></div>
   <button class="btn btn-cielo btn-grande" style="max-width:480px;" id="btn-globos">🎈 Explotar globos <small style="font-size:.95rem;">(5 💎)</small></button>
   <button class="btn btn-menta btn-grande" style="max-width:480px;" id="btn-mariposas">🦋 Cazar mariposas <small style="font-size:.95rem;">(10 💎)</small></button>
+  <button class="btn btn-lila btn-grande" style="max-width:480px;" id="btn-naves">🚀 Volar en la nave <small style="font-size:.95rem;">(10 💎)</small></button>
+  <button class="btn btn-oro btn-grande" style="max-width:480px;" id="btn-plataformas">🪜 Subir saltando <small style="font-size:.95rem;">(8 💎)</small></button>
+  <button class="btn btn-rosa btn-grande" style="max-width:480px;" id="btn-dibujar">🎨 Pizarra mágica <small style="font-size:.95rem;">(6 💎)</small></button>
   <button class="btn btn-oro btn-grande" style="max-width:480px;" id="btn-joyero">👑 Mi joyero real</button>
 </section>
 
@@ -379,6 +382,9 @@ textarea{resize:vertical; min-height:64px;}
   <div id="resumen-insignias" class="fila"></div>
   <button class="btn btn-cielo btn-grande" style="max-width:460px;" id="btn-premio-globos">🎈 ¡Premio: explotar globos!</button>
   <button class="btn btn-menta btn-grande" style="max-width:460px;" id="btn-premio-mariposas">🦋 ¡Premio: cazar mariposas!</button>
+  <button class="btn btn-lila btn-grande" style="max-width:460px;" id="btn-premio-naves">🚀 ¡Premio: volar en la nave!</button>
+  <button class="btn btn-oro btn-grande" style="max-width:460px;" id="btn-premio-plataformas">🪜 ¡Premio: subir saltando!</button>
+  <button class="btn btn-rosa btn-grande" style="max-width:460px;" id="btn-premio-dibujar">🎨 ¡Premio: pizarra mágica!</button>
   <button class="btn btn-lila" id="btn-resumen-volver">🏰 Volver al castillo</button>
 </section>
 
@@ -402,6 +408,38 @@ textarea{resize:vertical; min-height:64px;}
   </div>
   <h2>¡Cázalas con la red!</h2>
   <div id="mariposas-zona" style="position:relative; width:100%; height:62vh; background:linear-gradient(180deg,#e6fbf1,#fdf3ff); border-radius:26px; overflow:hidden; box-shadow:inset 0 4px 18px rgba(0,0,0,.08);"></div>
+</section>
+
+<!-- ══════════ PANTALLA: NAVES ══════════ -->
+<section class="screen" id="s-naves">
+  <div class="topbar">
+    <button class="icono-btn" id="btn-salir-naves">✖️</button>
+    <span class="chip">⏱️ <span class="num" id="naves-tiempo">25</span></span>
+    <span class="chip">⭐ <span class="num" id="naves-cont">0</span></span>
+  </div>
+  <h2>¡Recoge estrellas con tu nave!</h2>
+  <div id="naves-zona" style="position:relative; width:100%; height:62vh; background:linear-gradient(180deg,#1b1040,#3a2670 60%,#5b3f9c); border-radius:26px; overflow:hidden; box-shadow:inset 0 4px 18px rgba(0,0,0,.35); touch-action:none;"></div>
+</section>
+
+<!-- ══════════ PANTALLA: PLATAFORMAS ══════════ -->
+<section class="screen" id="s-plataformas">
+  <div class="topbar">
+    <button class="icono-btn" id="btn-salir-plataformas">✖️</button>
+    <span class="chip">⏱️ <span class="num" id="plat-tiempo">30</span></span>
+    <span class="chip">🪜 <span class="num" id="plat-cont">0</span></span>
+  </div>
+  <h2>¡Sube saltando!</h2>
+  <div id="plat-zona" style="position:relative; width:100%; height:62vh; background:linear-gradient(180deg,#dff1ff,#f6f0ff); border-radius:26px; overflow:hidden; box-shadow:inset 0 4px 18px rgba(0,0,0,.08); touch-action:none;"></div>
+</section>
+
+<!-- ══════════ PANTALLA: PIZARRA ══════════ -->
+<section class="screen" id="s-dibujar">
+  <div class="topbar">
+    <button class="icono-btn" id="btn-salir-dibujar">✖️</button>
+    <span class="chip">🎨 Pizarra</span>
+  </div>
+  <div id="dib-paleta" style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:8px;"></div>
+  <canvas id="dib-lienzo" style="width:100%; height:58vh; background:#fff; border-radius:24px; box-shadow:inset 0 4px 18px rgba(0,0,0,.08); touch-action:none;"></canvas>
 </section>
 
 <!-- ══════════ PANTALLA: JOYERO ══════════ -->
@@ -538,6 +576,22 @@ textarea{resize:vertical; min-height:64px;}
       <input type="text" id="ajuste-nombre" maxlength="20">
     </div>
     <div class="form-linea">
+      <label>Dificultad (juego libre y misión del día)</label>
+      <div class="nivel-sel" id="ajuste-nivel-libre">
+        <button class="nivel-btn on" data-n="1">Nivel 1<br><small>fáciles, alguna llevada</small></button>
+        <button class="nivel-btn" data-n="2">Nivel 2<br><small>con llevadas</small></button>
+        <button class="nivel-btn" data-n="3">Nivel 3<br><small>dobles sumas, sumirrestas</small></button>
+      </div>
+      <p class="sub" style="text-align:left; font-size:.85rem;">Es el <b>techo</b>: ella no puede subir de ahí en el juego libre. Dentro de ese techo se ajusta sola — si encadena aciertos a la primera sube un puntito, y si el hada tiene que enseñarle, baja. Las misiones que le mandes tú van SIEMPRE al nivel que elijas al crearlas.</p>
+    </div>
+    <div class="form-linea" id="pro-caja" style="display:none;">
+      <label>⭐ PequeMisiones Pro</label>
+      <div id="pro-estado" class="sub" style="text-align:left;">…</div>
+      <div class="fila" id="pro-botones" style="justify-content:flex-start;"></div>
+      <p class="sub" style="text-align:left; font-size:.85rem;">El pago se hace en Stripe y viaja con tu código de familia.
+        Tu email solo lo ve Stripe para el recibo: a nuestra base de datos no llega nunca.</p>
+    </div>
+    <div class="form-linea">
       <label>Cambiar PIN</label>
       <button class="btn btn-mini btn-lila" id="btn-cambiar-pin">Cambiar PIN</button>
     </div>
@@ -585,7 +639,7 @@ textarea{resize:vertical; min-height:64px;}
 const DEMO = new URLSearchParams(location.search).has("demo");
 const PERFIL_DEMO = { id:"demo", alias:"Princesa", genero:"nina", curso:"pri2", nivel:2,
   tema:"princesas", modulos:["abn","igu","dif","mul","div","rel","pes"],
-  juegos:["globos","mariposas"] };
+  juegos:["globos","mariposas","naves","plataformas","dibujar"] };
 /* ── PequeMisiones: perfil del portal ── */
 const PERFIL = DEMO ? PERFIL_DEMO
   : (function(){ try{ return JSON.parse(localStorage.getItem("pm_perfilActivo")); }catch(e){ return null; } })();
@@ -593,6 +647,19 @@ if(!PERFIL){ location.href = "./index.html"; throw new Error("sin perfil"); }
 const TEMA = TEMAS[PERFIL.tema] || TEMAS.princesas;
 const FEM = PERFIL.genero !== "nino";
 const JUEGOS_ACTIVOS = PERFIL.juegos || ["globos","mariposas"];
+/* Los juegos de premio, en un solo sitio: el botón de la tienda de gemas, el de
+   premio gratis del final de misión, cómo arrancan y cómo se salen. Añadir uno
+   nuevo es añadir una línea aquí (y su pantalla). */
+const JUEGOS = [
+  {id:"globos",      boton:"btn-globos",      start:g=>startGlobos(g),      fin:()=>endGlobos(true)},
+  {id:"mariposas",   boton:"btn-mariposas",   start:g=>startMariposas(g),   fin:()=>endMariposas(true)},
+  {id:"naves",       boton:"btn-naves",       start:g=>startNaves(g),       fin:()=>endNaves(true)},
+  {id:"plataformas", boton:"btn-plataformas", start:g=>startPlataformas(g), fin:()=>endPlataformas(true)},
+  {id:"dibujar",     boton:"btn-dibujar",     start:g=>startDibujar(g),     fin:()=>endDibujar()}
+];
+function ocultarPremiosGratis(){
+  JUEGOS.forEach(j=>$("btn-premio-"+j.id).classList.add("oculto"));
+}
 /* código de familia opaco (LUNA-847): multi-familia sin datos personales */
 const FAMILIA = (function(){ try{ return JSON.parse(localStorage.getItem("pm_familia")) || "CASA-000"; }catch(e){ return "CASA-000"; } })();
 /* la identidad del peque en el servidor es su NOMBRE normalizado, no un id local:
@@ -619,6 +686,10 @@ const S = {
   hoy    : LS.get("hoy", {fecha:"", gemas:0, ej:0}),  // lo conseguido hoy
   chispa : LS.get("chispa", {}),           // maestría por juego (0-10) para el nivel automático del juego libre
   limiteMin: LS.get("limiteMin", 0),       // límite de uso diario en minutos (0 = sin límite); cierre amable
+  // Dificultad, la fija el adulto en la zona de padres (igual que en infantil).
+  // Es el TECHO: de aquí cuelgan la misión del día y lo que puede elegir ella en
+  // el juego libre. Arranca en el nivel que le toca por curso.
+  nivelLibre: LS.get("nivelLibre", PERFIL.nivel || 1),
   stats  : LS.get("stats", {misiones:0, perfectas:0, abnOk:0, claOk:0, iguOk:0, difOk:0, globos:0, dias:[], nivel3:0, dobleOk:0}),
   cola   : LS.get("cola", []),             // envíos pendientes si no hay internet
   hechasLocal: LS.get("hechasLocal", []),  // ids de misiones ya hechas (por si falla el PATCH)
@@ -628,6 +699,7 @@ function guardar(){
   LS.set("nombreCustom",S.nombre); LS.set("gemas",S.gemas); LS.set("sonido",S.sonido); LS.set("voz",S.voz);
   LS.set("pin",S.pin); LS.set("insig",S.insig); LS.set("stats",S.stats); LS.set("cola",S.cola); LS.set("chispa",S.chispa); LS.set("limiteMin",S.limiteMin);
   LS.set("hechasLocal",S.hechasLocal); LS.set("hoy",S.hoy);
+  LS.set("nivelLibre",S.nivelLibre);
 }
 function tocaHoy(){
   const f = new Date().toISOString().slice(0,10);
@@ -667,16 +739,10 @@ const sfx = {
   pop(){ tono(520,0,.05,"square",.12); tono(180,.03,.1,"sine",.15); },
   fanfarria(){ [523,523,659,784,1046,784,1046].forEach((f,i)=>tono(f,i*0.12,.18,"triangle",.15)); }
 };
-function hablar(txt){
+function hablar(txt, rate){
   if(!S.voz || !window.speechSynthesis) return;
-  try{
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(txt);
-    u.lang = "es-ES"; u.rate = 0.95; u.pitch = 1.15;
-    const v = speechSynthesis.getVoices().find(v=>v.lang && v.lang.startsWith("es"));
-    if(v) u.voice = v;
-    speechSynthesis.speak(u);
-  }catch(e){}
+  // la elección de voz y el troceo por frases viven en PM_VOZ (temas.js)
+  PM_VOZ.decir(txt, {rate: rate || 0.9, pitch: 1.15});
 }
 
 /* ═══════════════ CONFETI ═══════════════ */
@@ -1027,11 +1093,14 @@ function genMul(nivel){
 function genDiv(nivel){
   /* división ABN: repartos equitativos (1-2) y rejilla de reparto (3) */
   if(nivel===1){
-    const k = ri(2,4), cada = ri(2,6);
+    /* el primer reparto es "la mitad" y poco más: entre 2 o 3, y nunca más de 12
+       cosas. Repartir 24 caramelos entre 4 no es nivel 1, es una mudanza. */
+    const k = conProb(.6) ? 2 : 3;
+    const cada = ri(2, k===2 ? 5 : 4);
     return {t:"div", d:{sub:"reparto", N:k*cada, k}};
   }
   if(nivel===2){
-    const k = ri(2,5), cada = ri(3,6), resto = conProb(.6) ? ri(1,k-1) : 0;
+    const k = ri(2,4), cada = ri(3,6), resto = conProb(.6) ? ri(1,k-1) : 0;
     return {t:"div", d:{sub:"resto", N:k*cada+resto, k}};
   }
   const k = ri(3,9);
@@ -1045,7 +1114,13 @@ function genMisionDiaria(){
   const tipos = base.filter(t=>GEN[t]);
   if(!tipos.length) tipos.push("abn");
   const chispaDe = t => S.chispa[t]===undefined ? 5 : S.chispa[t];
-  const nivelDe = t => { const ch = chispaDe(t); return ch>=8 ? 3 : ch<=2 ? 1 : 2; };
+  /* El nivel sale del CURSO, no solo de la maestría: una niña de 1º no puede
+     acabar en nivel 3 por lo bien que se le den las rejillas. La maestría solo
+     mueve un escalón arriba o abajo desde donde le toca por edad. */
+  const nivelDe = t => {
+    const ch = chispaDe(t);
+    return Math.max(1, Math.min(3, (S.nivelLibre || PERFIL.nivel || 1) + (ch>=8 ? 1 : 0) - (ch<=2 ? 1 : 0)));
+  };
   const orden = tipos.slice().sort((a,b)=>chispaDe(a)-chispaDe(b));
   const lista = [];
   orden.slice(0,2).forEach(t=>{ lista.push(GEN[t](nivelDe(t)), GEN[t](nivelDe(t))); });
@@ -1126,7 +1201,8 @@ let Tanda = null, EjState = null, salirArmado = false;
 function startTanda(cfg){
   Tanda = {origen:cfg.origen, misionId:cfg.misionId||null, titulo:cfg.titulo||"",
     list:cfg.ejercicios, idx:0, res:[], gemas0:S.gemas, t0:Date.now(),
-    nivel:cfg.nivel, fallosTotales:0, diaria:cfg.diaria||false};
+    nivel:cfg.nivel, fallosTotales:0, diaria:cfg.diaria||false,
+    repesca:[], enRepesca:false};
   go("s-juego");
   renderEj();
   if(cfg.mensaje){ hada("💌 "+cfg.mensaje, 5000); }
@@ -1148,6 +1224,20 @@ function fallo(pista){
 }
 function marcarMal(celdas){
   celdas.forEach(c=>{ c.classList.add("mal"); setTimeout(()=>c.classList.remove("mal"), 650); });
+}
+/* REPESCA: lo que se falla vuelve al final de la tanda, con números nuevos del
+   mismo juego — no se resuelve de memoria, hay que saberlo. Máximo 2, y una
+   repesca nunca genera otra, para que la misión no se estire sin fin. */
+const MAX_REPESCA = 2;
+function apuntarRepesca(ej){
+  if(ej.repesca || Tanda.enRepesca) return;
+  if(!EjState.ayudado && EjState.fallosEj===0) return; // limpia a la primera
+  if(Tanda.repesca.length >= MAX_REPESCA) return;
+  if(Tanda.repesca.some(r=>r.t===ej.t)) return;
+  const gen = GEN[ej.t];
+  const nuevo = gen ? gen(Tanda.nivel || 1) : {t:ej.t, d:ej.d};
+  nuevo.repesca = true;
+  Tanda.repesca.push(nuevo);
 }
 function ejCompletado(){
   if(!Tanda) return; // salió de la tanda a mitad
@@ -1171,6 +1261,7 @@ function ejCompletado(){
   guardar(); actualizarGemas();
   Tanda.res.push({t:ej.t, d:ej.d, intentos:EjState.fallosEj, ayudado:EjState.ayudado,
     seg: Math.round((Date.now()-EjState.t0)/1000)});
+  apuntarRepesca(ej);
   if(EjState.ayudado){
     hada("¡Ya está! La siguiente la haces tú sola 💪", 2600);
   } else {
@@ -1192,13 +1283,29 @@ function ejCompletado(){
    mismo ejercicio repite la misma pista sin volver a llamar. Queda registrada en
    pm_dudas y el padre la ve en Resultados. */
 let PistaBusy = false;
+/* Radiografía del ejercicio EN CURSO: cuántas casillas lleva ya bien. Lo pidió
+   el banco de pruebas: en una rejilla a medias, la pista tiene que hablar del
+   paso siguiente, no repetir la del arranque una y otra vez. */
+function estadoPista(){
+  const celdas = [...document.querySelectorAll("#zona-ejercicio .celda")]
+    .filter(c=>!c.classList.contains("fija"));
+  if(!celdas.length) return {firma:"0", texto:""};
+  const hechas = celdas.filter(c=>c.classList.contains("hecha")).length;
+  const texto = hechas===0 ? ""
+    : `YA LLEVA ${hechas} de ${celdas.length} casillas bien: dale la pista del paso SIGUIENTE, no del primero`;
+  return {firma: hechas+"de"+celdas.length, texto};
+}
 async function pedirPista(){
   if(DEMO) return; // en la demo el botón está oculto: nadie gasta pistas desde fuera
   if(!Tanda || PistaBusy) return;
   const ej = Tanda.list[Tanda.idx]; if(!ej) return;
   Tanda.pistas = Tanda.pistas || {};
-  const ya = Tanda.pistas[Tanda.idx];
-  if(ya){ hada(ya, 7000); hablar(ya); return; }
+  // la pista se recuerda POR PASO, no por ejercicio: si ha avanzado desde la
+  // última vez, se pide una nueva acorde a donde está ahora
+  const est = estadoPista();
+  const clave = Tanda.idx + "·" + est.firma;
+  const ya = Tanda.pistas[clave];
+  if(ya){ hada(ya, 7000); hablar(ya, .8); return; }
   PistaBusy = true;
   const btn = $("btn-pista"); if(btn){ btn.disabled = true; btn.textContent = "💭…"; }
   try{
@@ -1206,12 +1313,13 @@ async function pedirPista(){
       method: "POST",
       headers: {"Content-Type":"application/json", "Authorization":"Bearer "+SUPA_ANON, "apikey":SUPA_ANON},
       body: JSON.stringify({familia: FAMILIA, perfil: PERFIL_KEY, tipo: ej.t,
-        enunciado: tituloEj(ej).slice(0,180), nivel: Tanda.nivel||2, mascota: TEMA.mascota.nombre})
+        enunciado: (tituloEj(ej) + (est.texto ? " · " + est.texto : "")).slice(0,180),
+        nivel: Tanda.nivel||2, mascota: TEMA.mascota.nombre})
     });
     const d = r.ok ? await r.json() : null;
     const p = (d && d.pista) ? d.pista : "Respira hondo y ve pasito a pasito, ¡tú puedes! ✨";
-    Tanda.pistas[Tanda.idx] = p;
-    hada(p, 7000); hablar(p);
+    Tanda.pistas[clave] = p;
+    hada(p, 7000); hablar(p, .8); // las pistas, un punto más despacio: son la parte densa
   }catch(e){
     hada("Ahora no me salen las palabras… ¡pero tú puedes! 💪", 4000);
   }
@@ -2230,6 +2338,14 @@ function renderPes(d){
 const EMOJI_TIPO = {abn:"🔮", cla:"🏰", igu:"⚖️", dif:"💎", mul:"✖️", div:"➗", rel:"🕐", pes:"🧺"};
 function hoyISO(){ return new Date().toISOString().slice(0,10); }
 function finTanda(){
+  // antes de cerrar: el repaso de lo que se atragantó
+  if(Tanda.repesca.length && !Tanda.enRepesca){
+    Tanda.enRepesca = true;
+    Tanda.list = Tanda.list.concat(Tanda.repesca);
+    hada("🔁 ¡Repaso! Otro parecido al que se te resistió", 3000);
+    renderEj();
+    return;
+  }
   if(Tanda.diaria){ tocaHoy(); S.hoy.diaria = true; guardar(); }
   const seg = Math.round((Date.now()-Tanda.t0)/1000);
   const ganadas = S.gemas - Tanda.gemas0;
@@ -2276,8 +2392,7 @@ function finTanda(){
   $("resumen-gemas").textContent = ganadas;
   $("resumen-insignias").innerHTML = nuevas.map(ins=>
     `<div class="insig nueva"><div class="em">${ins.e}</div><div class="nom">¡Insignia nueva!<br>${ins.nombre}</div></div>`).join("");
-  $("btn-premio-globos").classList.toggle("oculto", !S.premioGratis || !JUEGOS_ACTIVOS.includes("globos"));
-  $("btn-premio-mariposas").classList.toggle("oculto", !S.premioGratis || !JUEGOS_ACTIVOS.includes("mariposas"));
+  JUEGOS.forEach(j=>$("btn-premio-"+j.id).classList.toggle("oculto", !S.premioGratis || !JUEGOS_ACTIVOS.includes(j.id)));
   go("s-resumen");
   sfx.fanfarria();
   const decir = Tanda.fallosTotales===0 ? "¡Perfecta! Eres increíble, "+(S.nombre||"princesa") : "¡Muy bien! Misión cumplida";
@@ -2397,8 +2512,7 @@ function startGlobos(gratis){
   }
   Globos.retorno = pantallaActual==="s-resumen" ? "s-resumen" : pantallaActual==="s-premios" ? "s-premios" : "s-home";
   S.premioGratis = false;
-  $("btn-premio-globos").classList.add("oculto");
-  $("btn-premio-mariposas").classList.add("oculto");
+  ocultarPremiosGratis();
   go("s-globos");
   const zona = $("globos-zona");
   zona.innerHTML = ""; Globos.items = []; Globos.n = 0; Globos.t = 20;
@@ -2484,8 +2598,7 @@ function startMariposas(gratis){
   }
   Mari.retorno = pantallaActual==="s-resumen" ? "s-resumen" : pantallaActual==="s-premios" ? "s-premios" : "s-home";
   S.premioGratis = false;
-  $("btn-premio-globos").classList.add("oculto");
-  $("btn-premio-mariposas").classList.add("oculto");
+  ocultarPremiosGratis();
   go("s-mariposas");
   const zona = $("mariposas-zona");
   zona.innerHTML = "";
@@ -2576,6 +2689,369 @@ function endMariposas(abandonado){
 }
 addEventListener("pointerup", ()=>Mari.activo = false);
 
+/* ═══════════════ NAVES 🚀 ═══════════════
+   Recoger, nunca disparar: la nave sigue el dedo y caza estrellas que caen. Las
+   nubes de polvo no quitan puntos ni acaban la partida, solo frenan un momento.
+   Aquí no hay pantallas de "has perdido". */
+const Naves = {n:0, t:25, timer:null, spawner:null, rafRun:false, items:[], retorno:"s-home",
+  x:0.5, frenaHasta:0, tPrev:0};
+function startNaves(gratis){
+  if(!JUEGOS_ACTIVOS.includes("naves")) return; // juego desactivado por el padre en el portal
+  if(limiteAlcanzado()){ despedidaLimite(); return; }
+  if(!gratis){
+    if(S.gemas<10){ hada("Necesitas 10 gemas 💎 ¡Haz una misión o juega libre para ganarlas!"); sfx.mal(); return; }
+    S.gemas -= 10; guardar();
+  }
+  Naves.retorno = pantallaActual==="s-resumen" ? "s-resumen" : pantallaActual==="s-premios" ? "s-premios" : "s-home";
+  S.premioGratis = false;
+  ocultarPremiosGratis();
+  go("s-naves");
+  const zona = $("naves-zona");
+  zona.innerHTML = "";
+  Naves.items = []; Naves.n = 0; Naves.t = 25; Naves.x = 0.5; Naves.frenaHasta = 0; Naves.tPrev = 0;
+  $("naves-cont").textContent = "0"; $("naves-tiempo").textContent = "25";
+  for(let i=0;i<26;i++){
+    const e = document.createElement("div");
+    e.style.cssText = `position:absolute; left:${ri(1,98)}%; top:${ri(1,96)}%; color:#fff; opacity:${ri(2,7)/10};
+      font-size:${ri(6,13)}px; pointer-events:none;`;
+    e.textContent = "·";
+    zona.appendChild(e);
+  }
+  const nave = document.createElement("div");
+  nave.id = "nave-jug";
+  nave.textContent = "🚀";
+  nave.style.cssText = "position:absolute; font-size:3rem; pointer-events:none; z-index:4; transform:translate(-50%,-50%) rotate(-45deg);";
+  zona.appendChild(nave);
+  hada("🚀 Mueve el dedo para pilotar y recoge todas las estrellas", 3600);
+  if(!zona.dataset.cableada){
+    zona.dataset.cableada = "1";
+    const seguir = e=>{
+      e.preventDefault();
+      const r = zona.getBoundingClientRect();
+      Naves.x = Math.max(0.06, Math.min(0.94, (e.clientX - r.left) / r.width));
+    };
+    zona.addEventListener("pointerdown", seguir);
+    zona.addEventListener("pointermove", e=>{ if(e.buttons || e.pointerType!=="mouse") seguir(e); });
+  }
+  Naves.spawner = setInterval(()=>{
+    if(pantallaActual!=="s-naves") return;
+    const polvo = conProb(.24);
+    const it = document.createElement("div");
+    it.textContent = polvo ? "☁️" : "⭐";
+    it.style.cssText = `position:absolute; font-size:${polvo?2.4:2.1}rem; pointer-events:none; z-index:3;
+      transform:translate(-50%,-50%);`;
+    zona.appendChild(it);
+    Naves.items.push({el:it, polvo, x: ri(8,92)/100, y:-40, v: ri(110,170) + (25-Naves.t)*4});
+  }, 560);
+  Naves.timer = setInterval(()=>{
+    Naves.t--; $("naves-tiempo").textContent = Naves.t;
+    if(Naves.t<=0) endNaves(false);
+  }, 1000);
+  if(!Naves.rafRun){ Naves.rafRun = true; requestAnimationFrame(navesTick); }
+}
+function navesTick(ts){
+  if(pantallaActual!=="s-naves"){ Naves.rafRun = false; return; }
+  const dt = Naves.tPrev ? Math.min((ts-Naves.tPrev)/1000, .05) : .016;
+  Naves.tPrev = ts;
+  const zona = $("naves-zona"), nave = $("nave-jug");
+  if(!zona || !nave){ Naves.rafRun = false; return; }
+  const W = zona.clientWidth, H = zona.clientHeight;
+  const frenada = ts < Naves.frenaHasta;
+  const naveX = Naves.x * W, naveY = H * 0.82;
+  nave.style.left = naveX + "px";
+  nave.style.top = naveY + "px";
+  nave.style.transform = `translate(-50%,-50%) rotate(-45deg) scale(${frenada ? .82 : 1})`;
+  nave.style.filter = frenada ? "grayscale(.7)" : "";
+  const rz = zona.getBoundingClientRect();
+  Naves.items = Naves.items.filter(it=>{
+    it.y += it.v * dt * (frenada && it.polvo ? .5 : 1);
+    const px = it.x * W;
+    it.el.style.left = px + "px";
+    it.el.style.top = it.y + "px";
+    if(it.y > H + 40){ it.el.remove(); return false; }
+    if(Math.abs(px - naveX) < 42 && Math.abs(it.y - naveY) < 40){
+      if(it.polvo){
+        if(!frenada){
+          Naves.frenaHasta = ts + 700;
+          sfx.mal();
+          it.el.textContent = "💨";
+          setTimeout(()=>it.el.remove(), 260);
+          return false;
+        }
+        return true;
+      }
+      Naves.n++; $("naves-cont").textContent = Naves.n;
+      sfx.gema();
+      confeti(rz.left + px, rz.top + it.y, 12);
+      it.el.textContent = "✨";
+      setTimeout(()=>it.el.remove(), 200);
+      return false;
+    }
+    return true;
+  });
+  requestAnimationFrame(navesTick);
+}
+function endNaves(abandonado){
+  clearInterval(Naves.timer); clearInterval(Naves.spawner);
+  Naves.timer = Naves.spawner = null;
+  S.stats.naves = (S.stats.naves||0) + Naves.n;
+  if(!abandonado){
+    premioGrande(`🚀 ¡${Naves.n} estrellas!`, `¡${Naves.n} estrellas recogidas volando! Menudo pilotaje`);
+    sfx.fanfarria(); confetiCentro();
+  }
+  guardar(); actualizarGemas();
+  const nuevas = chequearInsignias();
+  setTimeout(()=>{
+    go(Naves.retorno);
+    if(nuevas.length) hada("¡Insignia nueva en tu joyero! 👑✨", 4000);
+  }, abandonado ? 0 : 1600);
+}
+
+/* ═══════════════ PLATAFORMAS 🪜 ═══════════════
+   Rebota solo: el dedo únicamente lo mueve a los lados. Y no se puede caer — si
+   se va por abajo, una nube lo recoge. Se cuenta lo que sube, nunca lo que cae. */
+const Plat = {n:0, t:30, timer:null, rafRun:false, retorno:"s-home", tPrev:0,
+  x:0.5, xObj:0.5, y:0, vy:0, cam:0, alto:0, sitios:[], heroe:null, dicho:0};
+const PLAT_SALTO = 780, PLAT_GRAVEDAD = 1500, PLAT_HUECO = 95;
+function startPlataformas(gratis){
+  if(!JUEGOS_ACTIVOS.includes("plataformas")) return; // juego desactivado por el padre en el portal
+  if(limiteAlcanzado()){ despedidaLimite(); return; }
+  if(!gratis){
+    if(S.gemas<8){ hada("Necesitas 8 gemas 💎 ¡Haz una misión o juega libre para ganarlas!"); sfx.mal(); return; }
+    S.gemas -= 8; guardar();
+  }
+  Plat.retorno = pantallaActual==="s-resumen" ? "s-resumen" : pantallaActual==="s-premios" ? "s-premios" : "s-home";
+  S.premioGratis = false;
+  ocultarPremiosGratis();
+  go("s-plataformas");
+  const zona = $("plat-zona");
+  zona.innerHTML = "";
+  const h = document.createElement("div");
+  h.id = "plat-heroe";
+  h.textContent = TEMA.mascota.emoji || "🧚‍♀️";
+  h.style.cssText = "position:absolute; font-size:2.8rem; pointer-events:none; z-index:5; transform:translate(-50%,-50%);";
+  zona.appendChild(h);
+  Plat.heroe = h;
+  Plat.sitios = []; Plat.n = 0; Plat.t = 30; Plat.tPrev = 0; Plat.dicho = 0;
+  Plat.x = Plat.xObj = 0.5; Plat.y = 90; Plat.vy = 0; Plat.cam = 0; Plat.alto = 0;
+  $("plat-cont").textContent = "0"; $("plat-tiempo").textContent = "30";
+  crearPlataforma(zona, 0.5, 40, false);
+  for(let i=1;i<9;i++) crearPlataforma(zona, ri(12,88)/100, 40 + i*PLAT_HUECO, conProb(.35));
+  hada("🪜 Mueve el dedo a los lados: salta solo, tú solo lo llevas", 3600);
+  if(!zona.dataset.cableada){
+    zona.dataset.cableada = "1";
+    const seguir = e=>{
+      e.preventDefault();
+      const r = zona.getBoundingClientRect();
+      Plat.xObj = Math.max(0.07, Math.min(0.93, (e.clientX - r.left) / r.width));
+    };
+    zona.addEventListener("pointerdown", seguir);
+    zona.addEventListener("pointermove", e=>{ if(e.buttons || e.pointerType!=="mouse") seguir(e); });
+  }
+  Plat.timer = setInterval(()=>{
+    Plat.t--; $("plat-tiempo").textContent = Plat.t;
+    if(Plat.t<=0) endPlataformas(false);
+  }, 1000);
+  if(!Plat.rafRun){ Plat.rafRun = true; requestAnimationFrame(platTick); }
+}
+function crearPlataforma(zona, x, y, conEstrella){
+  const el = document.createElement("div");
+  el.style.cssText = `position:absolute; width:104px; height:18px; border-radius:12px; z-index:2;
+    background:linear-gradient(180deg,#a5d8ff,#7ab6e8); box-shadow:0 3px 0 rgba(0,0,0,.12); transform:translate(-50%,-50%);`;
+  zona.appendChild(el);
+  const p = {x, y, el, estrella:null};
+  if(conEstrella){
+    const s = document.createElement("div");
+    s.textContent = "💎";
+    s.style.cssText = "position:absolute; font-size:1.6rem; z-index:3; pointer-events:none; transform:translate(-50%,-50%);";
+    zona.appendChild(s);
+    p.estrella = s;
+  }
+  Plat.sitios.push(p);
+  return p;
+}
+function platTick(ts){
+  if(pantallaActual!=="s-plataformas"){ Plat.rafRun = false; return; }
+  const dt = Plat.tPrev ? Math.min((ts-Plat.tPrev)/1000, .04) : .016;
+  Plat.tPrev = ts;
+  const zona = $("plat-zona");
+  if(!zona || !Plat.heroe){ Plat.rafRun = false; return; }
+  const W = zona.clientWidth, H = zona.clientHeight;
+  Plat.x += (Plat.xObj - Plat.x) * Math.min(1, dt*9);
+  const vyAntes = Plat.vy;
+  Plat.vy -= PLAT_GRAVEDAD * dt;
+  const yAntes = Plat.y;
+  Plat.y += Plat.vy * dt;
+  // Rebote: solo al bajar, y cuando CRUZA la tabla en este fotograma. Bajando a
+  // 780 px/s se avanzan ~13 px por fotograma: preguntar "¿está a la altura de la
+  // tabla?" falla casi siempre y la atraviesa. Hay que comparar antes y después.
+  if(Plat.vy < 0){
+    for(const p of Plat.sitios){
+      const dx = Math.abs(p.x - Plat.x) * W;
+      if(dx < 60 && yAntes >= p.y + 14 && Plat.y <= p.y + 14){
+        Plat.y = p.y + 14; Plat.vy = PLAT_SALTO;
+        sfx.click();
+        p.el.animate && p.el.animate([{transform:"translate(-50%,-50%) scaleY(1)"},
+          {transform:"translate(-50%,-50%) scaleY(.55)"},{transform:"translate(-50%,-50%) scaleY(1)"}], {duration:180});
+        break;
+      }
+    }
+  }
+  if(vyAntes >= 0 && Plat.vy < 0 && Plat.y > Plat.alto) Plat.alto = Plat.y;
+  Plat.cam = Math.max(Plat.cam, Plat.y - H*0.55);
+  if(Plat.y < Plat.cam - 60){   // rescate: nadie se cae del todo
+    const abajo = Plat.sitios.filter(p=>p.y > Plat.cam + 20).sort((a,b)=>a.y-b.y)[0];
+    Plat.y = abajo ? abajo.y + 14 : Plat.cam + 40;
+    Plat.x = Plat.xObj = abajo ? abajo.x : 0.5;
+    Plat.vy = PLAT_SALTO;
+    if(ts - Plat.dicho > 5000){ Plat.dicho = ts; hada("¡Te cojo! Otra vez para arriba 💛", 2200); }
+  }
+  const techo = Plat.sitios.reduce((m,p)=>Math.max(m,p.y), 0);
+  if(techo < Plat.cam + H + PLAT_HUECO) crearPlataforma(zona, ri(10,90)/100, techo + PLAT_HUECO, conProb(.35));
+  const rz = zona.getBoundingClientRect();
+  Plat.sitios = Plat.sitios.filter(p=>{
+    if(p.y < Plat.cam - 80){ p.el.remove(); if(p.estrella) p.estrella.remove(); return false; }
+    const py = H - (p.y - Plat.cam);
+    p.el.style.left = (p.x*W) + "px"; p.el.style.top = py + "px";
+    if(p.estrella){
+      p.estrella.style.left = (p.x*W) + "px";
+      p.estrella.style.top = (py - 26) + "px";
+      if(Math.abs(p.x - Plat.x)*W < 46 && Math.abs((p.y + 26) - Plat.y) < 40){
+        Plat.n++; $("plat-cont").textContent = Plat.n;
+        sfx.gema(); confeti(rz.left + p.x*W, rz.top + py - 26, 12);
+        p.estrella.remove(); p.estrella = null;
+      }
+    }
+    return true;
+  });
+  Plat.heroe.style.left = (Plat.x*W) + "px";
+  Plat.heroe.style.top = (H - (Plat.y - Plat.cam)) + "px";
+  Plat.heroe.style.transform = `translate(-50%,-50%) rotate(${(Plat.xObj-Plat.x)*40}deg) scaleY(${Plat.vy>0?1.08:0.94})`;
+  requestAnimationFrame(platTick);
+}
+function endPlataformas(abandonado){
+  clearInterval(Plat.timer); Plat.timer = null;
+  const pisos = Math.max(0, Math.round(Plat.alto / PLAT_HUECO));
+  S.stats.plataformas = (S.stats.plataformas||0) + Plat.n;
+  if(!abandonado){
+    premioGrande(`🪜 ¡${pisos} pisos!`, `¡Has subido ${pisos} pisos y cogido ${Plat.n} gemas por el camino!`);
+    sfx.fanfarria(); confetiCentro();
+  }
+  guardar(); actualizarGemas();
+  const nuevas = chequearInsignias();
+  setTimeout(()=>{
+    go(Plat.retorno);
+    if(nuevas.length) hada("¡Insignia nueva en tu joyero! 👑✨", 4000);
+  }, abandonado ? 0 : 1600);
+}
+
+/* ═══════════════ PIZARRA MÁGICA 🎨 ═══════════════
+   Sin reloj y sin puntuación: es el rato de calma. No se guarda nada en ningún
+   sitio — el dibujo vive en la pantalla mientras dura, como la pizarra de clase. */
+const Dib = {ctx:null, color:"#e0508a", grosor:16, sello:null, ult:null, retorno:"s-home"};
+const DIB_COLORES = ["#e0508a","#f5a524","#facc15","#4ade80","#38bdf8","#8b6fe0","#8b5a2b","#2b2b3a"];
+const DIB_SELLOS = ["⭐","❤️","🌸","🦋","🐱","🌈"];
+function startDibujar(gratis){
+  if(!JUEGOS_ACTIVOS.includes("dibujar")) return; // juego desactivado por el padre en el portal
+  if(limiteAlcanzado()){ despedidaLimite(); return; }
+  if(!gratis){
+    if(S.gemas<6){ hada("Necesitas 6 gemas 💎 ¡Haz una misión o juega libre para ganarlas!"); sfx.mal(); return; }
+    S.gemas -= 6; guardar();
+  }
+  Dib.retorno = pantallaActual==="s-resumen" ? "s-resumen" : pantallaActual==="s-premios" ? "s-premios" : "s-home";
+  S.premioGratis = false;
+  ocultarPremiosGratis();
+  go("s-dibujar");
+  pintarPaletaDib();
+  // el lienzo se dimensiona cuando ya está en pantalla, o sale a cero
+  requestAnimationFrame(()=>{
+    const c = $("dib-lienzo");
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    c.width = Math.round(c.clientWidth * dpr);
+    c.height = Math.round(c.clientHeight * dpr);
+    Dib.ctx = c.getContext("2d");
+    Dib.ctx.scale(dpr, dpr);
+    Dib.ctx.lineCap = Dib.ctx.lineJoin = "round";
+    limpiarDib();
+  });
+  hada("🎨 Pinta lo que quieras con el dedo. La papelera empieza de cero", 3600);
+}
+function limpiarDib(){
+  const c = $("dib-lienzo");
+  if(!Dib.ctx) return;
+  Dib.ctx.fillStyle = "#fff";
+  Dib.ctx.fillRect(0, 0, c.clientWidth, c.clientHeight);
+}
+function pintarPaletaDib(){
+  const p = $("dib-paleta");
+  if(p.dataset.pintada) return;
+  p.dataset.pintada = "1";
+  const boton = (html, titulo, alPulsar)=>{
+    const b = document.createElement("button");
+    b.innerHTML = html; b.title = titulo;
+    b.setAttribute("aria-label", titulo);
+    b.style.cssText = `width:46px; height:46px; border-radius:50%; border:3px solid #fff; cursor:pointer;
+      font-size:1.3rem; line-height:1; box-shadow:0 3px 8px rgba(0,0,0,.18); background:#fff;`;
+    b.addEventListener("click", ()=>{ sfx.click(); alPulsar(b); });
+    p.appendChild(b);
+    return b;
+  };
+  const marcar = b=>{
+    [...p.children].forEach(x=>x.style.outline = "");
+    b.style.outline = "4px solid #e0508a";
+  };
+  DIB_COLORES.forEach(col=>{
+    const b = boton("", "Color", ()=>{ Dib.color = col; Dib.sello = null; marcar(b); });
+    b.style.background = col;
+    if(col === Dib.color) marcar(b);
+  });
+  DIB_SELLOS.forEach(s=>{
+    const b = boton(s, "Sello " + s, ()=>{ Dib.sello = s; marcar(b); });
+  });
+  boton("🧽", "Borrar con el dedo", b=>{ Dib.color = "#ffffff"; Dib.sello = null; marcar(b); });
+  boton("🗑️", "Empezar de nuevo", ()=>{ limpiarDib(); hada("¡Hoja nueva! 🎨", 2000); });
+}
+(function cablearDibujo(){
+  const punto = (c, e)=>{
+    const r = c.getBoundingClientRect();
+    return {x: e.clientX - r.left, y: e.clientY - r.top};
+  };
+  const arranca = e=>{
+    const c = $("dib-lienzo");
+    if(pantallaActual!=="s-dibujar" || !Dib.ctx) return;
+    e.preventDefault();
+    const p = punto(c, e);
+    if(Dib.sello){
+      Dib.ctx.font = "38px serif";
+      Dib.ctx.textAlign = "center"; Dib.ctx.textBaseline = "middle";
+      Dib.ctx.fillText(Dib.sello, p.x, p.y);
+      sfx.click();
+      return;
+    }
+    Dib.ult = p;
+    Dib.ctx.strokeStyle = Dib.color;
+    Dib.ctx.lineWidth = Dib.color === "#ffffff" ? 34 : Dib.grosor;
+    Dib.ctx.beginPath(); Dib.ctx.moveTo(p.x, p.y); Dib.ctx.lineTo(p.x+.1, p.y); Dib.ctx.stroke();
+  };
+  const mueve = e=>{
+    if(!Dib.ult || pantallaActual!=="s-dibujar" || !Dib.ctx) return;
+    e.preventDefault();
+    const p = punto($("dib-lienzo"), e);
+    Dib.ctx.beginPath(); Dib.ctx.moveTo(Dib.ult.x, Dib.ult.y); Dib.ctx.lineTo(p.x, p.y); Dib.ctx.stroke();
+    Dib.ult = p;
+  };
+  const c = document.getElementById("dib-lienzo");
+  c.addEventListener("pointerdown", arranca);
+  c.addEventListener("pointermove", mueve);
+  addEventListener("pointerup", ()=>{ Dib.ult = null; });
+  addEventListener("pointercancel", ()=>{ Dib.ult = null; });
+})();
+function endDibujar(){
+  S.stats.dibujos = (S.stats.dibujos||0) + 1;
+  guardar();
+  go(Dib.retorno);
+}
+
 /* ═══════════════ ZONA PAPÁ ═══════════════ */
 const Papa = {pinBuf:"", pinModo:"entrar", pinTemp:"", nivel:1, tipos:new Set(["abn","igu","dif"]), preview:null};
 function abrirPin(){
@@ -2612,11 +3088,47 @@ $("pad-pin").addEventListener("pointerdown", e=>{
   const b = e.target.closest("button"); if(!b) return;
   e.preventDefault(); pinTecla(b.dataset.d);
 });
+
+/* ── plan Pro (Stripe) ──
+   La "cuenta" del pago es el código de familia: el Payment Link viaja con
+   client_reference_id y el webhook lo apunta en pm_suscripciones. Los enlaces
+   se crean en el panel de Stripe; mientras estén vacíos la caja ni aparece
+   (el producto sigue gratis) pero el estado sí se lee, por si ya son Pro. */
+const STRIPE_LINK_MENSUAL = "";
+const STRIPE_LINK_ANUAL = "";
+let esPro = false;
+async function cargarPro(){
+  const caja = $("pro-caja"); if(!caja) return;
+  const hayTienda = !!(STRIPE_LINK_MENSUAL || STRIPE_LINK_ANUAL);
+  const r = await sbSelect("pm_suscripciones", "select=estado,plan,hasta&limit=1");
+  const f = (r.ok && r.data && r.data[0]) || null;
+  esPro = !!(f && f.estado === "activa" && (!f.hasta || new Date(f.hasta) > new Date()));
+  if(!hayTienda && !f){ caja.style.display = "none"; return; }
+  caja.style.display = "";
+  $("pro-estado").innerHTML = esPro
+    ? `🟢 Esta familia es <b>Pro</b>${f.plan ? " · plan " + f.plan : ""}${f.hasta ? " · hasta el " + new Date(f.hasta).toLocaleDateString("es-ES") : ""}`
+    : f && f.estado === "impago" ? "🟠 Hay un pago pendiente: revisa el correo que te mandó Stripe"
+    : "⚪ Plan gratuito";
+  const zona = $("pro-botones"); zona.innerHTML = "";
+  if(!esPro && hayTienda){
+    [[STRIPE_LINK_MENSUAL, "mensual"], [STRIPE_LINK_ANUAL, "anual"]].forEach(([url, txt])=>{
+      if(!url) return;
+      const a = document.createElement("a");
+      a.className = "btn btn-mini btn-lila";
+      a.textContent = "⭐ Hazte Pro · " + txt;
+      a.href = url + (url.includes("?") ? "&" : "?") + "client_reference_id=" + encodeURIComponent(FAMILIA);
+      a.target = "_blank"; a.rel = "noopener";
+      zona.appendChild(a);
+    });
+  }
+}
 async function entrarPapa(){
   go("s-papa");
+  cargarPro();
   $("papa-envio-ok").classList.add("oculto");
   $("ajuste-nombre").value = S.nombre;
   document.querySelectorAll("#ajuste-limite .nivel-btn").forEach(x=>x.classList.toggle("on", parseInt(x.dataset.lim,10)===S.limiteMin));
+  document.querySelectorAll("#ajuste-nivel-libre .nivel-btn").forEach(x=>x.classList.toggle("on", parseInt(x.dataset.n,10)===S.nivelLibre));
   tocaHoy(); $("ajuste-uso-hoy").textContent = Math.round((S.hoy.seg||0)/60);
   const ping = await sbSelect(T_MISIONES, "select=id&limit=1");
   const c = $("papa-conexion");
@@ -2972,7 +3484,7 @@ $("btn-diaria").addEventListener("click", ()=>{
   if(limiteAlcanzado()){ despedidaLimite(); return; }
   tocaHoy();
   if(S.hoy.diaria){ hada("¡La misión de hoy ya está conseguida! Mañana habrá otra 🌞", 3200); return; }
-  startTanda({origen:"libre", diaria:true, titulo:"Misión del día 🌞", ejercicios:genMisionDiaria(), nivel:2});
+  startTanda({origen:"libre", diaria:true, titulo:"Misión del día 🌞", ejercicios:genMisionDiaria(), nivel:S.nivelLibre});
 });
 $("btn-joyero").addEventListener("click", ()=>go("s-joyero"));
 $("btn-premios").addEventListener("click", ()=>{ go("s-premios"); cargarHucha(true); });
@@ -2984,36 +3496,46 @@ $("btn-premio-add").addEventListener("click", async ()=>{
   $("premio-nombre").value = "";
   await cargarHucha();
 });
-$("btn-globos").addEventListener("click", ()=>startGlobos(false));
 $("btn-refrescar").addEventListener("click", ()=>{ sfx.click(); refrescarMisiones(false); });
 $("btn-papa").addEventListener("click", abrirPin);
 $("btn-sonido").addEventListener("click", ()=>{ S.sonido = !S.sonido; guardar(); pintarSonido(); if(S.sonido) sfx.ok(); });
 document.querySelectorAll(".btn-volver").forEach(b=>b.addEventListener("click", ()=>go("s-home")));
 $("btn-resumen-volver").addEventListener("click", ()=>go("s-home"));
-$("btn-premio-globos").addEventListener("click", ()=>startGlobos(true));
-$("btn-salir-globos").addEventListener("click", ()=>endGlobos(true));
-$("btn-mariposas").addEventListener("click", ()=>startMariposas(false));
-$("btn-premio-mariposas").addEventListener("click", ()=>startMariposas(true));
-$("btn-salir-mariposas").addEventListener("click", ()=>endMariposas(true));
+JUEGOS.forEach(j=>{
+  $(j.boton).addEventListener("click", ()=>j.start(false));           // pagando gemas
+  $("btn-premio-"+j.id).addEventListener("click", ()=>j.start(true)); // gratis al acabar una misión
+  $("btn-salir-"+j.id).addEventListener("click", j.fin);
+});
 $("btn-salir-juego").addEventListener("click", ()=>{
   if(salirArmado){ salirArmado = false; Tanda = null; go("s-home"); hada("¡Hasta ahora! 👋"); }
   else { salirArmado = true; hada("¿Seguro? Toca ✖️ otra vez para salir", 2500); setTimeout(()=>salirArmado=false, 2600); }
 });
 
 /* juego libre */
-const Libre = {tipo:"abn", nivel: PERFIL.nivel || 1};
+const Libre = {tipo:"abn", nivel: S.nivelLibre};
 const NOMBRE_TIPO = {abn:"Rejillas", cla:"Cuentas", igu:"Igualaciones", dif:"Diferencias", mul:"Multiplicar", div:"Repartir", rel:"Relojes", pes:"Pesos"};
 function pintarLibre(){
   document.querySelectorAll("#s-libre [data-tipo]").forEach(b=>
     b.style.opacity = b.dataset.tipo===Libre.tipo ? "1" : ".55");
-  document.querySelectorAll("#libre-niveles [data-nivel]").forEach(b=>
-    b.style.opacity = parseInt(b.dataset.nivel,10)===Libre.nivel ? "1" : ".55");
+  // los niveles por encima de lo que ha puesto el adulto no se pueden elegir
+  if(Libre.nivel > S.nivelLibre) Libre.nivel = S.nivelLibre;
+  document.querySelectorAll("#libre-niveles [data-nivel]").forEach(b=>{
+    const n = parseInt(b.dataset.nivel,10);
+    const vetado = n > S.nivelLibre;
+    b.disabled = vetado;
+    b.style.display = vetado ? "none" : "";
+    b.style.opacity = n===Libre.nivel ? "1" : ".55";
+  });
   $("libre-info").textContent = NOMBRE_TIPO[Libre.tipo]+" · Nivel "+Libre.nivel+" · 5 ejercicios";
 }
 document.querySelectorAll("#s-libre [data-tipo]").forEach(b=>
   b.addEventListener("click", ()=>{ Libre.tipo = b.dataset.tipo; sfx.click(); pintarLibre(); }));
 document.querySelectorAll("#libre-niveles [data-nivel]").forEach(b=>
-  b.addEventListener("click", ()=>{ Libre.nivel = parseInt(b.dataset.nivel,10); sfx.click(); pintarLibre(); }));
+  b.addEventListener("click", ()=>{
+    const n = parseInt(b.dataset.nivel,10);
+    if(n > S.nivelLibre) return;   // techo puesto por el adulto
+    Libre.nivel = n; sfx.click(); pintarLibre();
+  }));
 $("btn-libre-empezar").addEventListener("click", ()=>{
   if(limiteAlcanzado()){ despedidaLimite(); return; }
   // nivel automático: el nivel elegido ± su maestría en ese juego (SOLO juego libre; las misiones van al nivel de papá)
@@ -3045,6 +3567,13 @@ $("ajuste-nombre").addEventListener("change", ()=>{
   const n = $("ajuste-nombre").value.trim();
   if(n){ S.nombre = n.charAt(0).toUpperCase()+n.slice(1); guardar(); pintarHome(); }
 });
+document.querySelectorAll("#ajuste-nivel-libre .nivel-btn").forEach(b=>
+  b.addEventListener("click", ()=>{
+    S.nivelLibre = parseInt(b.dataset.n,10); guardar();
+    document.querySelectorAll("#ajuste-nivel-libre .nivel-btn").forEach(x=>x.classList.toggle("on", x===b));
+    pintarLibre();
+    hada(`Dificultad puesta en nivel ${S.nivelLibre} 👍`, 2600);
+  }));
 document.querySelectorAll("#ajuste-limite .nivel-btn").forEach(b=>
   b.addEventListener("click", ()=>{
     S.limiteMin = parseInt(b.dataset.lim,10); guardar();
@@ -3086,8 +3615,10 @@ document.querySelectorAll("#papa-tipos .chip-sel").forEach(ch=>{
   if(!on) ch.style.display = "none";
 });
 Papa.tipos = new Set(PERFIL.modulos);
-if(!JUEGOS_ACTIVOS.includes("globos")) $("btn-globos").classList.add("oculto");
-if(!JUEGOS_ACTIVOS.includes("mariposas")) $("btn-mariposas").classList.add("oculto");
+// juegos que el adulto dejó apagados en el portal: ni se ven
+JUEGOS.forEach(j=>{
+  if(!JUEGOS_ACTIVOS.includes(j.id)) $(j.boton).classList.add("oculto");
+});
 pintarLibre();
 pintarSonido();
 actualizarGemas();

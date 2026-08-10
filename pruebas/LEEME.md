@@ -46,6 +46,32 @@ Crea una misión de mentira con familias `PRUEBAA-…` / `PRUEBAB-…` y **la bo
 terminar**. No toca ningún dato real. Si el proyecto de Supabase está pausado por
 inactividad, avisa y se salta en vez de dar un falso fallo.
 
+## `navegador/` — lo que no se puede probar sin pantalla
+
+Los juegos de premio y las reglas de la interfaz (el anti-toqueteo, la repesca)
+tienen física, dedo y reloj: no se pueden probar recortando funciones. Para eso
+está `pruebas/navegador/`, que abre los motores en un Chromium de verdad, juega
+un rato de mentira y comprueba que pasa lo que tiene que pasar.
+
+**No entra en `node --test`** a propósito: necesita [Playwright], y el resto del
+proyecto no tiene ni una dependencia. Se lanza a mano cuando se toca un juego o
+el motor de opciones:
+
+```bash
+python -m http.server 8796          # en la raíz del repo, en otra terminal
+node pruebas/navegador/juegos.mjs        # los cinco juegos de premio
+node pruebas/navegador/aprendizaje.mjs   # anti-toqueteo, repesca, módulos por curso
+```
+
+Si Playwright está instalado en global (o el navegador en otra ruta):
+`PW=/ruta/playwright/index.mjs CHROME=/ruta/chrome node pruebas/navegador/juegos.mjs`.
+
+Merece la pena: la primera vez que se pasó, pilló que el muñeco de las
+plataformas **atravesaba las tablas** en vez de rebotar — bajando a 780 px/s se
+avanzan 13 px por fotograma, y la comprobación de choque miraba una franja de 2.
+
+[Playwright]: https://playwright.dev
+
 ## Cómo se añade una prueba
 
 Los generadores nuevos se prueban solos si se añaden a la lista `piezas` del motor

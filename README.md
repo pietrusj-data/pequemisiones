@@ -17,7 +17,7 @@ al aprendizaje.** El cliente es la familia entera, no el niño. La promesa no es
 | `en/` | Landing gemela en inglés (marca **PequeMissions**) |
 | `app/` | **El producto**: portal de perfiles + los dos motores (`primaria.html`, `infantil.html`) |
 | `demo-primaria/`, `demo-infantil/` | Escaparate: redirigen al motor con `?demo=1` (no son copias) |
-| `pruebas/` | Pruebas automáticas: `node --test pruebas/` |
+| `pruebas/` | Pruebas automáticas: `node --test pruebas/` (y `pruebas/navegador/`, a mano) |
 | `rejillas/`, `tabla-100/` | Herramientas ABN gratuitas (entrada por buscador) |
 | `confianza/`, `privacidad/` | Páginas legales y de transparencia |
 | `supabase/` | Esquema, seguridad (RLS) y edge functions del servidor |
@@ -43,7 +43,7 @@ pública), con cola offline en `localStorage` para que nunca se pierda un ejerci
 por falta de cobertura.
 
 **Privacidad por diseño:** los perfiles de los niños viven solo en el dispositivo.
-Al servidor solo llega un seudónimo y un código de familia opaco (tipo `LUNA-847`).
+Al servidor solo llega un seudónimo y un código de familia opaco e inadivinable (tipo `LUNA-K7M2-P6Q9`), que se comparte entre dispositivos por enlace.
 Ni el administrador puede saber cómo se llama un niño. Detalle en `privacidad/`.
 
 **Seguridad del canal de mensajes:** ninguna misión llega al niño sin que su texto

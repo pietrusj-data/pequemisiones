@@ -62,11 +62,13 @@ function jsDelMotor(rutaHtml) {
 }
 
 /* Lo que cada motor necesita del mundo exterior, en versión de mentira:
-   el tema visual (de temas.js), el perfil elegido y la maestría acumulada. */
+   el tema visual (de temas.js), el perfil elegido y la maestría acumulada.
+   `nivel` es el del curso del peque (1º de primaria = 1), del que cuelga el nivel
+   de la misión del día: por eso se puede elegir desde la prueba. */
 const ENTORNO = `
 const TEMA = { contar: [["🍎","manzanas"],["⭐","estrellas"],["🐟","peces"],["🌸","flores"]] };
-const PERFIL = { alias:"Peque", modulos:MODULOS_PRUEBA, juegos:[] };
-const S = { chispa: {}, nivelLibre: 2 };
+const PERFIL = { alias:"Peque", modulos:MODULOS_PRUEBA, juegos:[], nivel:NIVEL_PRUEBA };
+const S = { chispa: {}, nivelLibre: NIVEL_PRUEBA };
 `;
 
 const MOTORES = {
@@ -86,21 +88,21 @@ const MOTORES = {
     modulos: ["num", "sub", "pal", "ret", "ami", "vec", "fam", "sil", "tra"],
     piezas: [
       "ri", "conProb", "barajar", "VOCALES", "CONS_NIVEL", "NOMBRE_LETRA",
-      "PALABRAS", "silabasDe", "distractores", "EMOJIS_CONTAR",
+      "PALABRAS", "silabasDe", "distractores", "EMOJIS_CONTAR", "retRecientes",
       "genNum", "genAmi", "genVec", "genSil", "genTra", "genFam", "genSub", "genPal", "genRet",
       "GEN", "genMisionDiaria", "genTanda",
     ],
   },
 };
 
-function cargaMotor(cual) {
+function cargaMotor(cual, { nivel = 2, modulos } = {}) {
   const cfg = MOTORES[cual];
   if (!cfg) throw new Error(`Motor desconocido: ${cual}`);
   const src = jsDelMotor(path.join(RAIZ, cfg.archivo));
   const recortes = cfg.piezas.map(p => recorta(src, p)).join("\n");
   const devuelve = `return { ${cfg.piezas.join(", ")} };`;
-  const fabrica = new Function("MODULOS_PRUEBA", ENTORNO + recortes + "\n" + devuelve);
-  return fabrica(cfg.modulos);
+  const fabrica = new Function("MODULOS_PRUEBA", "NIVEL_PRUEBA", ENTORNO + recortes + "\n" + devuelve);
+  return fabrica(modulos || cfg.modulos, nivel);
 }
 
 module.exports = { cargaMotor, MOTORES, recorta, jsDelMotor };
