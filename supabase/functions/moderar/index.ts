@@ -50,8 +50,13 @@ function json(o: unknown, s = 200) {
   return new Response(JSON.stringify(o), { status: s, headers: { "Content-Type": "application/json" } });
 }
 
-async function leerFila(id: string) {
-  const r = await fetch(`${SB_URL}/rest/v1/pm_misiones?id=eq.${id}&select=id,titulo,mensaje,revision`, {
+// Desde 0013 también se moderan las apps de las niñas: el aviso trae {id, tabla}.
+// Solo estas tablas; cualquier otro valor cae a pm_misiones (y un id que no
+// exista ahí, a no_existe): nadie puede usar esta función contra otra tabla.
+const TABLAS_MODERADAS = new Set(["pm_misiones", "mates_misiones", "jim_misiones"]);
+
+async function leerFila(tabla: string, id: string) {
+  const r = await fetch(`${SB_URL}/rest/v1/${tabla}?id=eq.${id}&select=id,titulo,mensaje,revision`, {
     headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` },
   });
   if (!r.ok) return null;
@@ -59,8 +64,8 @@ async function leerFila(id: string) {
   return Array.isArray(d) && d[0] ? d[0] : null;
 }
 
-async function marcar(id: string, revision: string, motivo: string | null) {
-  const r = await fetch(`${SB_URL}/rest/v1/pm_misiones?id=eq.${id}&revision=eq.pendiente`, {
+async function marcar(tabla: string, id: string, revision: string, motivo: string | null) {
+  const r = await fetch(`${SB_URL}/rest/v1/${tabla}?id=eq.${id}&revision=eq.pendiente`, {
     method: "PATCH",
     headers: {
       apikey: SERVICE,
@@ -118,14 +123,15 @@ async function clasificar(texto: string): Promise<{ veredicto: string; motivo: s
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "metodo" }, 405);
-  let id = "";
+  let id = "", tabla = "pm_misiones";
   try {
     const b = await req.json();
     id = String(b?.id ?? b?.record?.id ?? "");
+    if (TABLAS_MODERADAS.has(String(b?.tabla ?? ""))) tabla = String(b.tabla);
   } catch (_) { /* sin cuerpo */ }
   if (!/^[0-9a-fA-F-]{36}$/.test(id)) return json({ error: "id_invalido" }, 400);
 
-  const fila = await leerFila(id);
+  const fila = await leerFila(tabla, id);
   if (!fila) return json({ error: "no_existe" }, 404);
   if (fila.revision !== "pendiente") return json({ ok: true, salta: fila.revision });
 
@@ -137,7 +143,7 @@ Deno.serve(async (req: Request) => {
   const texto = [tituloLibre ? `Título: ${titulo}` : "", mensaje ? `Mensaje: ${mensaje}` : ""].filter(Boolean).join("\n");
 
   if (!texto) {
-    const ok = await marcar(id, "aprobada", "sin_texto");
+    const ok = await marcar(tabla, id, "aprobada", "sin_texto");
     return json({ ok, revision: "aprobada", motivo: "sin_texto" });
   }
 
@@ -145,6 +151,6 @@ Deno.serve(async (req: Request) => {
   if ("error" in v) return json({ ok: false, pendiente: true, error: v.error }, 502);
 
   const revision = v.veredicto === "apta" ? "aprobada" : "retenida";
-  const ok = await marcar(id, revision, revision === "retenida" ? (v.motivo || "mensaje retenido") : null);
+  const ok = await marcar(tabla, id, revision, revision === "retenida" ? (v.motivo || "mensaje retenido") : null);
   return json({ ok, revision });
 });

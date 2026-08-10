@@ -10,7 +10,7 @@ ni revisar, ni recuperar si el proyecto se perdía. Ahora sí.
 ## Qué hay
 
 ```
-migrations/   el esquema y la seguridad, en orden (0001 → 0011)
+migrations/   el esquema y la seguridad, en orden (0001 → 0014)
 functions/    el código de las edge functions (moderar, ayudante, rotar y pago-webhook)
 ```
 
@@ -23,10 +23,12 @@ escritos para poder ejecutarse más de una vez sin romper nada (`if not exists`,
 
 Proyecto en producción: `tyoavvibplxkevxkamsb` (eu-west-1).
 
-1. Ejecutar los ficheros de `migrations/` en orden, del 0001 al 0012, en el editor SQL
+1. Ejecutar los ficheros de `migrations/` en orden, del 0001 al 0014, en el editor SQL
    de Supabase.
 2. Desplegar las funciones de `functions/` (Edge Functions → Deploy).
-   - `moderar`: **con** verificación de JWT (la llama la propia base de datos).
+   - `moderar`: **con** verificación de JWT (la llama la propia base de datos). Desde
+     0013 modera también las apps de las niñas: el aviso trae `{id, tabla}` y la
+     función solo acepta `pm_misiones`, `mates_misiones` y `jim_misiones`.
    - `ayudante`: **sin** verificación de JWT (si no, el navegador falla en el preflight
      CORS antes de llegar a la función; la protección real está dentro: entrada saneada,
      30 pistas/día por familia y 500/día globales).
