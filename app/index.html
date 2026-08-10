@@ -126,6 +126,7 @@ input[type=text]{width:100%; font-family:inherit; font-size:1.4rem; text-align:c
     <button class="btn btn-mini btn-p1" id="aj-atras">⬅️ Volver</button>
     <button class="btn btn-p2" style="flex:1;" id="aj-guardar">Guardar ✅</button>
   </div>
+  <button id="aj-quitar" style="border:none; background:none; color:var(--tinta-suave); text-decoration:underline; cursor:pointer; font-family:inherit; font-size:.9rem; margin-top:10px;">🗑 Quitar esta tarjeta de este dispositivo</button>
 </section>
 
 <!-- ══════════ WIZARD DE ALTA ══════════ -->
@@ -360,6 +361,11 @@ $("btn-reforzar").addEventListener("click", async ()=>{
 });
 
 /* ── selector de perfiles ── */
+/* La landing promete "hasta 3 peques" por familia. Este tope solo vigila ESTE
+   dispositivo (los perfiles nunca pisan el servidor): el tope real entre
+   dispositivos llegará con el registro de miembros del hito pre-cobro. */
+const MAX_PEQUES = 3;
+const msjFamiliaLlena = ()=>alert("En cada familia caben hasta " + MAX_PEQUES + " peques 🧡\nSi una tarjeta ya no se usa, puedes quitarla desde sus ajustes ⚙️ (sus resultados no se pierden).");
 function pintarPerfiles(){
   const lista = LSP.get("perfiles", []);
   const cont = $("lista-perfiles");
@@ -383,8 +389,14 @@ function pintarPerfiles(){
   });
   const nuevo = document.createElement("div");
   nuevo.className = "perfil-card nuevo";
-  nuevo.innerHTML = `<div class="cara">➕</div><div class="nom">Nuevo peque</div>`;
-  nuevo.addEventListener("click", abrirWizard);
+  if(lista.length >= MAX_PEQUES){
+    nuevo.style.opacity = ".8";
+    nuevo.innerHTML = `<div class="cara">👨‍👩‍👧‍👦</div><div class="nom">Familia completa</div><div class="det">hasta ${MAX_PEQUES} peques</div>`;
+    nuevo.addEventListener("click", msjFamiliaLlena);
+  } else {
+    nuevo.innerHTML = `<div class="cara">➕</div><div class="nom">Nuevo peque</div>`;
+    nuevo.addEventListener("click", abrirWizard);
+  }
   cont.appendChild(nuevo);
   if(!lista.length) $("hint-portal").textContent = "Crea la primera tarjeta para empezar 🎉";
   pintarCodigo();
@@ -429,10 +441,22 @@ $("aj-guardar").addEventListener("click", ()=>{
   cerrarAjustes();
   pintarPerfiles();
 });
+$("aj-quitar").addEventListener("click", ()=>{
+  const lista = LSP.get("perfiles", []);
+  const p = lista.find(x=>x.id===AJ.id);
+  if(!p){ cerrarAjustes(); return; }
+  if(!confirm("¿Quitar la tarjeta de " + p.alias + " de este dispositivo?\n\nSus resultados y misiones NO se borran: si algún día vuelves a crear una tarjeta con su mismo nombre, lo recuperará todo.")) return;
+  LSP.set("perfiles", lista.filter(x=>x.id!==AJ.id));
+  const activo = LSP.get("perfilActivo", null);
+  if(activo && activo.id === AJ.id) LSP.set("perfilActivo", null);
+  cerrarAjustes();
+  pintarPerfiles();
+});
 
 /* ── wizard ── */
 const W = { paso:1, alias:"", genero:null, curso:null, tema:null, modulos:new Set(), juegos:new Set() };
 function abrirWizard(){
+  if(LSP.get("perfiles", []).length >= MAX_PEQUES){ msjFamiliaLlena(); return; }
   W.paso = 1; W.alias = ""; W.genero = null; W.curso = null; W.tema = null; W.modulos = new Set(); W.juegos = new Set();
   $("w-alias").value = "";
   $("w-tutor").checked = false; // el consentimiento se declara en cada alta, no se hereda
