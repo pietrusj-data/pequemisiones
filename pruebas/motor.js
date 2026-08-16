@@ -69,31 +69,37 @@ const ENTORNO = `
 const TEMA = { contar: [["🍎","manzanas"],["⭐","estrellas"],["🐟","peces"],["🌸","flores"]] };
 const PERFIL = { alias:"Peque", modulos:MODULOS_PRUEBA, juegos:[], nivel:NIVEL_PRUEBA };
 const S = { chispa: {}, nivelLibre: NIVEL_PRUEBA };
+/* localStorage de mentira: la bolsa anti-repetición cree que siempre está vacía */
+const LS = { get(k, def){ return def; }, set(){} };
 `;
 
 const MOTORES = {
   primaria: {
     archivo: "app/primaria.html",
-    modulos: ["abn", "cla", "igu", "dif", "mul", "div", "rel", "pes", "geo", "cie"],
+    modulos: ["abn", "cla", "igu", "dif", "mul", "div", "rel", "pes", "geo", "cie", "ing"],
     piezas: [
-      "ri", "llevaSuma", "llevaResta", "conProb", "mayorPrimero", "barajar",
+      "ri", "llevaSuma", "llevaResta", "conProb", "mayorPrimero", "barajar", "cap1",
+      "Bolsas", "sacarDeBolsa",
       "PERSONAJES", "ITEMS", "HORAS_TXT", "fmtHM", "horaEnPalabras",
       "nombreP", "fraseIgu", "relObjetivo", "pesoEnTexto", "pesTotal",
+      "difDec", "difFmt", "difHabla", "GRAMOS",
       "MAPA_ES", "MAPA_MU", "TOPE_GEO", "piezasMapa", "piezaGeo", "piezasGeo",
       "conArtGeo", "opcionesGeo",
       "LAMINAS", "CICLOS", "CESTAS", "laminaDe", "partesLam", "parteLam", "conArtCie",
       "genSenala", "genOrdena", "genClasifica", "genCie",
+      "VOCAB_ING", "NUM_ING", "vocabIng", "pluralIng", "fraseIng", "distractoresIng", "genIng",
       "genAbn", "genCla", "genIgu", "genDif", "genRel", "genPes", "genMul", "genDiv", "genGeo",
       "GEN", "genMisionDiaria", "genTanda",
     ],
   },
   infantil: {
     archivo: "app/infantil.html",
-    modulos: ["num", "sub", "pal", "ret", "ami", "vec", "fam", "sil", "tra"],
+    modulos: ["num", "sub", "pal", "ret", "ami", "vec", "fam", "sil", "tra", "cyd"],
     piezas: [
       "ri", "conProb", "barajar", "VOCALES", "CONS_NIVEL", "NOMBRE_LETRA",
       "PALABRAS", "silabasDe", "distractores", "EMOJIS_CONTAR", "retRecientes",
-      "genNum", "genAmi", "genVec", "genSil", "genTra", "genFam", "genSub", "genPal", "genRet",
+      "PALABRAS_CUENTA", "palabraCuenta",
+      "genNum", "genAmi", "genVec", "genSil", "genTra", "genFam", "genSub", "genPal", "genRet", "genCyd",
       "GEN", "genMisionDiaria", "genTanda",
     ],
   },

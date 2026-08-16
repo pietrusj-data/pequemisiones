@@ -95,6 +95,47 @@ describe("motor de primaria", () => {
     }
   });
 
+  test("genDif · los sabores (enteros, décimas, euros) respetan el nivel", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genDif, nivel)) {
+        const d = ej.d;
+        assert.ok(["ent", "dec", "eur"].includes(d.m), `sabor desconocido: ${d.m}`);
+        if (nivel === 1) assert.equal(d.m, "ent", "el nivel 1 va solo con enteros");
+        if (nivel === 2) assert.ok(d.m !== "eur", "los euros no tocan hasta el nivel 3");
+        if (d.m === "eur") {
+          // precios de tienda: céntimos en múltiplos de 5 (monedas reales)
+          assert.equal(d.a % 5, 0, `precio raro: ${d.a} céntimos`);
+          assert.equal(d.b % 5, 0, `precio raro: ${d.b} céntimos`);
+        }
+        // el formato con coma es reversible: lo que se enseña cuadra con lo interno
+        assert.ok(M.difFmt(d.a, d.m).length > 0 && M.difHabla(d.a, d.m).length > 0,
+          "la cantidad no se sabe escribir o decir");
+      }
+    }
+  });
+
+  test("genIng · la palabra pedida está siempre entre las opciones", () => {
+    for (const nivel of [1, 2, 3]) {
+      for (const ej of muchas(M.genIng, nivel)) {
+        const d = ej.d;
+        if (d.sub === "cuenta") {
+          assert.ok(d.k >= 1 && d.k <= 10, `cuenta fuera de rango: ${d.k}`);
+          assert.ok(d.ops.includes(d.k), "la cantidad buena no está entre las opciones");
+          assert.equal(new Set(d.ops).size, d.ops.length, "opciones de número repetidas");
+          assert.ok(M.vocabIng(d.id) && M.vocabIng(d.id).c, `"${d.id}" no es contable con plural regular`);
+          continue;
+        }
+        const w = M.vocabIng(d.id);
+        assert.ok(w, `palabra desconocida: ${d.id}`);
+        assert.ok(w.niv <= nivel, `nivel ${nivel} preguntando "${w.en}" (es de nivel ${w.niv})`);
+        assert.ok(d.ops.includes(d.id), `"${w.en}": la respuesta no está entre las opciones`);
+        assert.equal(new Set(d.ops).size, d.ops.length, `"${w.en}": opciones repetidas`);
+        d.ops.forEach(id => assert.ok(M.vocabIng(id), `opción desconocida: ${id}`));
+        if (d.sub === "oye") assert.ok(nivel >= 2, "el modo escucha no debería salir en nivel 1");
+      }
+    }
+  });
+
   test("genRel · horas válidas y objetivo dentro del día", () => {
     for (const nivel of [1, 2, 3]) {
       for (const ej of muchas(M.genRel, nivel)) {
@@ -119,6 +160,15 @@ describe("motor de primaria", () => {
     for (const nivel of [1, 2, 3]) {
       for (const ej of muchas(M.genPes, nivel)) {
         const d = ej.d;
+        if (d.sub === "gram") {
+          // equivalencias kilo↔gramos: la pregunta existe y respeta el nivel
+          const it = M.GRAMOS.find(x => x.id === d.id);
+          assert.ok(it, `equivalencia desconocida: ${d.id}`);
+          assert.ok(it.niv <= nivel, `"${it.txt}" (nivel ${it.niv}) no toca aún en nivel ${nivel}`);
+          assert.ok(["gramos", "nombre"].includes(d.dir), `dirección rara: ${d.dir}`);
+          if (nivel === 1) assert.equal(d.dir, "gramos", "en nivel 1 solo se pregunta a gramos");
+          continue;
+        }
         const total = M.pesTotal(d);
         assert.ok(total > 0, "peso de cero");
         if (d.sub === "lee") {
@@ -449,7 +499,11 @@ describe("motor de infantil", () => {
   test("genSil y genTra · solo letras que la app sabe decir y dibujar", () => {
     for (const nivel of [1, 2, 3, 4]) {
       for (const ej of muchas(M.genTra, nivel, 200)) {
-        assert.ok(M.NOMBRE_LETRA[ej.d.letra], `la app no sabe decir "${ej.d.letra}"`);
+        // desde el Reto de caligrafía salen también sílabas de dos glifos ("FE"):
+        // se dicen tal cual, pero cada glifo por separado sí debe ser conocido
+        const glifos = String(ej.d.letra).split("");
+        assert.ok(M.NOMBRE_LETRA[ej.d.letra] || (glifos.length === 2 && glifos.every(g => M.NOMBRE_LETRA[g])),
+          `la app no sabe decir "${ej.d.letra}"`);
       }
       for (const ej of muchas(M.genSil, nivel, 200)) {
         assert.ok(ej.d && ej.d.sub, "sílaba sin subtipo");

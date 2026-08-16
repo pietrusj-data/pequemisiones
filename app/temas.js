@@ -131,28 +131,38 @@ function keyDe(perfil) { return (perfil && perfil.key) || clavePerfil(perfil && 
      se trocean por frases y cada trozo se encola aparte, que es la única forma
      fiable de obligar al sintetizador a respirar. */
 const PM_VOZ = {
-  _voz: null, _vistas: -1,
-  elige() {
+  _voz: null, _vozEn: null, _vistas: -1,
+  elige(idioma) {
     if (!window.speechSynthesis) return null;
+    const en = idioma === "en";
     const voces = speechSynthesis.getVoices();
-    if (voces.length !== this._vistas) { this._vistas = voces.length; this._voz = null; }
-    if (this._voz) return this._voz;
+    if (voces.length !== this._vistas) { this._vistas = voces.length; this._voz = null; this._vozEn = null; }
+    if (en && this._vozEn) return this._vozEn;
+    if (!en && this._voz) return this._voz;
     const nota = v => {
       let n = 0;
       const nom = (v.name || "").toLowerCase();
-      if (v.lang === "es-ES") n += 4; else if ((v.lang || "").toLowerCase().startsWith("es")) n += 2;
+      const lang = (v.lang || "").toLowerCase();
+      if (en) {
+        if (lang === "en-gb") n += 4; else if (lang === "en-us") n += 3; else if (lang.startsWith("en")) n += 2;
+        if (/serena|kate|daniel|sonia|libby|hazel|susan|zira|aria/.test(nom)) n += 2; // las buenas de iOS/Windows
+      } else {
+        if (v.lang === "es-ES") n += 4; else if (lang.startsWith("es")) n += 2;
+        if (/m[oó]nica|paulina|marisol|helena|laura|elvira|álvaro|alvaro|dario|darío/.test(nom)) n += 2; // las buenas de iOS/Windows
+      }
       if (nom.includes("google")) n += 3;                      // la de Android/Chrome, muy natural
-      if (/m[oó]nica|paulina|marisol|helena|laura|elvira|álvaro|alvaro|dario|darío/.test(nom)) n += 2; // las buenas de iOS/Windows
       if (nom.includes("espeak") || nom.includes("robot")) n -= 6; // la metálica de Linux
       return n;
     };
-    this._voz = voces.filter(v => (v.lang || "").toLowerCase().startsWith("es"))
+    const eleccion = voces.filter(v => (v.lang || "").toLowerCase().startsWith(en ? "en" : "es"))
       .sort((a, b) => nota(b) - nota(a))[0] || null;
-    return this._voz;
+    if (en) this._vozEn = eleccion; else this._voz = eleccion;
+    return eleccion;
   },
   decir(txt, opts) {
     if (!window.speechSynthesis) return;
     const o = opts || {};
+    const en = o.idioma === "en";
     try {
       speechSynthesis.cancel();
       // partir por puntos y signos; los trozos aún largos, por comas
@@ -163,10 +173,10 @@ const PM_VOZ = {
           if (t.length <= 90) return [t];
           return t.replace(/,\s+/g, ",\n").split(/\n+/).map(x => x.trim()).filter(Boolean);
         });
-      const voz = this.elige();
+      const voz = this.elige(en ? "en" : "es");
       trozos.forEach(t => {
         const u = new SpeechSynthesisUtterance(t);
-        u.lang = "es-ES";
+        u.lang = en ? "en-GB" : "es-ES";
         u.rate = o.rate || 0.85;
         u.pitch = o.pitch || 1.15;
         if (voz) u.voice = voz;
@@ -176,5 +186,5 @@ const PM_VOZ = {
   }
 };
 if (window.speechSynthesis && speechSynthesis.addEventListener) {
-  speechSynthesis.addEventListener("voiceschanged", () => { PM_VOZ._voz = null; });
+  speechSynthesis.addEventListener("voiceschanged", () => { PM_VOZ._voz = null; PM_VOZ._vozEn = null; });
 }

@@ -399,6 +399,9 @@ svg.lamina{max-width:340px;}
     <button class="btn btn-cielo" style="flex:1; min-width:150px;" data-tipo="geo">🌍 Geografía</button>
     <button class="btn btn-menta" style="flex:1; min-width:150px;" data-tipo="cie">🌿 Naturaleza</button>
   </div>
+  <div class="fila">
+    <button class="btn btn-lila" style="flex:1; min-width:150px; max-width:320px;" data-tipo="ing">🇬🇧 Inglés</button>
+  </div>
   <h2 style="font-size:1.2rem;">Elige nivel</h2>
   <div class="fila" id="libre-niveles">
     <button class="btn btn-oro" data-nivel="1" style="flex:1;">👑<br>Nivel 1</button>
@@ -549,8 +552,8 @@ svg.lamina{max-width:340px;}
       <label>Nivel</label>
       <div class="nivel-sel" id="papa-niveles">
         <button class="nivel-btn on" data-n="1">Nivel 1<br><small>fáciles, alguna llevada</small></button>
-        <button class="nivel-btn" data-n="2">Nivel 2<br><small>con llevadas</small></button>
-        <button class="nivel-btn" data-n="3">Nivel 3<br><small>dobles sumas, sumirrestas</small></button>
+        <button class="nivel-btn" data-n="2">Nivel 2<br><small>llevadas · décimas</small></button>
+        <button class="nivel-btn" data-n="3">Nivel 3<br><small>3 cifras · euros y décimas</small></button>
       </div>
     </div>
     <div class="form-linea">
@@ -565,6 +568,7 @@ svg.lamina{max-width:340px;}
         <button class="chip-sel" data-t="pes">🧺 Pesos</button>
         <button class="chip-sel" data-t="geo">🌍 Geografía (mapas)</button>
         <button class="chip-sel" data-t="cie">🌿 Naturaleza</button>
+        <button class="chip-sel" data-t="ing">🇬🇧 Inglés (palabras)</button>
       </div>
     </div>
     <div class="form-linea">
@@ -654,8 +658,8 @@ svg.lamina{max-width:340px;}
       <label>Dificultad (juego libre y misión del día)</label>
       <div class="nivel-sel" id="ajuste-nivel-libre">
         <button class="nivel-btn on" data-n="1">Nivel 1<br><small>fáciles, alguna llevada</small></button>
-        <button class="nivel-btn" data-n="2">Nivel 2<br><small>con llevadas</small></button>
-        <button class="nivel-btn" data-n="3">Nivel 3<br><small>dobles sumas, sumirrestas</small></button>
+        <button class="nivel-btn" data-n="2">Nivel 2<br><small>llevadas · décimas</small></button>
+        <button class="nivel-btn" data-n="3">Nivel 3<br><small>3 cifras · euros y décimas</small></button>
       </div>
       <p class="sub" style="text-align:left; font-size:.85rem;">Es el <b>techo</b>: ella no puede subir de ahí en el juego libre. Dentro de ese techo se ajusta sola — si encadena aciertos a la primera sube un puntito, y si el hada tiene que enseñarle, baja. Las misiones que le mandes tú van SIEMPRE al nivel que elijas al crearlas.</p>
     </div>
@@ -713,7 +717,7 @@ svg.lamina{max-width:340px;}
    quedaba atrás cada vez que el motor cambiaba; ahora no puede desincronizarse. */
 const DEMO = new URLSearchParams(location.search).has("demo");
 const PERFIL_DEMO = { id:"demo", alias:"Princesa", genero:"nina", curso:"pri2", nivel:2,
-  tema:"princesas", modulos:["abn","igu","dif","mul","div","rel","pes","geo","cie"],
+  tema:"princesas", modulos:["abn","igu","dif","mul","div","rel","pes","geo","cie","ing"],
   juegos:["globos","mariposas","naves","plataformas","dibujar"] };
 /* ── PequeMisiones: perfil del portal ── */
 const PERFIL = DEMO ? PERFIL_DEMO
@@ -819,6 +823,11 @@ function hablar(txt, rate){
   // la elección de voz y el troceo por frases viven en PM_VOZ (temas.js)
   PM_VOZ.decir(txt, {rate: rate || 0.9, pitch: 1.15});
 }
+/* inglés un punto más despacio: está aprendiendo el idioma, no corriendo */
+function hablarEN(txt, rate){
+  if(!S.voz || !window.speechSynthesis) return;
+  PM_VOZ.decir(txt, {rate: rate || 0.8, pitch: 1.1, idioma:"en"});
+}
 
 /* ═══════════════ CONFETI ═══════════════ */
 const fx = $("fx"), fxc = fx.getContext("2d");
@@ -846,8 +855,13 @@ function confetiCentro(){ confeti(innerWidth/2, innerHeight*0.35, 60); }
 
 /* ═══════════════ HADA Y PREMIOS ═══════════════ */
 let hadaTimer = null;
-const ANIMOS = ["¡Casi casi! 🌸 Inténtalo otra vez","¡Tú puedes! 💪","Respira hondo y cuenta despacito 🦋", FEM?"¡Las mejores campeonas lo intentan otra vez! 👑":"¡Los mejores campeones lo intentan otra vez! 👑","¡Un poquito más y lo tienes! ⭐"];
-const ELOGIOS = ["¡FANTÁSTICO, {N}!", FEM?"¡Eres una campeona! 🌟":"¡Eres un campeón! 🌟","¡Toma ya! 💃", FEM?"¡Increíble, campeona! 👑":"¡Increíble, campeón! 👑","¡Chispas el dragón está orgulloso! 🐉","¡Sigue así, {N}! 🦄"];
+/* Ánimos tras un error: nada de "¡casi casi!" ni "un poquito más" — la mascota
+   no sabe si estuvo cerca y decirlo en falso confunde. Solo frases que son
+   verdad siempre y que dicen QUÉ HACER: parar, mirar, contar, probar otra vez. */
+const ANIMOS = ["No pasa nada: míralo otra vez despacito 🌸","Respira hondo y cuéntalo con calma 🦋","Vuelve a leerlo y piensa el paso pequeñito 👣","Equivocarse también es aprender. ¡Otra vez! 💪","Para, mira bien los números… y prueba de nuevo ⭐"];
+const ELOGIOS = ["¡FANTÁSTICO, {N}!", FEM?"¡Eres una campeona! 🌟":"¡Eres un campeón! 🌟","¡Toma ya! 💃","¡Bien pensado, {N}! 🧠","¡Lo has clavado! 🎯","¡Chispas el dragón está orgulloso! 🐉","¡Sigue así, {N}! 🦄"];
+/* para decir frases en voz alta sin que el TTS lea los emojis */
+function sinEmojis(t){ return String(t).replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,"").trim(); }
 function hada(msg, ms){
   const b = $("hada-burbuja");
   b.textContent = msg; b.classList.add("ver");
@@ -855,7 +869,10 @@ function hada(msg, ms){
   hadaTimer = setTimeout(()=>b.classList.remove("ver"), ms||3600);
 }
 function hadaAnimo(nFallos, pista){
-  if(nFallos>=2 && pista){ hada("💡 "+pista, 4200); }
+  /* si el juego sabe QUÉ ha pasado (la pista concreta del error), se dice eso
+     desde el primer fallo: es lo único coherente con ese momento. El ánimo
+     genérico queda para los fallos sin diagnóstico. */
+  if(pista){ hada("💡 "+pista, 4200); }
   else { hada(ANIMOS[Math.floor(Math.random()*ANIMOS.length)]); }
   sfx.mal();
 }
@@ -869,8 +886,8 @@ function premioGrande(txt, decir){
   if(decir) hablar(decir);
 }
 function elogio(){
-  const t = ELOGIOS[Math.floor(Math.random()*ELOGIOS.length)].replace("{N}", S.nombre||"princesa");
-  premioGrande(t, t.replace(/[¡!👑🌟💃🐉🦄]/g,""));
+  const t = ELOGIOS[Math.floor(Math.random()*ELOGIOS.length)].replace("{N}", S.nombre||(FEM?"campeona":"campeón"));
+  premioGrande(t, sinEmojis(t));
   sfx.ok();
 }
 
@@ -950,12 +967,32 @@ function seleccionarCelda(el){
   el.classList.add("activa");
   Pad.celda = el;
 }
-function hacerEditable(el, maxlen){
+function hacerEditable(el, maxlen, dec){
   el.classList.add("celda");
   el.dataset.maxlen = maxlen||3;
+  /* dec>0 = celda con coma automática (décimas o céntimos): se teclean solo
+     dígitos y la coma se coloca sola desde la derecha, como una caja
+     registradora — imposible ponerla en el sitio equivocado */
+  if(dec) el.dataset.dec = dec;
   el.addEventListener("pointerdown", e=>{ e.preventDefault(); sfx.click(); seleccionarCelda(el); });
 }
+function pintaDec(el){
+  const raw = el.dataset.raw||"", dec = parseInt(el.dataset.dec,10);
+  if(raw===""){ el.textContent = ""; return; }
+  const v = parseInt(raw,10);
+  const ent = Math.floor(v/Math.pow(10,dec)), fr = String(v%Math.pow(10,dec)).padStart(dec,"0");
+  el.textContent = ent+","+fr;
+}
+function ponValor(el, v){
+  const dec = parseInt(el.dataset.dec||"0",10);
+  if(dec){ el.dataset.raw = String(v); pintaDec(el); }
+  else el.textContent = v;
+}
 function valorCelda(el){
+  if(el.dataset.dec){
+    const raw = el.dataset.raw||"";
+    return raw==="" ? null : parseInt(raw,10);
+  }
   const t = (el.textContent||"").trim();
   return t==="" ? null : parseInt(t,10);
 }
@@ -966,8 +1003,15 @@ function padTecla(d){
     if(libre) seleccionarCelda(libre); else return;
   }
   const el = Pad.celda;
-  if(d==="borrar"){ el.textContent = (el.textContent||"").slice(0,-1); sfx.click(); return; }
   const max = parseInt(el.dataset.maxlen||"3",10);
+  if(el.dataset.dec){ // celda decimal: se trabaja sobre los dígitos crudos
+    let raw = el.dataset.raw||"";
+    if(d==="borrar"){ raw = raw.slice(0,-1); }
+    else { if(raw.length >= max) raw = ""; raw += d; raw = raw.replace(/^0+(?=\d)/,""); }
+    el.dataset.raw = raw; pintaDec(el); sfx.click();
+    return;
+  }
+  if(d==="borrar"){ el.textContent = (el.textContent||"").slice(0,-1); sfx.click(); return; }
   if((el.textContent||"").length >= max) el.textContent = "";
   el.textContent = (el.textContent||"") + d;
   sfx.click();
@@ -989,6 +1033,7 @@ function conProb(p){ return Math.random() < p; }
 // Convención ABN: el número mayor siempre a la izquierda (se empieza por el mayor)
 function mayorPrimero(a,b){ return a>=b ? [a,b] : [b,a]; }
 function barajar(arr){ return arr.slice().sort(()=>Math.random()-.5); }
+function cap1(t){ return t.charAt(0).toUpperCase()+t.slice(1); }
 
 function genAbn(nivel){
   if(nivel===1){
@@ -1078,13 +1123,47 @@ function fraseIgu(d){
     : `¿Cuántas ${d.item} le faltan a ${A} para tener las mismas que ${d.pb===-1?"tú":B}?`;
   return `${tiene1} ${d.min} ${d.item} y ${tiene2} ${d.max}. ${preg}`;
 }
+/* Diferencias como las hacen en el cole: NO se resta a los dos números — se
+   parte del pequeño y se va SUMANDO saltos hasta igualar al grande; la
+   diferencia es todo lo que se ha sumado. Tres sabores según el nivel:
+   enteros, números con décimas y euros con céntimos. Los decimales se llevan
+   por dentro en unidades pequeñas (décimas/céntimos) para no tocar floats. */
 function genDif(nivel){
+  const sabor = nivel===1 ? "ent"
+    : nivel===2 ? (conProb(.35) ? "dec" : "ent")
+    : ["ent","dec","eur"][ri(0,2)];
   let b, dif;
-  if(nivel===1){ b=ri(4,40); dif=ri(3,20); }
+  if(sabor==="dec"){ // en décimas: 3,8 … 9,9
+    if(nivel===2){ b=ri(15,60); dif=ri(4,35); }
+    else { b=ri(20,110); dif=ri(6,70); }
+  } else if(sabor==="eur"){ // en céntimos y múltiplos de 5: precios de tienda
+    b = 5*ri(6,90); dif = 5*ri(3,60);
+  } else if(nivel===1){ b=ri(4,40); dif=ri(3,20); }
   else if(nivel===2){ b=ri(10,54); dif=ri(5,45); }
   else { b=ri(40,170); dif=ri(8,90); }
   const a = b + dif;
-  return {t:"dif", d:{a, b}}; // el mayor siempre primero
+  return {t:"dif", d:{a, b, m:sabor}}; // el mayor siempre primero
+}
+/* formato según el sabor: 74 décimas → "7,4" · 345 céntimos → "3,45 €" */
+function difDec(m){ return m==="eur" ? 2 : m==="dec" ? 1 : 0; }
+function difFmt(v, m){
+  if(m==="eur") return Math.floor(v/100)+","+String(v%100).padStart(2,"0")+" €";
+  if(m==="dec") return Math.floor(v/10)+","+(v%10);
+  return String(v);
+}
+/* para decirlo en voz alta sin que suene "tres coma cuarenta y cinco euros" */
+function difHabla(v, m){
+  if(m==="eur"){
+    const e = Math.floor(v/100), c = v%100;
+    if(!c) return e+(e===1?" euro":" euros");
+    if(!e) return c+" céntimos";
+    return e+(e===1?" euro":" euros")+" con "+c;
+  }
+  if(m==="dec"){
+    const u = Math.floor(v/10), d = v%10;
+    return d ? u+" coma "+d : String(u);
+  }
+  return String(v);
 }
 
 /* ── relojes ── */
@@ -1131,7 +1210,23 @@ function pesoEnTexto(q){
   const base = kg + (kg===1 ? " kilo" : " kilos");
   return base + ["", " y cuarto", " y medio", " y tres cuartos"][r];
 }
+/* equivalencias kilo↔gramos, pedidas por papá: ¿cuántos gramos son un kilo,
+   medio kilo, un cuarto…? y el camino de vuelta (500 g → medio kilo) */
+const GRAMOS = [
+  {id:"kilo",    txt:"un kilo",              g:1000, niv:1},
+  {id:"medio",   txt:"medio kilo",           g:500,  niv:1},
+  {id:"cuarto",  txt:"un cuarto de kilo",    g:250,  niv:2},
+  {id:"tresc",   txt:"tres cuartos de kilo", g:750,  niv:3},
+  {id:"kymedio", txt:"kilo y medio",         g:1500, niv:3}
+];
 function genPes(nivel){
+  if(conProb(.35)){
+    const pool = GRAMOS.filter(x=>x.niv<=nivel);
+    const id = sacarDeBolsa("pes-gram-n"+nivel, pool.map(x=>x.id));
+    /* de gramos a nombre solo desde nivel 2: antes toca aprender los números */
+    const dir = nivel>=2 && conProb(.4) ? "nombre" : "gramos";
+    return {t:"pes", d:{sub:"gram", id, dir}};
+  }
   let q;
   if(nivel===1){ q = ri(1,3)*4 + [0,0,2,2,1,3][ri(0,5)]; }
   else if(nivel===2){ q = ri(5,24); }
@@ -1490,6 +1585,63 @@ const conArtCie = p => (p.art ? p.art + " " : "") + p.n.toLowerCase();
 /* "los sépalos" y "las hojas" piden el verbo en plural */
 const plurCie = p => p.art === "los" || p.art === "las";
 
+/* ── Naturaleza también en inglés (Science): antes de la tanda se elige idioma.
+   El CONTENIDO (preguntas, nombres, cestas) va en inglés y con voz inglesa;
+   los ánimos y las ayudas de la mascota siguen en español, que es como lo hace
+   la profe de un cole bilingüe: la lengua nueva para la materia, la suya para
+   consolar. Los nombres van aparte para no tocar la línea gigante de LAMINAS. */
+const CIE_EN = {
+  titulos: {planta:"the plant", flor:"the flower", rio:"the river"},
+  partes: {
+    "planta:flor":"Flower", "planta:tallo":"Stem", "planta:hoja":"Leaves",
+    "planta:fruto":"Fruit", "planta:raiz":"Roots",
+    "flor:petalo":"Petals", "flor:tallo":"Stem", "flor:sepalo":"Sepals",
+    "flor:estambre":"Stamens", "flor:pistilo":"Pistil",
+    "rio:montana":"Mountain", "rio:rio":"River", "rio:afluente":"Tributary",
+    "rio:nacimiento":"Source", "rio:desembocadura":"River mouth", "rio:mar":"Sea"
+  },
+  ciclos: {
+    agua: {n:"The water cycle", pasos:["The sun heats the sea water","The water goes up as vapour","Up high it is cold and clouds form","Rain falls from the clouds","The water returns to the sea through the rivers"]},
+    semilla: {n:"From seed to plant", pasos:["The seed is planted in the soil","A root and a little shoot come out","The stem and the leaves grow","The plant gives its flower"]},
+    polen: {n:"Pollination", pasos:["The flower keeps its pollen in the stamens","The bee lands and the pollen sticks to it","It leaves the pollen on another flower's pistil","That flower makes a fruit with seeds"]},
+    estaciones: {n:"The seasons", pasos:["In spring the flowers come out","In summer it is hot and the days are long","In autumn the leaves fall","In winter it is cold and it rains or snows"]}
+  },
+  cestas: {
+    vivo:   {n:"Living or non-living?", labels:{vivo:"Living things", no:"Non-living things"}},
+    nace:   {n:"How is it born?",       labels:{huevo:"From an egg", madre:"From its mother"}},
+    vert:   {n:"Bones inside or not?",  labels:{vert:"Vertebrates", inv:"Invertebrates"}},
+    comida: {n:"What does it eat?",     labels:{herb:"Herbivore", carn:"Carnivore", omni:"Omnivore"}},
+    estado: {n:"Solid, liquid or gas?", labels:{sol:"Solid", liq:"Liquid", gas:"Gas"}}
+  }
+};
+const cieEnParte = (lam, p) => CIE_EN.partes[lam + ":" + p.id] || p.n;
+/* pantalla previa de idioma: se pregunta UNA vez por tanda, y se recuerda la
+   última elección para dejarla ya iluminada */
+function renderCieIdioma(z){
+  const e = document.createElement("div");
+  e.className = "enunciado-txt"; e.style.fontWeight = "800";
+  e.textContent = "🌿 Naturaleza… ¿en qué idioma jugamos hoy?";
+  z.appendChild(e);
+  hablar("¿En qué idioma jugamos hoy?");
+  const fila = document.createElement("div");
+  fila.className = "fila opciones-geo";
+  [["es","🇪🇸 En español"],["en","🇬🇧 In English"]].forEach(([id, txt])=>{
+    const b = document.createElement("button");
+    b.className = "opcion-geo";
+    b.style.fontSize = "1.2rem";
+    if((S.idiomaCie||"es")===id) b.style.borderColor = "var(--lila-osc)";
+    b.textContent = txt;
+    b.addEventListener("pointerdown", ev=>{
+      ev.preventDefault(); sfx.click();
+      Tanda.idiomaCie = id; S.idiomaCie = id; guardar();
+      if(id==="en") hablarEN("Let's play in English!");
+      renderEj();
+    });
+    fila.appendChild(b);
+  });
+  z.appendChild(fila);
+}
+
 function genCie(nivel){
   const dado = Math.random();
   if(dado < .45) return genSenala(nivel);
@@ -1535,6 +1687,10 @@ function genClasifica(nivel){
 function renderCie(d){
   const z = $("zona-ejercicio");
   $("pad").classList.add("oculto");
+  /* antes del primer ejercicio de Naturaleza de la tanda: ¿español o inglés? */
+  if(!Tanda.idiomaCie){ renderCieIdioma(z); return; }
+  const EN = Tanda.idiomaCie === "en";
+  const di = EN ? hablarEN : hablar;
   let hecho = false;
   const miIdx = Tanda.idx;
   const vivo = () => Tanda && Tanda.idx === miIdx && !hecho;
@@ -1543,15 +1699,16 @@ function renderCie(d){
     const e = document.createElement("div");
     e.className = "enunciado-txt"; e.style.fontWeight = "800";
     e.textContent = txt; z.appendChild(e);
-    hablar(txt.replace(/[\u{1F300}-\u{1FAFF}☀-➿️✨🗺️]/gu, "").trim());
+    di(txt.replace(/[\u{1F300}-\u{1FAFF}☀-➿️✨🗺️]/gu, "").trim());
   };
 
   /* ═══ señalar en la lámina muda ═══ */
   if(d.sub === "senala"){
     const L = laminaDe(d.lam), obj = parteLam(d.lam, d.id);
+    const objEn = cieEnParte(d.lam, obj);
     enunciado(d.modo === "toca"
-      ? `Toca ${conArtCie(obj)} en el dibujo 🔍`
-      : `¿Cómo se llama la parte que brilla de ${L.titulo}? ✨`);
+      ? (EN ? `Touch the ${objEn.toLowerCase()} in the picture 🔍` : `Toca ${conArtCie(obj)} en el dibujo 🔍`)
+      : (EN ? `What is the glowing part of ${CIE_EN.titulos[d.lam]} called? ✨` : `¿Cómo se llama la parte que brilla de ${L.titulo}? ✨`));
     const svg = svgEl("svg", {viewBox:`0 0 ${L.w} ${L.h}`, class:"mapa lamina"});
     L.fondo.forEach(f => svg.appendChild(svgEl("path", {d:f.d, fill:f.fill})));
     const nodos = {};
@@ -1574,7 +1731,7 @@ function renderCie(d){
       d.ops.forEach(id => {
         const p = parteLam(d.lam, id);
         const b = document.createElement("button");
-        b.className = "opcion-geo"; b.textContent = p.n; botones[id] = b;
+        b.className = "opcion-geo"; b.textContent = EN ? cieEnParte(d.lam, p) : p.n; botones[id] = b;
         b.addEventListener("pointerdown", ev => {
           ev.preventDefault(); if(hecho) return; sfx.click();
           if(id === d.id){
@@ -1584,7 +1741,7 @@ function renderCie(d){
           } else {
             b.classList.add("malo");
             setTimeout(() => { b.classList.remove("malo"); b.classList.add("apagada"); }, 650);
-            fallo(`Empieza por la letra ${obj.n[0].toUpperCase()} ✏️`);
+            fallo(`Empieza por la letra ${(EN ? objEn : obj.n)[0].toUpperCase()} ✏️`);
           }
         });
         fila.appendChild(b);
@@ -1593,8 +1750,12 @@ function renderCie(d){
       window.__solucion = () => {
         if(!vivo()) return;
         Object.keys(botones).forEach(id => botones[id].classList.add(id === d.id ? "bien" : "apagada"));
-        const es = plurCie(obj) ? "Son" : "Es";
-        hada(`${es} ${conArtCie(obj)} 💛`, 3200); hablar(es + " " + conArtCie(obj));
+        if(EN){
+          hada(`Es "${objEn}": ${conArtCie(obj)} 💛`, 3400); hablarEN("It is the " + objEn.toLowerCase());
+        } else {
+          const es = plurCie(obj) ? "Son" : "Es";
+          hada(`${es} ${conArtCie(obj)} 💛`, 3200); hablar(es + " " + conArtCie(obj));
+        }
         setTimeout(completar, 1400);
       };
       return;
@@ -1605,17 +1766,20 @@ function renderCie(d){
       const p = parteLam(d.lam, id);
       marca(id, "malo"); setTimeout(() => desmarca(id, "malo"), 650);
       const arriba = obj.cy < L.h * .4, abajo = obj.cy > L.h * .68;
-      fallo(`Eso es ${conArtCie(p)}. ${arriba ? "Lo que buscas está más arriba" : abajo ? "Lo que buscas está más abajo" : "Míralo por el centro del dibujo"} 🔍`);
+      const eso = EN ? `Eso es "${cieEnParte(d.lam, p)}"` : `Eso es ${conArtCie(p)}`;
+      fallo(`${eso}. ${arriba ? "Lo que buscas está más arriba" : abajo ? "Lo que buscas está más abajo" : "Míralo por el centro del dibujo"} 🔍`);
     }
     window.__solucion = () => {
       if(!vivo()) return;
       L.partes.forEach(p => { if(p.id !== d.id) marca(p.id, "apagada"); });
       marca(d.id, "guia");
-      const frase = plurCie(obj)
+      const frase = EN
+        ? `"${objEn}" es lo que brilla. ¡Tócalo tú!`
+        : plurCie(obj)
         ? `${conArtCie(obj)} son estas. ¡Tócalas tú!`
         : `${conArtCie(obj)} es esta. ¡Tócala tú!`;
       hada("Mira: " + frase + " 💛", 5200);
-      hablar(frase);
+      if(EN) hablarEN("This is the " + objEn.toLowerCase() + ". Touch it!"); else hablar(frase);
       setTimeout(() => { if(vivo()){ marca(d.id, "bien"); completar(); } }, 6500);
     };
     return;
@@ -1624,7 +1788,8 @@ function renderCie(d){
   /* ═══ ordenar los pasos de un ciclo ═══ */
   if(d.sub === "ordena"){
     const c = CICLOS.find(x => x.id === d.ciclo);
-    enunciado(`${c.n}: ponlo en orden 🔢`);
+    const enC = CIE_EN.ciclos[c.id];
+    enunciado(EN ? `${enC.n}: put it in order 🔢` : `${c.n}: ponlo en orden 🔢`);
     const tira = document.createElement("div");
     tira.className = "tira-ciclo"; z.appendChild(tira);
     const sueltas = document.createElement("div");
@@ -1632,7 +1797,7 @@ function renderCie(d){
     let sig = 0;
     const cartas = {};
     d.orden.forEach(i => {
-      const [emo, txt] = c.pasos[i];
+      const emo = c.pasos[i][0], txt = EN ? enC.pasos[i] : c.pasos[i][1];
       const b = document.createElement("button");
       b.className = "paso-ciclo";
       b.innerHTML = `<span class="paso-emo">${emo}</span><span class="paso-txt"></span>`;
@@ -1658,7 +1823,7 @@ function renderCie(d){
         cartas[i].classList.add("malo");
         setTimeout(() => cartas[i].classList.remove("malo"), 650);
         fallo(sig === 0 ? "Busca lo que pasa PRIMERO de todo 🔢"
-                        : `Después de «${c.pasos[sig-1][1]}», ¿qué pasa? 🔢`);
+                        : `Después de «${EN ? enC.pasos[sig-1] : c.pasos[sig-1][1]}», ¿qué pasa? 🔢`);
       }
     }
     window.__solucion = () => {
@@ -1676,7 +1841,8 @@ function renderCie(d){
 
   /* ═══ clasificar en cestas ═══ */
   const c = CESTAS.find(x => x.id === d.cesta);
-  enunciado(c.n);
+  const enCes = CIE_EN.cestas[c.id];
+  enunciado(EN ? enCes.n : c.n);
   const marcador = document.createElement("p");
   marcador.className = "sub"; z.appendChild(marcador);
   const cosaEl = document.createElement("div");
@@ -1688,7 +1854,7 @@ function renderCie(d){
     const b = document.createElement("button");
     b.className = "cesta-btn";
     b.innerHTML = `<span class="cesta-emo">${emo}</span><span class="cesta-txt"></span>`;
-    b.querySelector(".cesta-txt").textContent = nombre;
+    b.querySelector(".cesta-txt").textContent = EN ? enCes.labels[clave] : nombre;
     botones[clave] = b;
     b.addEventListener("pointerdown", ev => { ev.preventDefault(); echar(clave); });
     fila.appendChild(b);
@@ -1730,7 +1896,240 @@ function renderCie(d){
   };
 }
 
-const GEN = {abn:genAbn, cla:genCla, igu:genIgu, dif:genDif, mul:genMul, div:genDiv, rel:genRel, pes:genPes, geo:genGeo, cie:genCie};
+/* ═══════════════ INGLÉS: PRIMERAS PALABRAS (M15) ═══════════════
+   Vocabulario con emojis y voz inglesa. Cuatro maneras de preguntar:
+     · toca  → "Where is the cat?" y se toca el dibujo (comprensión)
+     · cual  → se enseña el dibujo y se elige la palabra inglesa (lectura)
+     · oye   → SOLO voz, sin texto: toca lo que oyes (oído, desde nivel 2)
+     · cuenta→ "How many cats are there?" con los números en inglés
+   El apoyo de la mascota va en español: la materia en inglés, el consuelo en
+   su lengua, como en un cole bilingüe. c:1 = contable con plural regular. */
+const VOCAB_ING = [
+  {id:"cat",e:"🐱",en:"cat",es:"el gato",cat:"animal",niv:1,c:1},
+  {id:"dog",e:"🐶",en:"dog",es:"el perro",cat:"animal",niv:1,c:1},
+  {id:"fish",e:"🐟",en:"fish",es:"el pez",cat:"animal",niv:1},
+  {id:"bird",e:"🐦",en:"bird",es:"el pájaro",cat:"animal",niv:1,c:1},
+  {id:"horse",e:"🐴",en:"horse",es:"el caballo",cat:"animal",niv:1,c:1},
+  {id:"cow",e:"🐮",en:"cow",es:"la vaca",cat:"animal",niv:1,c:1},
+  {id:"pig",e:"🐷",en:"pig",es:"el cerdo",cat:"animal",niv:1,c:1},
+  {id:"rabbit",e:"🐰",en:"rabbit",es:"el conejo",cat:"animal",niv:1,c:1},
+  {id:"lion",e:"🦁",en:"lion",es:"el león",cat:"animal",niv:1,c:1},
+  {id:"duck",e:"🦆",en:"duck",es:"el pato",cat:"animal",niv:1,c:1},
+  {id:"bear",e:"🐻",en:"bear",es:"el oso",cat:"animal",niv:2,c:1},
+  {id:"monkey",e:"🐵",en:"monkey",es:"el mono",cat:"animal",niv:2,c:1},
+  {id:"elephant",e:"🐘",en:"elephant",es:"el elefante",cat:"animal",niv:2,c:1},
+  {id:"butterfly",e:"🦋",en:"butterfly",es:"la mariposa",cat:"animal",niv:2},
+  {id:"frog",e:"🐸",en:"frog",es:"la rana",cat:"animal",niv:2,c:1},
+  {id:"red",e:"🔴",en:"red",es:"rojo",cat:"color",niv:1},
+  {id:"blue",e:"🔵",en:"blue",es:"azul",cat:"color",niv:1},
+  {id:"green",e:"🟢",en:"green",es:"verde",cat:"color",niv:1},
+  {id:"yellow",e:"🟡",en:"yellow",es:"amarillo",cat:"color",niv:1},
+  {id:"orangec",e:"🟠",en:"orange",es:"naranja",cat:"color",niv:1},
+  {id:"purple",e:"🟣",en:"purple",es:"morado",cat:"color",niv:2},
+  {id:"black",e:"⚫",en:"black",es:"negro",cat:"color",niv:1},
+  {id:"white",e:"⚪",en:"white",es:"blanco",cat:"color",niv:1},
+  {id:"pink",e:"🎀",en:"pink",es:"rosa",cat:"color",niv:2},
+  {id:"brown",e:"🟤",en:"brown",es:"marrón",cat:"color",niv:2},
+  {id:"apple",e:"🍎",en:"apple",es:"la manzana",cat:"comida",niv:2,c:1},
+  {id:"banana",e:"🍌",en:"banana",es:"el plátano",cat:"comida",niv:2,c:1},
+  {id:"bread",e:"🍞",en:"bread",es:"el pan",cat:"comida",niv:2},
+  {id:"milk",e:"🥛",en:"milk",es:"la leche",cat:"comida",niv:2},
+  {id:"egg",e:"🥚",en:"egg",es:"el huevo",cat:"comida",niv:2,c:1},
+  {id:"cheese",e:"🧀",en:"cheese",es:"el queso",cat:"comida",niv:2},
+  {id:"strawberry",e:"🍓",en:"strawberry",es:"la fresa",cat:"comida",niv:2},
+  {id:"cake",e:"🎂",en:"cake",es:"la tarta",cat:"comida",niv:2,c:1},
+  {id:"icecream",e:"🍦",en:"ice cream",es:"el helado",cat:"comida",niv:3},
+  {id:"water",e:"💧",en:"water",es:"el agua",cat:"comida",niv:2},
+  {id:"book",e:"📖",en:"book",es:"el libro",cat:"cole",niv:2,c:1},
+  {id:"pencil",e:"✏️",en:"pencil",es:"el lápiz",cat:"cole",niv:2,c:1},
+  {id:"bag",e:"🎒",en:"bag",es:"la mochila",cat:"cole",niv:2,c:1},
+  {id:"ball",e:"⚽",en:"ball",es:"la pelota",cat:"cole",niv:2,c:1},
+  {id:"scissors",e:"✂️",en:"scissors",es:"las tijeras",cat:"cole",niv:3},
+  {id:"car",e:"🚗",en:"car",es:"el coche",cat:"cole",niv:2,c:1},
+  {id:"house",e:"🏠",en:"house",es:"la casa",cat:"cole",niv:2,c:1},
+  {id:"sun",e:"☀️",en:"sun",es:"el sol",cat:"cole",niv:2},
+  {id:"moon",e:"🌙",en:"moon",es:"la luna",cat:"cole",niv:2},
+  {id:"star",e:"⭐",en:"star",es:"la estrella",cat:"cole",niv:2,c:1},
+  {id:"tree",e:"🌳",en:"tree",es:"el árbol",cat:"cole",niv:2,c:1},
+  {id:"flower",e:"🌸",en:"flower",es:"la flor",cat:"cole",niv:2,c:1},
+  {id:"hand",e:"✋",en:"hand",es:"la mano",cat:"cuerpo",niv:3,c:1},
+  {id:"eyes",e:"👀",en:"eyes",es:"los ojos",cat:"cuerpo",niv:3},
+  {id:"nose",e:"👃",en:"nose",es:"la nariz",cat:"cuerpo",niv:3},
+  {id:"mouth",e:"👄",en:"mouth",es:"la boca",cat:"cuerpo",niv:3},
+  {id:"ear",e:"👂",en:"ear",es:"la oreja",cat:"cuerpo",niv:3,c:1},
+  {id:"foot",e:"🦶",en:"foot",es:"el pie",cat:"cuerpo",niv:3},
+  {id:"mum",e:"👩",en:"mum",es:"mamá",cat:"familia",niv:3},
+  {id:"dad",e:"👨",en:"dad",es:"papá",cat:"familia",niv:3},
+  {id:"baby",e:"👶",en:"baby",es:"el bebé",cat:"familia",niv:3},
+  {id:"grandma",e:"👵",en:"grandma",es:"la abuela",cat:"familia",niv:3},
+  {id:"grandpa",e:"👴",en:"grandpa",es:"el abuelo",cat:"familia",niv:3}
+];
+const NUM_ING = ["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
+const vocabIng = id => VOCAB_ING.find(w => w.id === id);
+const pluralIng = w => w.en + "s";
+/* la pregunta hablada y escrita según lo que se pregunta */
+function fraseIng(sub, obj, k){
+  if(sub==="cuenta") return `How many ${pluralIng(obj)} are there?`;
+  if(sub==="cual") return obj.cat==="color" ? "What colour is this?" : "What is this?";
+  if(obj.cat==="color") return `Where is the colour ${obj.en}?`;
+  return `Where is the ${obj.en}?`;
+}
+function distractoresIng(pool, obj, n){
+  /* mismos de su familia primero: confundir cat con dog enseña más que con red */
+  const mismos = barajar(pool.filter(w => w.id !== obj.id && w.cat === obj.cat));
+  const otros = barajar(pool.filter(w => w.id !== obj.id && w.cat !== obj.cat));
+  const cand = mismos.concat(otros).slice(0, n-1);
+  return barajar([obj.id].concat(cand.map(w => w.id)));
+}
+function genIng(nivel){
+  const pool = VOCAB_ING.filter(w => w.niv <= nivel);
+  if(conProb(nivel===1 ? .15 : .25)){ // contar en inglés
+    const k = nivel===1 ? ri(2,5) : nivel===2 ? ri(3,8) : ri(4,10);
+    const cosas = pool.filter(w => w.c);
+    const cosa = cosas[ri(0, cosas.length-1)];
+    const ops = new Set([k]);
+    let guard = 0;
+    while(ops.size < 3 && guard++ < 20){
+      const v = k + [-2,-1,1,2][ri(0,3)];
+      if(v>=1 && v<=10) ops.add(v);
+    }
+    return {t:"ing", d:{sub:"cuenta", id:cosa.id, k, ops:barajar([...ops])}};
+  }
+  const id = sacarDeBolsa("ing-n"+nivel, pool.map(w => w.id));
+  const obj = vocabIng(id);
+  const sub = (nivel>=2 && conProb(.3)) ? "oye" : conProb(.5) ? "toca" : "cual";
+  const n = sub==="cual" ? (nivel===1 ? 3 : 4) : (nivel>=3 ? 6 : 4);
+  return {t:"ing", d:{sub, id, ops:distractoresIng(pool, obj, n)}};
+}
+function renderIng(d){
+  const z = $("zona-ejercicio");
+  $("pad").classList.add("oculto");
+  let hecho = false;
+  const miIdx = Tanda.idx;
+  const vivo = () => Tanda && Tanda.idx === miIdx && !hecho;
+  const completar = () => { if(hecho) return; hecho = true; ejCompletado(); };
+  const obj = vocabIng(d.id);
+  const frase = fraseIng(d.sub, obj, d.k);
+
+  /* el enunciado: en "oye" no se escribe la palabra — solo se oye */
+  const e1 = document.createElement("div");
+  e1.className = "enunciado-txt"; e1.style.fontWeight = "800";
+  e1.textContent = d.sub==="oye" ? "👂 Touch what you hear" : frase;
+  z.appendChild(e1);
+  const btnOir = document.createElement("button");
+  btnOir.className = "btn btn-mini btn-cielo";
+  btnOir.textContent = "🔊 Listen";
+  const decir = () => hablarEN(d.sub==="oye" ? obj.en : frase);
+  btnOir.addEventListener("click", decir);
+  z.appendChild(btnOir);
+  setTimeout(decir, 350);
+
+  window.__pistaCtx = () => `Ejercicio de vocabulario inglés (${d.sub}): la palabra es "${obj ? obj.en : ""}" (${obj ? obj.es : ""}).`;
+
+  /* ── contar en inglés ── */
+  if(d.sub==="cuenta"){
+    const cesto = document.createElement("div");
+    cesto.className = "fila";
+    cesto.style.cssText = "font-size:2.4rem; max-width:420px; justify-content:center; gap:6px;";
+    for(let i=0;i<d.k;i++){ const s = document.createElement("span"); s.textContent = obj.e; cesto.appendChild(s); }
+    z.appendChild(cesto);
+    const fila = document.createElement("div"); fila.className = "fila opciones-geo";
+    d.ops.forEach(n => {
+      const b = document.createElement("button");
+      b.className = "opcion-geo"; b.textContent = NUM_ING[n];
+      b.addEventListener("pointerdown", ev => {
+        ev.preventDefault(); if(hecho) return; sfx.click();
+        if(n===d.k){
+          b.classList.add("bien");
+          fila.querySelectorAll(".opcion-geo").forEach(x => { if(x!==b) x.classList.add("apagada"); });
+          hablarEN(`${NUM_ING[d.k]} ${pluralIng(obj)}!`);
+          completar();
+        } else {
+          b.classList.add("malo");
+          setTimeout(()=>{ b.classList.remove("malo"); b.classList.add("apagada"); }, 650);
+          fallo(n<d.k ? "Faltan por contar: cuenta otra vez con el dedito 🖐️" : "Te has pasado: cuenta otra vez con el dedito 🖐️");
+        }
+      });
+      fila.appendChild(b);
+    });
+    z.appendChild(fila);
+    window.__solucion = () => {
+      if(!vivo()) return;
+      fila.querySelectorAll(".opcion-geo").forEach((x,i) => x.classList.add(d.ops[i]===d.k ? "bien" : "apagada"));
+      hada(`Son ${d.k}: "${NUM_ING[d.k]}" 💛`, 3200); hablarEN(NUM_ING[d.k]);
+      setTimeout(completar, 1400);
+    };
+    return;
+  }
+
+  /* ── "cual": se enseña el dibujo y se elige la palabra ── */
+  if(d.sub==="cual"){
+    const cosa = document.createElement("div");
+    cosa.className = "cosa-clasificar"; cosa.textContent = obj.e;
+    z.appendChild(cosa);
+    const fila = document.createElement("div"); fila.className = "fila opciones-geo";
+    d.ops.forEach(id => {
+      const w = vocabIng(id);
+      const b = document.createElement("button");
+      b.className = "opcion-geo"; b.textContent = w.en;
+      b.addEventListener("pointerdown", ev => {
+        ev.preventDefault(); if(hecho) return; sfx.click();
+        if(id===d.id){
+          b.classList.add("bien");
+          fila.querySelectorAll(".opcion-geo").forEach(x => { if(x!==b) x.classList.add("apagada"); });
+          hablarEN(obj.en);
+          completar();
+        } else {
+          b.classList.add("malo");
+          setTimeout(()=>{ b.classList.remove("malo"); b.classList.add("apagada"); }, 650);
+          fallo(`Empieza por la ${obj.en[0].toUpperCase()} ✏️`);
+        }
+      });
+      fila.appendChild(b);
+    });
+    z.appendChild(fila);
+    window.__solucion = () => {
+      if(!vivo()) return;
+      fila.querySelectorAll(".opcion-geo").forEach((x,i) => x.classList.add(d.ops[i]===d.id ? "bien" : "apagada"));
+      hada(`Es "${obj.en}": ${obj.es} 💛`, 3400); hablarEN("It is " + (obj.cat==="color" ? obj.en : "the " + obj.en));
+      setTimeout(completar, 1400);
+    };
+    return;
+  }
+
+  /* ── "toca" y "oye": rejilla de dibujos ── */
+  const fila = document.createElement("div"); fila.className = "fila opciones-geo";
+  d.ops.forEach(id => {
+    const w = vocabIng(id);
+    const b = document.createElement("button");
+    b.className = "opcion-geo"; b.textContent = w.e;
+    b.style.fontSize = "2.2rem";
+    b.addEventListener("pointerdown", ev => {
+      ev.preventDefault(); if(hecho) return; sfx.click();
+      if(id===d.id){
+        b.classList.add("bien");
+        fila.querySelectorAll(".opcion-geo").forEach(x => { if(x!==b) x.classList.add("apagada"); });
+        hablarEN(d.sub==="oye" ? `Yes! The ${obj.en}!` : "Yes!");
+        completar();
+      } else {
+        b.classList.add("malo");
+        setTimeout(()=>{ b.classList.remove("malo"); b.classList.add("apagada"); }, 650);
+        if(EjState.fallosRow===0 && d.sub==="oye"){ fallo("Escucha otra vez 👂"); decir(); }
+        else fallo(`"${obj.en}" es ${obj.es} 💛`);
+      }
+    });
+    fila.appendChild(b);
+  });
+  z.appendChild(fila);
+  window.__solucion = () => {
+    if(!vivo()) return;
+    fila.querySelectorAll(".opcion-geo").forEach((x,i) => x.classList.add(d.ops[i]===d.id ? "bien" : "apagada"));
+    hada(`"${obj.en}" es ${obj.es} 💛`, 3400); hablarEN("The " + obj.en);
+    setTimeout(completar, 1400);
+  };
+}
+
+const GEN = {abn:genAbn, cla:genCla, igu:genIgu, dif:genDif, mul:genMul, div:genDiv, rel:genRel, pes:genPes, geo:genGeo, cie:genCie, ing:genIng};
 function genMisionDiaria(){
   /* misión del día: refuerza los 2 módulos más flojos del perfil y estira el resto, según la maestría */
   const base = (PERFIL.modulos && PERFIL.modulos.length ? PERFIL.modulos : ["abn"]);
@@ -1783,22 +2182,34 @@ function tituloEj(ej){
     return `Son las ${fmtHM(d.h,d.m)}. ¿Qué hora ${d.resta?"era hace":"será dentro de"} ${d.add} minutos?`;
   }
   if(ej.t==="pes"){
+    if(d.sub==="gram"){
+      const it = GRAMOS.find(x=>x.id===d.id);
+      return d.dir==="gramos" ? `¿Cuántos gramos son ${it.txt}?` : `${it.g} gramos… ¿cuánto es?`;
+    }
     if(d.sub==="pon") return `Hay que pesar ${pesoEnTexto(d.q)}. ¿Qué pesas pones?`;
     return `Pesas: ${d.n1}×1kg + ${d.nm}×½kg + ${d.nq}×¼kg. ¿Cuánto es?`;
   }
   if(ej.t==="cie"){
+    const enIng = ej.en ? " · 🇬🇧 en inglés" : "";
     if(d.sub==="senala"){
       const p = parteLam(d.lam, d.id);
       const pl = plurCie(p);
       const q = d.modo==="toca" ? (pl ? "¿dónde están" : "¿dónde está") : (pl ? "¿cómo se llaman" : "¿cómo se llama");
-      return `Partes de ${laminaDe(d.lam).titulo}: ${q} ${conArtCie(p)}?`;
+      return `Partes de ${laminaDe(d.lam).titulo}: ${q} ${conArtCie(p)}?${enIng}`;
     }
-    if(d.sub==="ordena") return `Ordenar: ${CICLOS.find(c=>c.id===d.ciclo).n}`;
-    return `Clasificar: ${CESTAS.find(c=>c.id===d.cesta).n}`;
+    if(d.sub==="ordena") return `Ordenar: ${CICLOS.find(c=>c.id===d.ciclo).n}${enIng}`;
+    return `Clasificar: ${CESTAS.find(c=>c.id===d.cesta).n}${enIng}`;
   }
   if(ej.t==="geo"){
     const p = piezaGeo(d.mapa, d.id), donde = d.mapa==="es" ? "Mapa de España" : "Mapa del mundo";
     return d.sub==="toca" ? `${donde}: ¿dónde está ${p.n}?` : `${donde}: ¿cómo se llama ${p.n}?`;
+  }
+  if(ej.t==="ing"){
+    const w = vocabIng(d.id);
+    if(d.sub==="cuenta") return `Inglés: How many ${pluralIng(w)}? (${w.e} × ${d.k})`;
+    if(d.sub==="oye") return `Inglés al oído: "${w.en}" ${w.e}`;
+    if(d.sub==="cual") return `Inglés: What is this? ${w.e}`;
+    return `Inglés: ${fraseIng("toca", w)}`;
   }
   if(ej.t==="mul"){
     if(d.sub==="rejilla") return `${d.N} × ${d.m}`;
@@ -1809,7 +2220,7 @@ function tituloEj(ej){
     if(d.sub==="rejilla") return `${d.N} ÷ ${d.k}`;
     return `Reparte ${d.N} 🍬 entre ${d.k}`;
   }
-  return `Diferencia entre ${d.a} y ${d.b}`;
+  return `Diferencia entre ${difFmt(Math.max(d.a,d.b), d.m||"ent")} y ${difFmt(Math.min(d.a,d.b), d.m||"ent")} (subiendo)`;
 }
 function resultadoEj(ej){
   const d = ej.d;
@@ -1821,6 +2232,10 @@ function resultadoEj(ej){
   if(ej.t==="igu") return d.max-d.min;
   if(ej.t==="rel") return d.sub==="leer" ? fmtHM(d.h,d.m) : relObjetivo(d);
   if(ej.t==="pes"){
+    if(d.sub==="gram"){
+      const it = GRAMOS.find(x=>x.id===d.id);
+      return d.dir==="gramos" ? `${it.g} g` : it.txt;
+    }
     if(d.sub==="lee") return pesoEnTexto(pesTotal(d));
     const kg = Math.floor(d.q/4), r = d.q%4;
     return `${kg}×1kg` + (r>=2 ? " + 1×½kg" : "") + (r%2 ? " + 1×¼kg" : "");
@@ -1831,12 +2246,13 @@ function resultadoEj(ej){
     return d.cosas.map(c=>c[0]).join(" ");
   }
   if(ej.t==="geo") return piezaGeo(d.mapa, d.id).n;
+  if(ej.t==="ing") return d.sub==="cuenta" ? `${d.k} (${NUM_ING[d.k]})` : vocabIng(d.id).en;
   if(ej.t==="mul") return d.sub==="rejilla" ? d.N*d.m : d.sub==="inverso" ? d.b : d.a*d.b;
   if(ej.t==="div"){
     const c = Math.floor(d.N/d.k), r = d.N%d.k;
     return r ? `${c} y sobran ${r}` : c;
   }
-  return Math.abs(d.a-d.b);
+  return difFmt(Math.abs(d.a-d.b), d.m||"ent");
 }
 
 /* ═══════════════ RUNNER DE TANDAS ═══════════════ */
@@ -1856,14 +2272,16 @@ function renderEj(){
   $("prog-fill").style.width = Math.round(100*(Tanda.idx)/Tanda.list.length)+"%";
   const z = $("zona-ejercicio"); z.innerHTML = "";
   Pad.celda = null; Pad.onOK = null;
+  window.__pistaCtx = null; window.__solucion = null;
   EjState = {fallosEj:0, fallosRow:0, ayudado:false, t0:Date.now()};
   $("pad").classList.remove("oculto");
   const btnPista = $("btn-pista");
   if(btnPista) btnPista.style.display = "";
-  ({abn:renderAbn, cla:renderCla, igu:renderIgu, dif:renderDif, mul:renderMul, div:renderDiv, rel:renderRel, pes:renderPes, geo:renderGeo, cie:renderCie})[ej.t](ej.d);
+  ({abn:renderAbn, cla:renderCla, igu:renderIgu, dif:renderDif, mul:renderMul, div:renderDiv, rel:renderRel, pes:renderPes, geo:renderGeo, cie:renderCie, ing:renderIng})[ej.t](ej.d);
 }
 function fallo(pista){
   EjState.fallosEj++; EjState.fallosRow++; Tanda.fallosTotales++;
+  if(pista) EjState.ultimaPista = pista; // el ayudante IA lo usa para saber en qué se atascó
   hadaAnimo(EjState.fallosRow, pista);
   if(EjState.fallosRow>=3){ EjState.ayudado = true; if(window.__solucion) window.__solucion(); }
 }
@@ -1901,13 +2319,16 @@ function ejCompletado(){
     if(ej.t==="div") S.stats.divOk = (S.stats.divOk||0)+1;
     if(ej.t==="geo") S.stats.geoOk = (S.stats.geoOk||0)+1;
     if(ej.t==="cie") S.stats.cieOk = (S.stats.cieOk||0)+1;
+    if(ej.t==="ing") S.stats.ingOk = (S.stats.ingOk||0)+1;
   }
   // maestría: sube con aciertos a la primera, baja si el hada tuvo que enseñar
   const ch = S.chispa[ej.t]===undefined ? 5 : S.chispa[ej.t];
   S.chispa[ej.t] = EjState.ayudado ? Math.max(0, ch-2) : (EjState.fallosEj===0 ? Math.min(10, ch+1) : ch);
   guardar(); actualizarGemas();
-  Tanda.res.push({t:ej.t, d:ej.d, intentos:EjState.fallosEj, ayudado:EjState.ayudado,
-    seg: Math.round((Date.now()-EjState.t0)/1000)});
+  const fila = {t:ej.t, d:ej.d, intentos:EjState.fallosEj, ayudado:EjState.ayudado,
+    seg: Math.round((Date.now()-EjState.t0)/1000)};
+  if(ej.t==="cie" && Tanda.idiomaCie==="en") fila.en = 1; // lo hizo en inglés: el padre lo ve
+  Tanda.res.push(fila);
   apuntarRepesca(ej);
   if(EjState.ayudado){
     hada("¡Ya está! La siguiente la haces tú sola 💪", 2600);
@@ -1938,8 +2359,18 @@ function estadoPista(){
     .filter(c=>!c.classList.contains("fija"));
   if(!celdas.length) return {firma:"0", texto:""};
   const hechas = celdas.filter(c=>c.classList.contains("hecha")).length;
-  const texto = hechas===0 ? ""
-    : `YA LLEVA ${hechas} de ${celdas.length} casillas bien: dale la pista del paso SIGUIENTE, no del primero`;
+  /* transcripción literal de la rejilla: columnas y filas tal y como las ve
+     el peque (· = casilla vacía). Con esto la pista puede hablar de SU rejilla,
+     no de una rejilla imaginaria. */
+  let rej = "";
+  const tabla = document.querySelector("#zona-ejercicio table.rejilla");
+  if(tabla){
+    const heads = [...tabla.querySelectorAll("th")].map(th=>th.textContent.trim());
+    const filas = [...tabla.querySelectorAll("tr")].slice(1).map(tr=>
+      [...tr.querySelectorAll("td .celda")].map(c=>c.textContent.trim()||"·").join(" | "));
+    rej = `Columnas de la rejilla: ${heads.join(" | ")}. Filas escritas: ${filas.map(f=>"["+f+"]").join(" ")}. `;
+  }
+  const texto = rej + (hechas ? `Lleva ${hechas} de ${celdas.length} casillas bien: la pista debe ser del paso SIGUIENTE, no del arranque.` : "Aún no ha escrito nada válido.");
   return {firma: hechas+"de"+celdas.length, texto};
 }
 /* Geografía y Naturaleza llevan pista local de método (orientación, posición
@@ -1951,6 +2382,12 @@ function pistaLocal(ej){
     if(ej.d.sub === "cual") return `Empieza por la letra ${p.n[0]} ✏️ Y ${rumboGeo(p, ej.d.mapa).toLowerCase()}`;
     return rumboGeo(p, ej.d.mapa);
   }
+  if(ej.t === "ing"){
+    const w = vocabIng(ej.d.id);
+    if(ej.d.sub === "cual") return `Empieza por la ${w.en[0].toUpperCase()} ✏️`;
+    if(ej.d.sub === "cuenta") return "Cuenta tocando cada dibujo con el dedito 🖐️";
+    return `"${w.en}" es ${w.es} 🇬🇧`;
+  }
   if(ej.t !== "cie") return null;
   const d = ej.d;
   if(d.sub === "ordena") return "Busca lo que pasa PRIMERO de todo y sigue el orden 🔢";
@@ -1959,7 +2396,8 @@ function pistaLocal(ej){
     return c ? c.pista + " 🧺" : "Piensa a qué cesta va cada cosa 🧺";
   }
   const L = laminaDe(d.lam), p = parteLam(d.lam, d.id);
-  if(d.modo === "cual") return `Empieza por la letra ${p.n[0].toUpperCase()} ✏️`;
+  const nomP = (Tanda && Tanda.idiomaCie === "en") ? cieEnParte(d.lam, p) : p.n;
+  if(d.modo === "cual") return `Empieza por la letra ${nomP[0].toUpperCase()} ✏️`;
   const alto = p.cy < L.h * .4 ? "la parte de arriba" : p.cy > L.h * .68 ? "la parte de abajo" : "el medio";
   return `Busca por ${alto} del dibujo 🔍`;
 }
@@ -1967,7 +2405,7 @@ async function pedirPista(){
   if(DEMO) return; // en la demo el botón está oculto: nadie gasta pistas desde fuera
   if(!Tanda || PistaBusy) return;
   const ej = Tanda.list[Tanda.idx]; if(!ej) return;
-  if(ej.t === "geo" || ej.t === "cie"){ hada("💡 " + pistaLocal(ej), 4200); return; }
+  if(ej.t === "geo" || ej.t === "cie" || ej.t === "ing"){ hada("💡 " + pistaLocal(ej), 4200); return; }
   Tanda.pistas = Tanda.pistas || {};
   // la pista se recuerda POR PASO, no por ejercicio: si ha avanzado desde la
   // última vez, se pide una nueva acorde a donde está ahora
@@ -1978,11 +2416,19 @@ async function pedirPista(){
   PistaBusy = true;
   const btn = $("btn-pista"); if(btn){ btn.disabled = true; btn.textContent = "💭…"; }
   try{
+    /* la pista viaja con la radiografía COMPLETA del momento: el ejercicio con
+       sus números, dónde está el peque exactamente (lo cuenta el propio juego
+       con __pistaCtx), cuántas veces ha fallado y en qué se equivocó la última
+       vez. Así la mascota habla del paso concreto y no suelta vaguedades. */
+    const ctx = window.__pistaCtx ? window.__pistaCtx() : est.texto;
     const r = await fetch(SUPA_URL+"/functions/v1/ayudante", {
       method: "POST",
       headers: {"Content-Type":"application/json", "Authorization":"Bearer "+SUPA_ANON, "apikey":SUPA_ANON},
       body: JSON.stringify({familia: FAMILIA, perfil: PERFIL_KEY, tipo: ej.t,
-        enunciado: (tituloEj(ej) + (est.texto ? " · " + est.texto : "")).slice(0,180),
+        enunciado: tituloEj(ej).slice(0,200),
+        estado: String(ctx||"").slice(0,420),
+        intentos: EjState ? EjState.fallosEj : 0,
+        ultimo: String((EjState && EjState.ultimaPista)||"").slice(0,180),
         nivel: Tanda.nivel||2, mascota: TEMA.mascota.nombre})
     });
     const d = r.ok ? await r.json() : null;
@@ -2553,6 +2999,9 @@ function renderIgu(d){
 
   const est = {p:d.min, g:d.max}, movs = [];
   const bien = d.max - d.min;
+  window.__pistaCtx = ()=>`Igualación: uno tiene ${est.p} y el otro ${est.g}; hay que igualarlos poniendo al pequeño (➕) o quitando al grande (➖). `
+    + (movs.length ? `Movimientos ya hechos: ${movs.join(", ")}. ` : "Aún no ha movido nada. ")
+    + `Ahora mismo les separa ${est.g-est.p}.`;
   function refrescarCards(){
     cardP.querySelector(".cant").textContent = est.p;
     cardG.querySelector(".cant").textContent = est.g;
@@ -2611,6 +3060,7 @@ function renderIgu(d){
   }
   function faseFinal(){
     EjState.fallosRow = 0;
+    window.__pistaCtx = ()=>`Ya ha igualado los dos lados en ${d.max}. Sus movimientos fueron: ${movs.join(", ")}. Solo le falta SUMAR esos movimientos para decir cuántas faltaban (no le digas el total).`;
     const linea = document.createElement("div");
     linea.className = "fila";
     linea.style.fontSize = "1.35rem"; linea.style.fontWeight = "800";
@@ -2654,50 +3104,76 @@ function renderIgu(d){
 
 /* ═══════════════ RENDER: DIFERENCIAS ═══════════════ */
 function renderDif(d){
+  /* Método del cole: se sale del número PEQUEÑO y se va sumando saltos hasta
+     llegar al grande. La diferencia es todo lo que se ha sumado por el camino.
+     Cualquier camino de saltos vale (invariantes de fila, como las rejillas). */
   const z = $("zona-ejercicio");
+  const m = d.m||"ent", dec = difDec(m);
+  const fmt = v=>difFmt(v, m), habla = v=>difHabla(v, m);
   const mayor = Math.max(d.a,d.b), menor = Math.min(d.a,d.b);
+  const bien = mayor - menor;
+  const maxRaw = m==="eur" ? 4 : 3;
+
+  const frase = m==="eur"
+    ? `Una cosa cuesta ${habla(mayor)} y otra ${habla(menor)}. ¿Cuál es la diferencia?`
+    : `¿Cuál es la diferencia entre ${habla(mayor)} y ${habla(menor)}?`;
   const txt = document.createElement("div");
   txt.className = "enunciado-txt";
-  txt.textContent = `¿Cuál es la diferencia entre ${d.a} y ${d.b}?`;
+  txt.textContent = m==="eur"
+    ? `🛒 Una cosa cuesta ${fmt(mayor)} y otra ${fmt(menor)}. ¿Cuál es la diferencia?`
+    : `¿Cuál es la diferencia entre ${fmt(mayor)} y ${fmt(menor)}?`;
   z.appendChild(txt);
-
-  /* torres retiradas: en móvil empujaban la tabla y el teclado fuera de pantalla */
+  if(dec){
+    const btnLeer = document.createElement("button");
+    btnLeer.className = "btn btn-mini btn-cielo";
+    btnLeer.textContent = "🔊 Léemelo";
+    btnLeer.addEventListener("click", ()=>hablar(frase));
+    z.appendChild(btnLeer);
+  }
 
   const ayuda = document.createElement("p");
   ayuda.className = "sub";
-  ayuda.textContent = "Quita LO MISMO a los dos. Pequeño en 0 → lo que queda en el grande es la diferencia";
+  ayuda.textContent = "Sal del pequeño y ve SUMANDO saltos hasta llegar al grande. La diferencia es todo lo que has sumado 🪜";
   z.appendChild(ayuda);
 
-  const est = {g:mayor, p:menor};
+  let est = menor;
+  const movs = [];
+  const marcador = document.createElement("div");
+  marcador.className = "fila";
+  marcador.style.cssText = "font-size:1.2rem; font-weight:800; gap:6px;";
+  const pintaMarcador = ()=> marcador.textContent = `Estás en ${fmt(est)} 🚶 → meta ${fmt(mayor)} 🎯`;
+  pintaMarcador();
+  z.appendChild(marcador);
+
   const tabla = document.createElement("table"); tabla.className = "rejilla";
   const trh = document.createElement("tr");
-  ["QUITO A LOS DOS ✂️","EL GRANDE","EL PEQUEÑO"].forEach(h=>{
+  ["SUMO ➕","LLEGO A 🪜"].forEach(h=>{
     const th = document.createElement("th"); th.textContent = h; trh.appendChild(th);
   });
   tabla.appendChild(trh);
   const tr0 = document.createElement("tr");
-  ["—", mayor, menor].forEach(v=>{ const {td} = celdaTd("fija", v); tr0.appendChild(td); });
+  ["—", fmt(menor)].forEach(v=>{ const {td} = celdaTd("fija", v); tr0.appendChild(td); });
   tabla.appendChild(tr0);
   z.appendChild(tabla);
   let nFilas = 0;
 
+  window.__pistaCtx = ()=>{
+    const salto = dec ? "para caer en un número redondo" : "para llegar a la decena";
+    return `Va SUMANDO desde ${fmt(menor)} hasta ${fmt(mayor)} (método de subir). `
+      + `Ahora está en ${fmt(est)} y le falta ${fmt(mayor-est)} para llegar. `
+      + (movs.length ? `Saltos que ya ha dado: ${movs.map(fmt).join(", ")}. ` : "Aún no ha dado ningún salto. ")
+      + `Un buen salto siguiente suele ser ${salto}.`;
+  };
+
   function fijar(c){ Object.values(c).forEach(x=>{ x.classList.remove("activa"); x.classList.add("hecha"); }); }
-  function terminado(){
-    const ref = document.createElement("p");
-    ref.className = "enunciado-txt"; ref.style.color = "var(--menta-osc)"; ref.style.fontWeight = "800";
-    ref.textContent = `¡La diferencia entre ${d.a} y ${d.b} es ${est.g}! ✨`;
-    z.appendChild(ref);
-    Pad.onOK = null;
-    ejCompletado();
-  }
   function filaNueva(){
     EjState.fallosRow = 0;
     nFilas++;
-    if(nFilas===6 && !EjState.ayudado) hada("¡Prueba a quitarlo todo de un salto! 🐸", 4000);
+    if(nFilas===6 && !EjState.ayudado) hada("¡Prueba a llegar de un salto! 🐸", 4000);
     const tr = document.createElement("tr");
     const c = {};
-    ["q","g","p"].forEach(nm=>{
-      const cc = celdaTd(); hacerEditable(cc.div, 3);
+    ["q","res"].forEach(nm=>{
+      const cc = celdaTd(); hacerEditable(cc.div, maxRaw, dec);
       tr.appendChild(cc.td); c[nm] = cc.div;
     });
     tabla.appendChild(tr);
@@ -2706,26 +3182,58 @@ function renderDif(d){
     window.__solucion = ()=>solucionFila(c);
   }
   function comprobar(c){
-    const q = valorCelda(c.q), g = valorCelda(c.g), p = valorCelda(c.p);
-    if(q===null||g===null||p===null){ hada("Rellena las tres casillas de la fila 🌷"); return; }
+    const q = valorCelda(c.q), res = valorCelda(c.res);
+    if(q===null||res===null){ hada("Pon cuánto sumas y a cuánto llegas 🌷"); return; }
+    const falta = mayor - est;
     const errs = [];
-    if(q<1 || q>est.p){ errs.push({c:c.q, h:`Como mucho puedes quitar ${est.p}, lo que tiene el pequeño`}); }
-    else {
-      if(g!==est.g-q) errs.push({c:c.g, h:`${est.g} menos ${q}… ¡cuenta otra vez!`});
-      if(p!==est.p-q) errs.push({c:c.p, h:`${est.p} menos ${q}… ¡casi!`});
-    }
+    if(q<1){ errs.push({c:c.q, h:"Tienes que sumar algo para subir 🪜"}); }
+    else if(q>falta){ errs.push({c:c.q, h:`Te pasarías de ${fmt(mayor)}: como mucho puedes sumar ${fmt(falta)}`}); }
+    else if(res!==est+q){ errs.push({c:c.res, h:`${fmt(est)} más ${fmt(q)}… ¡cuenta otra vez!`}); }
     if(errs.length){ marcarMal(errs.map(e=>e.c)); fallo(errs[0].h); return; }
-    est.g -= q; est.p -= q;
+    est = res; movs.push(q);
+    pintaMarcador();
     fijar(c); sfx.click();
-    if(est.p===0) terminado(); else filaNueva();
+    if(est===mayor) faseFinal(); else filaNueva();
+  }
+  function faseFinal(){
+    EjState.fallosRow = 0;
+    const linea = document.createElement("div");
+    linea.className = "fila";
+    linea.style.fontSize = "1.3rem"; linea.style.fontWeight = "800";
+    const pre = document.createElement("span");
+    pre.textContent = "🎯 ¡Has llegado! ¿Cuánto has sumado en total?";
+    const cF = document.createElement("div"); hacerEditable(cF, maxRaw, dec);
+    linea.appendChild(pre); linea.appendChild(cF);
+    z.appendChild(linea);
+    seleccionarCelda(cF);
+    window.__pistaCtx = ()=>`Ya ha llegado de ${fmt(menor)} a ${fmt(mayor)} con los saltos ${movs.map(fmt).join(", ")}. Solo le falta SUMAR esos saltos para decir la diferencia (sin decirle el total).`;
+    Pad.onOK = ()=>{
+      const v = valorCelda(cF);
+      if(v===null){ hada("Suma todos tus saltos 🌷"); return; }
+      if(v!==bien){ marcarMal([cF]); fallo(`Suma lo que has ido saltando: ${movs.map(fmt).join(", ")} 🖐️`); return; }
+      cF.classList.remove("activa"); cF.classList.add("hecha");
+      const ref = document.createElement("p");
+      ref.className = "enunciado-txt"; ref.style.color = "var(--menta-osc)"; ref.style.fontWeight = "800";
+      ref.textContent = `¡Eso es! La diferencia entre ${fmt(mayor)} y ${fmt(menor)} es ${fmt(bien)} ✨`;
+      z.appendChild(ref);
+      Pad.onOK = null;
+      ejCompletado();
+    };
+    window.__solucion = ()=>{
+      hada(`Saltaste ${movs.map(fmt).join(" y ")}: en total ${fmt(bien)} 💛`, 3400);
+      ponValor(cF, bien); cF.classList.remove("activa"); cF.classList.add("hecha");
+      Pad.onOK = null;
+      setTimeout(ejCompletado, 1200);
+    };
   }
   function solucionFila(c){
     hada("Mira, te enseño esta fila 💛", 2600);
-    const q = est.p;
-    c.q.textContent = q; c.g.textContent = est.g-q; c.p.textContent = 0;
-    est.g -= q; est.p = 0;
+    const q = mayor - est;
+    ponValor(c.q, q); ponValor(c.res, mayor);
+    est = mayor; movs.push(q);
+    pintaMarcador();
     fijar(c);
-    setTimeout(terminado, 900);
+    setTimeout(faseFinal, 900);
   }
   filaNueva();
 }
@@ -2896,6 +3404,85 @@ function pesaEl(clase, texto){
 function renderPes(d){
   const z = $("zona-ejercicio");
   const ej = Tanda.list[Tanda.idx];
+
+  /* ── equivalencias kilo ↔ gramos ── */
+  if(d.sub==="gram"){
+    const it = GRAMOS.find(x=>x.id===d.id) || GRAMOS[0];
+    const PISTA_G = {
+      kilo:    "Un kilo entero son MIL gramos: un 1 con tres ceros ⚖️",
+      medio:   "Un kilo son 1000 g. Medio kilo es justo la MITAD 🖐️",
+      cuarto:  "Medio kilo son 500 g. Un cuarto es la mitad de esa mitad 🔪",
+      tresc:   "Son tres cuartos: 250 y 250 y 250, ¡súmalos! 🖐️",
+      kymedio: "Los 1000 g del kilo y los 500 del medio, todo junto ⚖️"
+    };
+    const e1 = document.createElement("div");
+    e1.className = "enunciado-txt"; e1.style.fontWeight = "800";
+    if(d.dir==="gramos"){
+      e1.textContent = `⚖️ ¿Cuántos GRAMOS son ${it.txt}?`;
+      z.appendChild(e1);
+      window.__pistaCtx = ()=>`Le preguntan cuántos gramos son ${it.txt} y aún no lo ha puesto. La escalera: un kilo 1000 g, medio kilo 500 g, un cuarto 250 g.`;
+      const linea = document.createElement("div");
+      linea.className = "fila"; linea.style.cssText = "font-size:1.35rem; font-weight:800; align-items:center;";
+      const c = document.createElement("div"); hacerEditable(c, 4);
+      const gTxt = document.createElement("span"); gTxt.textContent = "gramos";
+      linea.appendChild(c); linea.appendChild(gTxt);
+      z.appendChild(linea);
+      seleccionarCelda(c);
+      Pad.onOK = ()=>{
+        const v = valorCelda(c);
+        if(v===null){ hada("Escribe cuántos gramos son 🌷"); return; }
+        if(v!==it.g){ marcarMal([c]); fallo(PISTA_G[it.id]); return; }
+        c.classList.remove("activa"); c.classList.add("hecha");
+        const ref = document.createElement("p");
+        ref.className = "enunciado-txt"; ref.style.color = "var(--menta-osc)"; ref.style.fontWeight = "800";
+        ref.textContent = `¡Eso es! ${cap1(it.txt)} son ${it.g} gramos ✨`;
+        z.appendChild(ref);
+        Pad.onOK = null; ejCompletado();
+      };
+      window.__solucion = ()=>{
+        hada(`${cap1(it.txt)} son ${it.g} gramos 💛`, 3200);
+        c.textContent = it.g; c.classList.remove("activa"); c.classList.add("hecha");
+        Pad.onOK = null; setTimeout(ejCompletado, 1200);
+      };
+      return;
+    }
+    /* dir "nombre": 500 g → ¿qué es? */
+    $("pad").classList.add("oculto");
+    e1.textContent = `⚖️ En la balanza pone ${it.g} gramos. ¿Cuánto es?`;
+    z.appendChild(e1);
+    window.__pistaCtx = ()=>`Le enseñan ${it.g} gramos y tiene que decir su nombre (${GRAMOS.filter(x=>x.niv<=(Tanda.nivel||2)).map(x=>x.txt).join(" / ")}). La escalera: 1000 g el kilo, 500 g el medio, 250 g el cuarto.`;
+    const pool = GRAMOS.filter(x=>x.id!==it.id);
+    const ops = barajar([it].concat(barajar(pool).slice(0,2)));
+    const fila = document.createElement("div"); fila.className = "fila opciones-geo";
+    let hecho = false;
+    ops.forEach(op=>{
+      const b = document.createElement("button");
+      b.className = "opcion-geo"; b.textContent = cap1(op.txt);
+      b.addEventListener("pointerdown", ev=>{
+        ev.preventDefault(); if(hecho) return; sfx.click();
+        if(op.id===it.id){
+          hecho = true; b.classList.add("bien");
+          fila.querySelectorAll(".opcion-geo").forEach(x=>{ if(x!==b) x.classList.add("apagada"); });
+          ejCompletado();
+        } else {
+          b.classList.add("malo");
+          setTimeout(()=>{ b.classList.remove("malo"); b.classList.add("apagada"); }, 650);
+          fallo(op.g>it.g ? `${cap1(op.txt)} pesa más: son ${op.g} g ⚖️` : `${cap1(op.txt)} pesa menos: son ${op.g} g ⚖️`);
+        }
+      });
+      fila.appendChild(b);
+    });
+    z.appendChild(fila);
+    window.__solucion = ()=>{
+      if(hecho) return;
+      hecho = true;
+      fila.querySelectorAll(".opcion-geo").forEach((x,i)=>x.classList.add(ops[i].id===it.id ? "bien" : "apagada"));
+      hada(`${it.g} gramos son ${it.txt} 💛`, 3200); hablar(`${it.g} gramos son ${it.txt}`);
+      setTimeout(ejCompletado, 1400);
+    };
+    return;
+  }
+
   const enun = document.createElement("div");
   enun.className = "enunciado-txt"; enun.style.fontWeight = "800";
   enun.textContent = d.sub==="pon"
@@ -3004,7 +3591,7 @@ function renderPes(d){
 }
 
 /* ═══════════════ FIN DE TANDA Y RESUMEN ═══════════════ */
-const EMOJI_TIPO = {abn:"🔮", cla:"🏰", igu:"⚖️", dif:"💎", mul:"✖️", div:"➗", rel:"🕐", pes:"🧺", geo:"🌍", cie:"🌿"};
+const EMOJI_TIPO = {abn:"🔮", cla:"🏰", igu:"⚖️", dif:"💎", mul:"✖️", div:"➗", rel:"🕐", pes:"🧺", geo:"🌍", cie:"🌿", ing:"🇬🇧"};
 function hoyISO(){ return new Date().toISOString().slice(0,10); }
 function finTanda(){
   // antes de cerrar: el repaso de lo que se atragantó
@@ -4208,7 +4795,7 @@ $("btn-salir-juego").addEventListener("click", ()=>{
 
 /* juego libre */
 const Libre = {tipo:"abn", nivel: S.nivelLibre};
-const NOMBRE_TIPO = {abn:"Rejillas", cla:"Cuentas", igu:"Igualaciones", dif:"Diferencias", mul:"Multiplicar", div:"Repartir", rel:"Relojes", pes:"Pesos", geo:"Geografía", cie:"Naturaleza"};
+const NOMBRE_TIPO = {abn:"Rejillas", cla:"Cuentas", igu:"Igualaciones", dif:"Diferencias", mul:"Multiplicar", div:"Repartir", rel:"Relojes", pes:"Pesos", geo:"Geografía", cie:"Naturaleza", ing:"Inglés"};
 function pintarLibre(){
   document.querySelectorAll("#s-libre [data-tipo]").forEach(b=>
     b.style.opacity = b.dataset.tipo===Libre.tipo ? "1" : ".55");

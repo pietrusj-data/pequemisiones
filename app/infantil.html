@@ -889,7 +889,10 @@ function elogio(){
   premioGrande(t); hablar(t); sfx.ok();
   confetiCentro(); unicornioVuela();
 }
-const ANIMOS = ["¡Casi! Escucha otra vez","Tranquila, ¡otra vez!","¡Tú puedes!","Vamos a probar de nuevo"];
+/* Ánimos que se DICEN en voz alta tras un error. Nada de "¡casi!": la mascota
+   no sabe si estuvo cerca, y decirlo en falso confunde. Solo frases que son
+   verdad siempre y que dicen qué hacer: escuchar, mirar despacio, probar otra vez. */
+const ANIMOS = ["Escucha otra vez y mira despacito", FEM?"Tranquila, ¡otra vez!":"Tranquilo, ¡otra vez!","Míralo bien… ¡tú puedes!","Vamos a probar de nuevo, sin prisa"];
 function animo(){ hablar(ANIMOS[Math.floor(Math.random()*ANIMOS.length)]); sfx.mal(); }
 
 /* ═══════════ SUPABASE ═══════════ */
