@@ -511,6 +511,44 @@ describe("motor de infantil", () => {
           assert.ok(ej.d.ops.length >= 2, "hacen falta al menos dos opciones");
           assert.equal(new Set(ej.d.ops.map(o => JSON.stringify(o))).size, ej.d.ops.length, "opciones de sílaba repetidas");
         }
+        if (ej.d.sub === "cuento") {
+          assert.ok(nivel >= 2, "el cuento no toca en nivel 1");
+          const c = M.CUENTOS_SIL.find(x => x.id === ej.d.cid);
+          assert.ok(c, `cuento desconocido: ${ej.d.cid}`);
+          assert.ok(c.niv <= nivel, `nivel ${nivel} sacando el cuento "${c.id}" (es de ${c.niv})`);
+          // el total prometido cuadra con las sílabas reales del cuento
+          const reales = c.frases.flat(2).filter(s => s === c.sil).length;
+          assert.equal(ej.d.total, reales, `"${c.id}": promete ${ej.d.total} ${c.sil} y hay ${reales}`);
+          assert.ok(ej.d.total >= 3, `"${c.id}": muy pocas sílabas que cazar`);
+          assert.ok(ej.d.ops.includes(ej.d.total), "la cuenta buena no está entre las opciones");
+        }
+        if (ej.d.sub === "compl") {
+          assert.ok(nivel >= 2, "completar no toca en nivel 1");
+          assert.ok(ej.d.idx >= 0 && ej.d.idx < ej.d.pal.length, "hueco fuera de la palabra");
+          assert.ok(ej.d.ops.includes(ej.d.pal[ej.d.idx]), "la sílaba que falta no está entre las opciones");
+        }
+      }
+    }
+  });
+
+  test("genIng · la palabra pedida se puede tocar y contar", () => {
+    for (const nivel of [1, 2, 3, 4]) {
+      for (const ej of muchas(M.genIng, nivel, 300)) {
+        const d = ej.d;
+        if (d.sub === "cuenta") {
+          const w = M.vocabIngInf(d.id);
+          assert.ok(w && w.c, `"${d.id}" no es contable con plural regular`);
+          assert.ok(d.k >= 1 && d.k <= 10, `cuenta fuera de rango: ${d.k}`);
+          assert.ok(d.ops.includes(d.k), "la cantidad buena no está entre las opciones");
+          assert.equal(new Set(d.ops).size, d.ops.length, "opciones de número repetidas");
+          continue;
+        }
+        const w = M.vocabIngInf(d.id);
+        assert.ok(w, `palabra desconocida: ${d.id}`);
+        assert.ok(w.niv <= nivel, `nivel ${nivel} preguntando "${w.en}" (es de nivel ${w.niv})`);
+        assert.ok(d.ops.includes(d.id), `"${w.en}": la respuesta no está entre las opciones`);
+        assert.equal(new Set(d.ops).size, d.ops.length, `"${w.en}": opciones repetidas`);
+        d.ops.forEach(id => assert.ok(M.vocabIngInf(id), `opción desconocida: ${id}`));
       }
     }
   });

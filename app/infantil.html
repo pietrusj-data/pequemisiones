@@ -91,6 +91,20 @@ h2{font-size:1.5rem; margin:.15em 0; text-align:center; font-weight:800;}
 .enunciado{font-size:1.6rem; font-weight:800; text-align:center; line-height:1.35; margin:0;}
 .cositas{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-width:560px; font-size:2.6rem; line-height:1.2;}
 
+/* el cuento de cazar sílabas: cada sílaba es un botoncito tocable */
+.cuento-caja{background:var(--blanco); border-radius:22px; padding:16px 18px; max-width:560px;
+  box-shadow:0 6px 18px rgba(61,54,96,.10); display:flex; flex-direction:column; gap:10px;}
+.cuento-frase{display:flex; flex-wrap:wrap; justify-content:center; align-items:baseline; row-gap:6px;}
+.cuento-palabra{display:inline-flex; margin:0 7px;}
+.sil-c{font-size:1.55rem; font-weight:800; padding:2px 3px; border-radius:9px; cursor:pointer;
+  border:2px solid transparent; line-height:1.2; user-select:none;}
+.sil-c.cazada{background:#e9fcf6; border-color:var(--verde); color:var(--verde-osc);}
+.sil-c.mal{animation:temblor .5s;}
+.sil-c.pista{animation:latido .9s ease-in-out infinite; border-color:var(--verde);}
+.cuento-quedan{font-size:1.15rem; font-weight:800; color:var(--tinta-suave);}
+/* completar palabras: el hueco de la sílaba que falta */
+.letrona.hueco{border:3px dashed var(--lila); background:var(--lila-suave); color:var(--lila-osc);}
+
 /* marco de 10 (amigos) */
 .marco{display:grid; grid-template-columns:repeat(5,58px); gap:8px; background:var(--blanco);
   padding:14px; border-radius:22px; box-shadow:0 6px 18px rgba(125,168,250,.22);}
@@ -497,6 +511,7 @@ textarea{resize:vertical; min-height:64px;}
         <button class="chip-sel on" data-t="sil">🔤 Sílabas</button>
         <button class="chip-sel" data-t="tra">✍️ Trazar letras</button>
         <button class="chip-sel" data-t="cyd">✏️ Cuenta y dibuja</button>
+        <button class="chip-sel" data-t="ing">🇬🇧 Inglés (por el oído)</button>
       </div>
     </div>
     <div class="form-linea">
@@ -643,7 +658,7 @@ textarea{resize:vertical; min-height:64px;}
    quedaba atrás cada vez que el motor cambiaba; ahora no puede desincronizarse. */
 const DEMO = new URLSearchParams(location.search).has("demo");
 const PERFIL_DEMO = { id:"demo", alias:"Estrella", genero:"nina", curso:"inf5", nivel:2,
-  tema:"unicornios", modulos:["num","sub","pal","ret","ami","vec","fam","sil","tra","cyd"],
+  tema:"unicornios", modulos:["num","sub","pal","ret","ami","vec","fam","sil","tra","cyd","ing"],
   juegos:["globos","mariposas","naves","plataformas","dibujar"] };
 /* ── PequeMisiones: perfil del portal ── */
 const PERFIL = DEMO ? PERFIL_DEMO
@@ -720,9 +735,9 @@ function actualizarEstrellas(){
 }
 
 /* ═══════════ VOZ (lo más importante: Jimena no lee) ═══════════ */
-let ultimaFrase = "";
+let ultimaFrase = "", ultimaEsEn = false;
 function hablar(txt, lento){
-  ultimaFrase = txt;
+  ultimaFrase = txt; ultimaEsEn = false;
   const b = $("nube-burbuja");
   b.textContent = txt; b.classList.add("ver");
   clearTimeout(hablar._t);
@@ -731,7 +746,18 @@ function hablar(txt, lento){
   // la elección de voz y el troceo por frases viven en PM_VOZ (temas.js)
   PM_VOZ.decir(txt, {rate: lento ? 0.6 : 0.8, pitch: 1.15});
 }
-function repetir(){ if(ultimaFrase) hablar(ultimaFrase); }
+/* inglés: la misma burbuja de la mascota, pero con la voz inglesa y aún más
+   despacio (se aprende el idioma de oído, sin saber leer) */
+function hablarEN(txt, lento){
+  ultimaFrase = txt; ultimaEsEn = true;
+  const b = $("nube-burbuja");
+  b.textContent = txt; b.classList.add("ver");
+  clearTimeout(hablar._t);
+  hablar._t = setTimeout(()=>b.classList.remove("ver"), Math.max(3200, txt.length*90));
+  if(!S.sonido || !window.speechSynthesis) return;
+  PM_VOZ.decir(txt, {rate: lento ? 0.55 : 0.72, pitch: 1.1, idioma:"en"});
+}
+function repetir(){ if(!ultimaFrase) return; (ultimaEsEn ? hablarEN : hablar)(ultimaFrase); }
 
 /* ═══════════ SONIDOS ═══════════ */
 let actx = null;
@@ -1054,6 +1080,70 @@ function genVec(nivel){
   while(s.size<4) s.add(ri(0,99));
   return {t:"vec", d:{n, chips:barajar([...s])}};
 }
+/* ── cuentos para cazar sílabas (M32, pedido por papá): un mini-cuento de 4
+   frases y a tocar TODAS las veces que aparece la sílaba (LA, ME, SE…); al
+   tenerlas, se cuentan y se toca el número. Las sílabas van partidas A MANO
+   (como PALABRAS_CUENTA): "PAPÁ" solo caza la PA sin tilde. El total de cada
+   cuento está pensado para contarse con los dedos (5-6). */
+const CUENTOS_SIL = [
+  {id:"luna", sil:"LA", niv:2, frases:[
+    [["LA"],["LU","NA"],["SA","LE"]],
+    [["LO","LA"],["MI","RA"],["LA"],["LU","NA"]],
+    [["LA"],["GA","TA"],["MA","LA"],["SAL","TA"]],
+    [["HO","LA"],["LU","NA"]]]},
+  {id:"mima", sil:"ME", niv:2, frases:[
+    [["MI"],["MA","MÁ"],["ME"],["MI","MA"]],
+    [["ME"],["PO","NE"],["MIEL"]],
+    [["ME"],["GUS","TA"],["LA"],["ME","SA"]],
+    [["QUÉ"],["RI","CO"],["ME"],["SA","BE"]]]},
+  {id:"oso", sil:"SE", niv:2, frases:[
+    [["EL"],["O","SO"],["SE"],["SIEN","TA"]],
+    [["LA"],["SE","TA"],["SE"],["CA","E"]],
+    [["EL"],["SA","PO"],["SE"],["ES","CON","DE"]],
+    [["QUÉ"],["SE","RIO"],["SE"],["PO","NE"]]]},
+  {id:"pato", sil:"PA", niv:2, frases:[
+    [["PA","PÁ"],["PA","SE","A"]],
+    [["EL"],["PA","TO"],["PA","SA"]],
+    [["LA"],["PA","LO","MA"],["VUE","LA"]],
+    [["QUÉ"],["GUA","PA"],["VA"]]]},
+  {id:"gato", sil:"TO", niv:3, frases:[
+    [["EL"],["GA","TO"],["TO","CA"]],
+    [["TO","MA"],["TU"],["TO","MA","TE"]],
+    [["EL"],["PA","TO"],["SAL","TA"]],
+    [["TO","DO"],["ES"],["PA","RA"],["TI"]]]},
+  {id:"mono", sil:"NO", niv:3, frases:[
+    [["EL"],["E","NA","NO"],["CAN","TA"]],
+    [["NO"],["TO","CA"],["EL"],["PIA","NO"]],
+    [["EL"],["MO","NO"],["CO","ME"]],
+    [["SUE","NA"],["LA"],["NO","TA"]]]}
+];
+let cuentoUltimo = null;
+function genCuentoSil(nivel){
+  const pool = CUENTOS_SIL.filter(c=>c.niv<=nivel);
+  let c = pool[ri(0,pool.length-1)], guard = 0;
+  while(pool.length>1 && c.id===cuentoUltimo && guard++<8) c = pool[ri(0,pool.length-1)];
+  cuentoUltimo = c.id;
+  const total = c.frases.flat(2).filter(s=>s===c.sil).length;
+  return {t:"sil", d:{sub:"cuento", cid:c.id, sil:c.sil, total,
+    ops:distractores(total, 2, Math.max(2,total-2), total+2)}};
+}
+/* completar palabras: el dibujo, la palabra con un trocito tapado y a elegir
+   la sílaba que falta — se oye entera, se escribe a trocitos */
+function genComplSil(nivel){
+  const pool = PALABRAS_CUENTA.filter(p=>p.s.length>=2 && p.s.length<=3 && p.s.every(x=>x.length<=3));
+  const p = pool[ri(0,pool.length-1)];
+  const idx = conProb(.6) ? p.s.length-1 : ri(0,p.s.length-1);
+  const obj = p.s[idx];
+  const otras = new Set();
+  let guard = 0;
+  while(otras.size<2 && guard++<60){
+    const q = PALABRAS_CUENTA[ri(0,PALABRAS_CUENTA.length-1)];
+    const s2 = q.s[ri(0,q.s.length-1)];
+    if(s2!==obj && s2.length<=3 && !otras.has(s2)) otras.add(s2);
+  }
+  return {t:"sil", d:{sub:"compl", pal:p.s, emoji:p.e, idx, ops:barajar([obj,...otras])}};
+}
+
 function genSil(nivel){
   const r = Math.random();
   const cuenta = (minS, maxS)=>{ // contar sílabas con palmadas (M29)
@@ -1061,16 +1151,18 @@ function genSil(nivel){
     return {t:"sil", d:{sub:"cuenta", pal:p.pal, s:p.s, emoji:p.emoji,
       ops:distractores(p.s.length, 2, 1, Math.max(4, p.s.length+1))}};
   };
-  if(nivel>=4){ // Reto: inversas (AL, ES...), palabras de 3 sílabas, palmadas y mezclas
+  if(nivel>=4){ // Reto: inversas (AL, ES...), palabras de 3 sílabas, cuentos y mezclas
     const c = CONS_NIVEL[3][ri(0,CONS_NIVEL[3].length-1)], v = VOCALES[ri(0,4)];
-    if(r<.18) return cuenta(1,4);
-    if(r<.38) return {t:"sil", d:{sub:"junta", c, v, inversa:true}};
-    if(r<.56){
+    if(r<.13) return cuenta(1,4);
+    if(r<.26) return genCuentoSil(4);
+    if(r<.38) return genComplSil(4);
+    if(r<.54) return {t:"sil", d:{sub:"junta", c, v, inversa:true}};
+    if(r<.68){
       const obj = v+c;
       const ops = barajar(barajar(VOCALES.filter(x=>x!==v)).slice(0,2).map(x=>x+c).concat([obj]));
       return {t:"sil", d:{sub:"busca", obj, ops}};
     }
-    if(r<.82){
+    if(r<.86){
       const tres = PALABRAS.filter(p=>silabasDe(p.w).length===3);
       const p = conProb(.7) ? tres[ri(0,tres.length-1)] : PALABRAS[ri(0,PALABRAS.length-1)];
       const otras = barajar(PALABRAS.filter(x=>x.w!==p.w)).slice(0,2).map(x=>x.w);
@@ -1089,20 +1181,76 @@ function genSil(nivel){
   const cons = CONS_NIVEL[nivel];
   const c = cons[ri(0,cons.length-1)], v = VOCALES[ri(0,4)];
   const obj = c+v;
-  if(nivel===2 && r<.22) return cuenta(1,2); // palabras cortitas para empezar con las palmadas
-  if(nivel===3 && r<.2)  return cuenta(2,3);
-  if(nivel===3 && r<.42){
+  if(nivel===2){
+    if(r<.13) return cuenta(1,2); // palabras cortitas para empezar con las palmadas
+    if(r<.26) return genCuentoSil(2);
+    if(r<.38) return genComplSil(2);
+    if(r<.72) return {t:"sil", d:{sub:"junta", c, v}};
+    let ops = barajar(VOCALES).slice(0,3).map(x=>c+x); if(!ops.includes(obj)) ops[0]=obj;
+    return {t:"sil", d:{sub:"busca", obj, ops:barajar(ops)}};
+  }
+  // nivel 3
+  if(r<.12) return cuenta(2,3);
+  if(r<.25) return genCuentoSil(3);
+  if(r<.37) return genComplSil(3);
+  if(r<.55){
     const p = PALABRAS[ri(0,PALABRAS.length-1)];
     const otras = barajar(PALABRAS.filter(x=>x.w!==p.w)).slice(0,2).map(x=>x.w);
     return {t:"sil", d:{sub:"palabra", w:p.w, emoji:p.e, sils:silabasDe(p.w), ops:barajar([p.w,...otras])}};
   }
-  if(r < (nivel===3?.68:.6)){
-    return {t:"sil", d:{sub:"junta", c, v}};
-  }
-  let ops;
-  if(nivel===2){ ops = barajar(VOCALES).slice(0,3).map(x=>c+x); if(!ops.includes(obj)) ops[0]=obj; ops = barajar(ops); }
-  else { ops = barajar(barajar(cons.filter(x=>x!==c)).slice(0,2).map(x=>x+v).concat([obj])); }
+  if(r<.8) return {t:"sil", d:{sub:"junta", c, v}};
+  const ops = barajar(barajar(cons.filter(x=>x!==c)).slice(0,2).map(x=>x+v).concat([obj]));
   return {t:"sil", d:{sub:"busca", obj, ops:barajar(ops)}};
+}
+
+/* ═══════════ INGLÉS POR VOZ (M33): primeras palabras de oído ═══════════
+   Para un peque que no lee, el inglés entra POR EL OÍDO: la mascota pregunta
+   en inglés ("Where is the cat?") y se toca el dibujo, o se cuentan cositas y
+   se toca el número mientras se oye "five ducks!". Nada de palabras escritas.
+   El consuelo tras un fallo sigue en español (el motor de opciones lo hace solo). */
+const VOCAB_ING_INF = [
+  {id:"cat",e:"🐱",en:"cat",es:"el gato",niv:1,c:1},
+  {id:"dog",e:"🐶",en:"dog",es:"el perro",niv:1,c:1},
+  {id:"duck",e:"🦆",en:"duck",es:"el pato",niv:1,c:1},
+  {id:"fish",e:"🐟",en:"fish",es:"el pez",niv:1},
+  {id:"bird",e:"🐦",en:"bird",es:"el pájaro",niv:2,c:1},
+  {id:"cow",e:"🐮",en:"cow",es:"la vaca",niv:2,c:1},
+  {id:"pig",e:"🐷",en:"pig",es:"el cerdo",niv:2,c:1},
+  {id:"rabbit",e:"🐰",en:"rabbit",es:"el conejo",niv:2,c:1},
+  {id:"bear",e:"🐻",en:"bear",es:"el oso",niv:2,c:1},
+  {id:"frog",e:"🐸",en:"frog",es:"la rana",niv:3,c:1},
+  {id:"lion",e:"🦁",en:"lion",es:"el león",niv:3,c:1},
+  {id:"horse",e:"🐴",en:"horse",es:"el caballo",niv:3,c:1},
+  {id:"red",e:"🔴",en:"red",es:"rojo",niv:1,cat:"color"},
+  {id:"blue",e:"🔵",en:"blue",es:"azul",niv:1,cat:"color"},
+  {id:"green",e:"🟢",en:"green",es:"verde",niv:2,cat:"color"},
+  {id:"yellow",e:"🟡",en:"yellow",es:"amarillo",niv:2,cat:"color"},
+  {id:"pink",e:"🎀",en:"pink",es:"rosa",niv:3,cat:"color"},
+  {id:"orange",e:"🟠",en:"orange",es:"naranja",niv:3,cat:"color"},
+  {id:"apple",e:"🍎",en:"apple",es:"la manzana",niv:3,c:1},
+  {id:"banana",e:"🍌",en:"banana",es:"el plátano",niv:3,c:1},
+  {id:"milk",e:"🥛",en:"milk",es:"la leche",niv:4},
+  {id:"egg",e:"🥚",en:"egg",es:"el huevo",niv:4,c:1},
+  {id:"star",e:"⭐",en:"star",es:"la estrella",niv:4,c:1},
+  {id:"sun",e:"☀️",en:"sun",es:"el sol",niv:4},
+  {id:"moon",e:"🌙",en:"moon",es:"la luna",niv:4},
+  {id:"flower",e:"🌸",en:"flower",es:"la flor",niv:4,c:1}
+];
+const NUM_EN_INF = ["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
+const vocabIngInf = id => VOCAB_ING_INF.find(w => w.id === id);
+function genIng(nivel){
+  const pool = VOCAB_ING_INF.filter(w => w.niv <= nivel);
+  if(conProb(.35)){ // contar en inglés
+    const k = nivel===1 ? ri(1,3) : nivel===2 ? ri(2,5) : nivel===3 ? ri(3,8) : ri(5,10);
+    const cont = pool.filter(w => w.c);
+    const cosa = cont[ri(0, cont.length-1)];
+    return {t:"ing", d:{sub:"cuenta", id:cosa.id, k,
+      ops:distractores(k, 2, Math.max(1,k-2), Math.min(10,k+2))}};
+  }
+  const obj = pool[ri(0, pool.length-1)];
+  const n = nivel>=3 ? 4 : 3;
+  const otras = barajar(pool.filter(w => w.id !== obj.id)).slice(0, n-1);
+  return {t:"ing", d:{sub:"toca", id:obj.id, ops:barajar([obj.id, ...otras.map(w=>w.id)])}};
 }
 function genTra(nivel){
   let pool;
@@ -1223,7 +1371,7 @@ function genRet(nivel){
   retRecientes.push(clave); if(retRecientes.length>3) retRecientes.shift();
   return ej;
 }
-const GEN = {num:genNum, sub:genSub, pal:genPal, ret:genRet, ami:genAmi, vec:genVec, fam:genFam, sil:genSil, tra:genTra, cyd:genCyd};
+const GEN = {num:genNum, sub:genSub, pal:genPal, ret:genRet, ami:genAmi, vec:genVec, fam:genFam, sil:genSil, tra:genTra, cyd:genCyd, ing:genIng};
 function genMisionDiaria(){
   /* misión del día: refuerza los 2 módulos más flojos del perfil y estira el resto, según la maestría */
   const base = (PERFIL.modulos && PERFIL.modulos.length ? PERFIL.modulos : ["num"]);
@@ -1256,8 +1404,8 @@ function genTanda(tipos, nivel, n){
   }
   return lista;
 }
-const EMOJI_TIPO = {num:"🔢", sub:"👀", pal:"🥢", ret:"🚀", ami:"🤝", vec:"🏘️", fam:"🏠", sil:"🔤", tra:"✍️", cyd:"✏️"};
-const NOMBRE_JUEGO = {num:"Números", sub:"Ojo veloz", pal:"Palillos", ret:"Cuenta atrás", ami:"Amigos", vec:"Vecinos", fam:"Familias", sil:"Sílabas", tra:"Letras", cyd:"Cuenta y dibuja"};
+const EMOJI_TIPO = {num:"🔢", sub:"👀", pal:"🥢", ret:"🚀", ami:"🤝", vec:"🏘️", fam:"🏠", sil:"🔤", tra:"✍️", cyd:"✏️", ing:"🇬🇧"};
+const NOMBRE_JUEGO = {num:"Números", sub:"Ojo veloz", pal:"Palillos", ret:"Cuenta atrás", ami:"Amigos", vec:"Vecinos", fam:"Familias", sil:"Sílabas", tra:"Letras", cyd:"Cuenta y dibuja", ing:"Inglés"};
 function tituloEj(ej){
   const d = ej.d;
   if(ej.t==="sub") return `Ojo veloz: ${d.n} puntos de un vistazo`;
@@ -1280,7 +1428,14 @@ function tituloEj(ej){
     if(d.sub==="junta") return `Pronunciar: ${d.c ? d.c+d.v : d.v+" (vocal)"}`;
     if(d.sub==="busca") return `¿Dónde dice ${d.obj}?`;
     if(d.sub==="cuenta") return `Palmadas: ${d.s.join("-")} ${d.emoji}`;
+    if(d.sub==="cuento") return `Cazar la sílaba ${d.sil} en el cuento (${d.total} veces)`;
+    if(d.sub==="compl") return `Completar ${d.pal.map((x,i)=>i===d.idx?"❓":x).join("")} ${d.emoji}`;
     return `Palabra: ${d.w} ${d.emoji}`;
+  }
+  if(ej.t==="ing"){
+    const w = vocabIngInf(d.id);
+    if(d.sub==="cuenta") return `Inglés: How many ${w.en}s? (${w.e} × ${d.k})`;
+    return `Inglés al oído: "${w.en}" ${w.e}`;
   }
   if(ej.t==="cyd") return `Contar ${d.n} ${d.emoji} y dibujar el número`;
   const vecesTra = d.veces>1 ? ` ×${d.veces}` : "";
@@ -1303,7 +1458,10 @@ function respuestaEj(ej){
     return d.huecos.join(", ");
   }
   if(ej.t==="sil") return d.sub==="junta" ? "repetir en voz alta" : d.sub==="busca" ? d.obj
-    : d.sub==="cuenta" ? `${d.s.length} sílabas` : d.w;
+    : d.sub==="cuenta" ? `${d.s.length} sílabas`
+    : d.sub==="cuento" ? `${d.total} veces`
+    : d.sub==="compl" ? d.pal[d.idx] : d.w;
+  if(ej.t==="ing") return d.sub==="cuenta" ? `${d.k} (${NUM_EN_INF[d.k]})` : vocabIngInf(d.id).en;
   if(ej.t==="cyd") return d.n;
   return d.letra;
 }
@@ -1324,7 +1482,7 @@ function renderEj(){
   $("prog-fill").style.width = Math.round(100*Tanda.idx/Tanda.list.length)+"%";
   const z = $("zona-ejercicio"); z.innerHTML = "";
   EjState = {intentos:0, guiada:false, t0:Date.now()};
-  ({num:renderNum, sub:renderSub, pal:renderPal, ret:renderRet, ami:renderAmi, vec:renderVec, fam:renderFam, sil:renderSil, tra:renderTra, cyd:renderCyd})[ej.t](ej.d);
+  ({num:renderNum, sub:renderSub, pal:renderPal, ret:renderRet, ami:renderAmi, vec:renderVec, fam:renderFam, sil:renderSil, tra:renderTra, cyd:renderCyd, ing:renderIng})[ej.t](ej.d);
 }
 /* ═══════════ AYUDANTE DE PISTAS POR VOZ (D-07 fase 2, etapa infantil) ═══════════
    El peque no sabe leer: toca la bombilla y la mascota le DICE una frase corta
@@ -1394,6 +1552,7 @@ function ejCompletado(){
     if(ej.t==="pal") S.stats.palOk = (S.stats.palOk||0)+1;
     if(ej.t==="ret") S.stats.retOk = (S.stats.retOk||0)+1;
     if(ej.t==="cyd") S.stats.cydOk = (S.stats.cydOk||0)+1;
+    if(ej.t==="ing") S.stats.ingOk = (S.stats.ingOk||0)+1;
   }
   // maestría: sube con aciertos a la primera, baja si Nube tuvo que ayudar
   const ch = S.chispa[ej.t]===undefined ? 5 : S.chispa[ej.t];
@@ -2031,6 +2190,106 @@ function renderSil(d){
     obs.observe(z, {subtree:true, attributes:true, attributeFilter:["class"]});
     return;
   }
+  if(d.sub==="cuento"){
+    /* cazar la sílaba en un mini-cuento: la mascota lo lee, se tocan TODAS las
+       veces que aparece, y al final se cuenta cuántas se han cazado. Fallar no
+       pinta rojo: la sílaba equivocada tiembla y la mascota recuerda cuál se
+       busca; al 2º despiste, una de las buenas late (cuenta como guiada). */
+    const c = CUENTOS_SIL.find(x=>x.id===d.cid);
+    ponEnunciado(z, `🔍 ¡A cazar la sílaba ${d.sil}!`);
+    const objetivo = document.createElement("div"); objetivo.className = "letras-grandes";
+    const lo = document.createElement("div"); lo.className = "letrona junta"; lo.textContent = d.sil;
+    objetivo.appendChild(lo); z.appendChild(objetivo);
+    const caja = document.createElement("div"); caja.className = "cuento-caja";
+    const spans = [];
+    c.frases.forEach(frase=>{
+      const lf = document.createElement("div"); lf.className = "cuento-frase";
+      frase.forEach(palabra=>{
+        const wEl = document.createElement("span"); wEl.className = "cuento-palabra";
+        palabra.forEach(sil=>{
+          const s = document.createElement("span"); s.className = "sil-c"; s.textContent = sil;
+          wEl.appendChild(s); spans.push(s);
+        });
+        lf.appendChild(wEl);
+      });
+      caja.appendChild(lf);
+    });
+    z.appendChild(caja);
+    const quedanEl = document.createElement("div"); quedanEl.className = "cuento-quedan";
+    z.appendChild(quedanEl);
+    let cazadas = 0, fase2 = false;
+    const pintaQuedan = ()=>{ quedanEl.textContent = `${cazadas} de ${d.total} cazadas 🧺`; };
+    pintaQuedan();
+    const texto = c.frases.map(f=>f.map(p=>p.join("")).join(" ")).join(". ").toLowerCase();
+    const decir = ()=>hablar(`Escucha el cuento: ${texto}. ¿Cuántas veces suena ${d.sil.toLowerCase()}? ¡Toca todas las ${d.sil.toLowerCase()} que veas!`);
+    const bOtra = document.createElement("button"); bOtra.className = "btn btn-azul"; bOtra.textContent = "🔊 Otra vez";
+    bOtra.addEventListener("pointerdown", e=>{ e.preventDefault(); decir(); });
+    z.appendChild(bOtra);
+    function faseContar(){
+      fase2 = true;
+      bOtra.remove();
+      sfx.brillo();
+      hablar(`¡Las tienes todas! ¿Cuántas ${d.sil.toLowerCase()} has cazado? Cuéntalas y toca el número`);
+      pintarOpciones(z, d.ops.map(String), d.ops.indexOf(d.total),
+        ()=>hablar(`Cuenta las ${d.sil.toLowerCase()} verdes con el dedito y toca el número`));
+    }
+    spans.forEach(s=>{
+      s.addEventListener("pointerdown", e=>{
+        e.preventDefault();
+        if(fase2 || s.classList.contains("cazada")) return;
+        if(s.textContent===d.sil){
+          s.classList.remove("pista");
+          s.classList.add("cazada"); sfx.brillo(); cazadas++; pintaQuedan();
+          if(cazadas===d.total) faseContar();
+        } else {
+          s.classList.add("mal"); setTimeout(()=>s.classList.remove("mal"), 550);
+          EjState.intentos++; Tanda.fallosTotales++;
+          sfx.mal();
+          if(EjState.intentos>=2 && !EjState.guiada){
+            EjState.guiada = true;
+            const libre = spans.find(x=>x.textContent===d.sil && !x.classList.contains("cazada"));
+            if(libre){ libre.classList.add("pista"); hablar("Mira, aquí hay una brillando. ¡Tócala!"); }
+          } else if(EjState.intentos<2){
+            hablar(`Esa no suena ${d.sil.toLowerCase()}. Busca donde ponga ${d.sil.toLowerCase()}`);
+          }
+        }
+      });
+    });
+    decir();
+    return;
+  }
+  if(d.sub==="compl"){
+    /* completar la palabra: se oye entera, se ve con un trocito tapado y se
+       elige la sílaba que falta — el puente de oír a escribir */
+    ponEnunciado(z, "🧩 ¿Qué trocito le falta?");
+    const em2 = document.createElement("div"); em2.className = "palabra-emoji"; em2.textContent = d.emoji;
+    z.appendChild(em2);
+    const fila2 = document.createElement("div"); fila2.className = "letras-grandes";
+    const celdas = [];
+    d.pal.forEach((sil,i)=>{
+      const l = document.createElement("div");
+      l.className = "letrona " + (i===d.idx ? "hueco" : "junta");
+      l.style.fontSize = "2.4rem";
+      l.textContent = i===d.idx ? "?" : sil;
+      fila2.appendChild(l); celdas.push(l);
+    });
+    z.appendChild(fila2);
+    const palabra = d.pal.join("").toLowerCase();
+    const decir = ()=>hablar(`¡${palabra}! ${d.pal.map(x=>x.toLowerCase()).join(", ")}... ${palabra}. ¿Qué trocito le falta?`, true);
+    pintarOpciones(z, d.ops.map(o=>`<span style="font-size:1.9rem;">${o}</span>`), d.ops.indexOf(d.pal[d.idx]), decir);
+    decir();
+    const obs2 = new MutationObserver(()=>{
+      const bien = z.querySelector(".opcion.bien");
+      if(bien){
+        obs2.disconnect();
+        celdas[d.idx].textContent = d.pal[d.idx];
+        celdas[d.idx].classList.remove("hueco"); celdas[d.idx].classList.add("junta");
+        sfx.brillo();
+      }
+    });
+    obs2.observe(z, {subtree:true, attributes:true, attributeFilter:["class"]});
+    return;
+  }
   // palabra
   ponEnunciado(z, "¡Una palabra nueva!");
   const em = document.createElement("div"); em.className = "palabra-emoji"; em.textContent = d.emoji;
@@ -2048,6 +2307,39 @@ function renderSil(d){
     pintarOpciones(z, d.ops.map(o=>`<span style="font-size:1.9rem;">${o}</span>`), d.ops.indexOf(d.w), decir);
     decir();
   }, 3200);
+}
+
+/* ═══════════ RENDER: INGLÉS POR VOZ ═══════════ */
+function renderIng(d){
+  const z = $("zona-ejercicio");
+  const w = vocabIngInf(d.id);
+  if(d.sub==="cuenta"){
+    ponEnunciado(z, "🇬🇧 ¡A contar en inglés!");
+    const fila = document.createElement("div"); fila.className = "cositas";
+    for(let i=0;i<d.k;i++){ const s = document.createElement("span"); s.textContent = w.e; fila.appendChild(s); }
+    z.appendChild(fila);
+    const decir = ()=>hablarEN(`How many ${w.en}s? Count the ${w.en}s!`);
+    pintarOpciones(z, d.ops.map(String), d.ops.indexOf(d.k), decir);
+    decir();
+    // al acertar, se oye en inglés: "five ducks!"
+    const obs = new MutationObserver(()=>{
+      const bien = z.querySelector(".opcion.bien");
+      if(bien){ obs.disconnect(); setTimeout(()=>hablarEN(`${NUM_EN_INF[d.k]} ${w.en}s!`), 500); }
+    });
+    obs.observe(z, {subtree:true, attributes:true, attributeFilter:["class"]});
+    return;
+  }
+  // "toca": la consigna SOLO en inglés; el dibujo es la respuesta
+  ponEnunciado(z, "🇬🇧 Escucha y toca");
+  const frase = w.cat==="color" ? `Where is ${w.en}? Touch ${w.en}!` : `Where is the ${w.en}? Touch the ${w.en}!`;
+  const decir = ()=>hablarEN(frase);
+  pintarOpciones(z, d.ops.map(id=>`<span style="font-size:2.6rem;">${vocabIngInf(id).e}</span>`), d.ops.indexOf(d.id), decir);
+  decir();
+  const obs = new MutationObserver(()=>{
+    const bien = z.querySelector(".opcion.bien");
+    if(bien){ obs.disconnect(); setTimeout(()=>hablarEN(w.cat==="color" ? `${w.en}! Very good!` : `The ${w.en}! Very good!`), 400); }
+  });
+  obs.observe(z, {subtree:true, attributes:true, attributeFilter:["class"]});
 }
 
 /* ═══════════ RENDER: TRAZAR LETRAS ═══════════ */
@@ -3502,9 +3794,17 @@ function pistaInfantil(ej){
   if(ej.t === "ami") return "Cuenta los que hay, y sigue contando huequitos hasta el final: esos son los amigos que faltan";
   if(ej.t === "vec") return "El vecino de antes es uno menos, y el vecino de después es uno más";
   if(ej.t === "fam") return "Fíjate en cómo empieza el número: esa primera parte dice su familia";
-  if(ej.t === "sil") return d.sub === "cuenta"
-    ? "Dila despacito dando una palmada por cada trocito, y cuenta las palmadas"
-    : "Dila despacio y alargada, y fíjate con qué letra empieza";
+  if(ej.t === "sil"){
+    if(d.sub === "cuenta") return "Dila despacito dando una palmada por cada trocito, y cuenta las palmadas";
+    if(d.sub === "cuento") return `Busca los trocitos que sean igualitos que el de arriba, el ${(d.sil||"").toLowerCase()}`;
+    if(d.sub === "compl") return "Di la palabra despacito mirando el dibujo: el trocito que falta se oye solo";
+    return "Dila despacio y alargada, y fíjate con qué letra empieza";
+  }
+  if(ej.t === "ing"){
+    const w = vocabIngInf(d.id);
+    if(d.sub === "cuenta") return "Cuenta los dibujos tocando de uno en uno con el dedito";
+    return w ? `${w.en} es ${w.es}. ¡Búscalo!` : "Escucha otra vez y busca el dibujo";
+  }
   if(ej.t === "tra") return "Empieza en la bolita y sigue el caminito despacio, sin levantar el dedo";
   if(ej.t === "cyd") return "Toca cada dibujo para contarlo sin saltarte ninguno, y luego repasa el número por el caminito";
   return "Míralo despacito, que tú puedes";

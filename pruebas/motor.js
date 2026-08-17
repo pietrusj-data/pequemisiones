@@ -14,10 +14,11 @@ const path = require("path");
 
 const RAIZ = path.join(__dirname, "..");
 
-/* Recorta una declaración de nivel superior (`function X(){...}` o `const X = ...;`)
-   contando llaves, corchetes y paréntesis, y saltándose textos y comentarios. */
+/* Recorta una declaración de nivel superior (`function X(){...}`, `const X = ...;`
+   o `let X = ...;`) contando llaves, corchetes y paréntesis, y saltándose textos
+   y comentarios. */
 function recorta(src, nombre) {
-  const re = new RegExp(`^(?:function\\s+${nombre}\\s*\\(|const\\s+${nombre}\\s*=)`, "m");
+  const re = new RegExp(`^(?:function\\s+${nombre}\\s*\\(|(?:const|let)\\s+${nombre}\\s*=)`, "m");
   const m = re.exec(src);
   if (!m) throw new Error(`No encuentro la declaración de "${nombre}" en el motor`);
 
@@ -94,11 +95,13 @@ const MOTORES = {
   },
   infantil: {
     archivo: "app/infantil.html",
-    modulos: ["num", "sub", "pal", "ret", "ami", "vec", "fam", "sil", "tra", "cyd"],
+    modulos: ["num", "sub", "pal", "ret", "ami", "vec", "fam", "sil", "tra", "cyd", "ing"],
     piezas: [
       "ri", "conProb", "barajar", "VOCALES", "CONS_NIVEL", "NOMBRE_LETRA",
       "PALABRAS", "silabasDe", "distractores", "EMOJIS_CONTAR", "retRecientes",
       "PALABRAS_CUENTA", "palabraCuenta",
+      "CUENTOS_SIL", "cuentoUltimo", "genCuentoSil", "genComplSil",
+      "VOCAB_ING_INF", "NUM_EN_INF", "vocabIngInf", "genIng",
       "genNum", "genAmi", "genVec", "genSil", "genTra", "genFam", "genSub", "genPal", "genRet", "genCyd",
       "GEN", "genMisionDiaria", "genTanda",
     ],

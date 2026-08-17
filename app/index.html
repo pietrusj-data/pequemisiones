@@ -101,7 +101,10 @@ input[type=text]{width:100%; font-family:inherit; font-size:1.4rem; text-align:c
   <p class="sub" id="aviso-codigo" style="display:none; font-size:.88rem; max-width:460px; background:#fff4e5; border-radius:14px; padding:10px 14px; color:#a05a00;">
     ⚠️ Tu código es del formato antiguo y es fácil de adivinar.
     <button id="btn-reforzar" style="border:none; background:none; color:#a05a00; font-weight:800; cursor:pointer; font-family:inherit; font-size:.88rem; text-decoration:underline;">reforzar ahora</button></p>
-  <button class="btn btn-mini btn-p1" id="btn-vincular">📲 Vincular otro dispositivo</button>
+  <div class="fila" style="justify-content:center;">
+    <button class="btn btn-mini btn-p1" id="btn-vincular">📲 Vincular otro dispositivo</button>
+    <button class="btn btn-mini btn-p2" id="btn-padres">👨‍👩‍👧 Zona padres</button>
+  </div>
   <p class="sub" style="font-size:.86rem; max-width:460px;">💡 Para mandarle misiones desde tu móvil: toca
     <b>📲 Vincular</b>, mándate el enlace y ábrelo allí. El código <b>y las tarjetas</b> viajan
     en el enlace: no hay que crear nada a mano — sin cuentas, sin emails y sin que sepamos quién es.</p>
@@ -163,6 +166,47 @@ input[type=text]{width:100%; font-family:inherit; font-size:1.4rem; text-align:c
     <button class="btn btn-p2" style="flex:1;" id="aj-guardar">Guardar ✅</button>
   </div>
   <button id="aj-quitar" style="border:none; background:none; color:var(--tinta-suave); text-decoration:underline; cursor:pointer; font-family:inherit; font-size:.9rem; margin-top:10px;">🗑 Quitar esta tarjeta de este dispositivo</button>
+</section>
+
+<!-- ══════════ PIN DE LA ZONA PADRES ══════════
+     La gestión de peques (crear, quitar, ajustar) es cosa del adulto: sin esta
+     puerta, cualquier niño podía quitar la tarjeta de su hermana o crearse
+     perfiles — y la casilla de tutor del wizard la marcaba un peque. El PIN es
+     de ESTE dispositivo (localStorage), como el de las zonas de papá de los
+     motores. La primera tarjeta de una familia recién llegada NO pide PIN:
+     el alta inicial tiene que ser sin fricción. -->
+<section class="screen" id="s-pin-padres">
+  <div class="logo">🚀 Peque<span>Misiones</span></div>
+  <div style="font-size:3rem;">🔒</div>
+  <div class="tarjeta" style="max-width:420px;">
+    <h2 id="pinp-titulo">Zona padres</h2>
+    <p class="sub" id="pinp-sub">Escribe tu PIN de 4 números</p>
+    <input type="password" id="pinp-input" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+      autocomplete="off" style="margin:14px 0; text-align:center; font-size:1.6rem; letter-spacing:12px;">
+    <p class="sub" id="pinp-aviso" style="display:none; color:var(--p2osc); font-size:.95rem;"></p>
+    <p class="sub" style="font-size:.85rem;">El PIN vive solo en este dispositivo.</p>
+  </div>
+  <div class="fila" style="max-width:420px;">
+    <button class="btn btn-mini btn-p1" id="pinp-atras">⬅️ Volver</button>
+    <button class="btn btn-p2" style="flex:1;" id="pinp-ok">Entrar ✅</button>
+  </div>
+</section>
+
+<!-- ══════════ ZONA PADRES: LOS PEQUES DE LA FAMILIA ══════════ -->
+<section class="screen" id="s-padres">
+  <div class="logo">🚀 Peque<span>Misiones</span></div>
+  <div class="tarjeta" style="max-width:560px;">
+    <h2>👨‍👩‍👧 Los peques de esta familia</h2>
+    <p class="sub">Aquí puedes añadir un peque, cambiar a qué juega o quitar su tarjeta.
+      Quitar una tarjeta <b>no borra nada del servidor</b>: si algún día la vuelves a crear
+      con su mismo nombre, recupera sus misiones y resultados.</p>
+    <div id="padres-lista" style="display:flex; flex-direction:column; gap:10px; margin-top:14px;"></div>
+    <button class="btn btn-p2" id="padres-add" style="margin-top:14px; width:100%;">➕ Añadir un peque</button>
+  </div>
+  <div class="fila" style="max-width:560px;">
+    <button class="btn btn-mini btn-p1" id="padres-atras">⬅️ Volver</button>
+    <button class="btn btn-mini btn-p1" id="padres-pin">🔑 Cambiar el PIN</button>
+  </div>
 </section>
 
 <!-- ══════════ WIZARD DE ALTA ══════════ -->
@@ -261,7 +305,8 @@ const MODULOS = {
     {id:"vec", nombre:"🏘️ Vecinos", desde:"inf4", def:null},
     {id:"ami", nombre:"🤝 Amigos", desde:"inf5", def:"inf5"},
     {id:"pal", nombre:"🥢 Palillos y decenas", desde:"inf5", def:"inf5"},
-    {id:"fam", nombre:"🏠 Familias", desde:"inf5", def:null}
+    {id:"fam", nombre:"🏠 Familias", desde:"inf5", def:null},
+    {id:"ing", nombre:"🇬🇧 Inglés (por el oído)", desde:"inf3", def:null}
   ],
   primaria: [
     {id:"abn", nombre:"🔮 Rejillas", desde:"pri1", def:"pri1"},
@@ -594,7 +639,7 @@ function pintarPerfiles(){
     eng.textContent = "⚙️";
     eng.title = "Ajustes de " + p.alias;
     eng.setAttribute("aria-label", "Ajustes de " + p.alias);
-    eng.addEventListener("click", e=>{ e.stopPropagation(); abrirAjustes(p.id); });
+    eng.addEventListener("click", e=>{ e.stopPropagation(); pedirPadres(()=>abrirAjustes(p.id, "perfiles")); });
     card.appendChild(eng);
     cont.appendChild(card);
   });
@@ -606,7 +651,9 @@ function pintarPerfiles(){
     nuevo.addEventListener("click", msjFamiliaLlena);
   } else {
     nuevo.innerHTML = `<div class="cara">➕</div><div class="nom">Nuevo peque</div>`;
-    nuevo.addEventListener("click", abrirWizard);
+    /* la PRIMERA tarjeta se crea sin puerta (no hay nada que proteger y el alta
+       tiene que ser sin fricción); a partir de ahí, crear peques es del adulto */
+    nuevo.addEventListener("click", ()=>{ lista.length ? pedirPadres(abrirWizard) : abrirWizard(); });
   }
   cont.appendChild(nuevo);
   if(!lista.length) $("hint-portal").textContent = "Crea la primera tarjeta para empezar 🎉";
@@ -618,11 +665,12 @@ function entrar(perfil){
 }
 
 /* ── ajustes de un perfil ya creado ── */
-const AJ = { id:null, curso:null, modulos:new Set(), juegos:new Set() };
-function abrirAjustes(id){
+const AJ = { id:null, curso:null, modulos:new Set(), juegos:new Set(), volver:"perfiles" };
+function abrirAjustes(id, volver){
   const p = LSP.get("perfiles", []).find(x=>x.id===id);
   if(!p) return;
   AJ.id = p.id; AJ.curso = p.curso;
+  AJ.volver = volver || "perfiles";
   AJ.modulos = new Set(p.modulos || []);
   AJ.juegos = new Set(p.juegos || []);
   $("aj-titulo").textContent = "Ajustes de " + p.alias;
@@ -630,12 +678,13 @@ function abrirAjustes(id){
   $("aj-aviso").style.display = "none";
   pintarChipsModulos($("aj-modulos"), AJ.curso, AJ.modulos, ()=>{ $("aj-aviso").style.display = AJ.modulos.size ? "none" : "block"; });
   pintarChipsJuegos($("aj-juegos"), AJ.juegos, null);
-  $("s-perfiles").classList.remove("activa");
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("activa"));
   $("s-ajustes").classList.add("activa");
 }
 function cerrarAjustes(){
   $("s-ajustes").classList.remove("activa");
-  $("s-perfiles").classList.add("activa");
+  if(AJ.volver === "padres"){ abrirPadres(); }
+  else $("s-perfiles").classList.add("activa");
 }
 $("aj-atras").addEventListener("click", cerrarAjustes);
 $("aj-guardar").addEventListener("click", ()=>{
@@ -652,16 +701,138 @@ $("aj-guardar").addEventListener("click", ()=>{
   cerrarAjustes();
   pintarPerfiles();
 });
-$("aj-quitar").addEventListener("click", ()=>{
+function quitarPerfil(id){
   const lista = LSP.get("perfiles", []);
-  const p = lista.find(x=>x.id===AJ.id);
-  if(!p){ cerrarAjustes(); return; }
-  if(!confirm("¿Quitar la tarjeta de " + p.alias + " de este dispositivo?\n\nSus resultados y misiones NO se borran: si algún día vuelves a crear una tarjeta con su mismo nombre, lo recuperará todo.")) return;
-  LSP.set("perfiles", lista.filter(x=>x.id!==AJ.id));
+  const p = lista.find(x=>x.id===id);
+  if(!p) return false;
+  if(!confirm("¿Quitar la tarjeta de " + p.alias + " de este dispositivo?\n\nSus resultados y misiones NO se borran: si algún día vuelves a crear una tarjeta con su mismo nombre, lo recuperará todo.")) return false;
+  LSP.set("perfiles", lista.filter(x=>x.id!==id));
   const activo = LSP.get("perfilActivo", null);
-  if(activo && activo.id === AJ.id) LSP.set("perfilActivo", null);
-  cerrarAjustes();
+  if(activo && activo.id === id) LSP.set("perfilActivo", null);
   pintarPerfiles();
+  return true;
+}
+$("aj-quitar").addEventListener("click", ()=>{
+  if(!LSP.get("perfiles", []).find(x=>x.id===AJ.id)){ cerrarAjustes(); return; }
+  if(quitarPerfil(AJ.id)) cerrarAjustes();
+});
+
+/* ── Zona padres: la gestión de peques, detrás de un PIN de dispositivo ──
+   `padresOK` dura hasta recargar la página: el padre no teclea el PIN tres
+   veces seguidas para tres gestiones, y el niño que abre el portal mañana se
+   lo encuentra cerrado. Sin PIN guardado, la primera visita lo crea (dos
+   veces, para no dejarse un dedazo dentro). */
+let padresOK = false;
+const PinP = { cb:null, modo:"pedir", primero:null };
+function pedirPadres(cb){
+  if(padresOK){ cb(); return; }
+  PinP.cb = cb;
+  const hay = !!LSP.get("pinPadres", null);
+  PinP.modo = hay ? "pedir" : "crear";
+  PinP.primero = null;
+  $("pinp-titulo").textContent = hay ? "Zona padres" : "Crea tu PIN de padres";
+  $("pinp-sub").textContent = hay ? "Escribe tu PIN de 4 números"
+    : "Elige un PIN de 4 números: protegerá crear, ajustar y quitar tarjetas en este dispositivo";
+  $("pinp-aviso").style.display = "none";
+  $("pinp-input").value = "";
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("activa"));
+  $("s-pin-padres").classList.add("activa");
+  setTimeout(()=>$("pinp-input").focus(), 150);
+}
+function pinpAviso(t){ const a = $("pinp-aviso"); a.textContent = t; a.style.display = "block"; }
+function pinpVolver(){
+  $("s-pin-padres").classList.remove("activa");
+  $("s-perfiles").classList.add("activa");
+}
+$("pinp-atras").addEventListener("click", pinpVolver);
+$("pinp-ok").addEventListener("click", ()=>{
+  const v = $("pinp-input").value.trim();
+  if(!/^\d{4}$/.test(v)){ pinpAviso("Tienen que ser 4 números."); return; }
+  if(PinP.modo === "crear"){
+    if(PinP.primero === null){
+      PinP.primero = v;
+      $("pinp-input").value = "";
+      $("pinp-sub").textContent = "Escríbelo otra vez para confirmarlo";
+      $("pinp-aviso").style.display = "none";
+      return;
+    }
+    if(v !== PinP.primero){
+      PinP.primero = null;
+      $("pinp-input").value = "";
+      pinpAviso("No coinciden. Empieza de nuevo.");
+      $("pinp-sub").textContent = "Elige un PIN de 4 números";
+      return;
+    }
+    LSP.set("pinPadres", v);
+  } else if(v !== LSP.get("pinPadres", null)){
+    $("pinp-input").value = "";
+    pinpAviso("Ese no es. Prueba otra vez.");
+    return;
+  }
+  padresOK = true;
+  $("s-pin-padres").classList.remove("activa");
+  const cb = PinP.cb; PinP.cb = null;
+  if(cb) cb(); else $("s-perfiles").classList.add("activa");
+});
+$("pinp-input").addEventListener("keydown", e=>{ if(e.key==="Enter") $("pinp-ok").click(); });
+
+function abrirPadres(){
+  const cont = $("padres-lista");
+  cont.innerHTML = "";
+  const lista = LSP.get("perfiles", []);
+  if(!lista.length){
+    const p = document.createElement("p");
+    p.className = "sub";
+    p.textContent = "Todavía no hay ningún peque en este dispositivo.";
+    cont.appendChild(p);
+  }
+  lista.forEach(p=>{
+    const t = TEMAS[p.tema] || TEMAS.unicornios;
+    const fila = document.createElement("div");
+    fila.style.cssText = "display:flex; align-items:center; gap:10px; background:#faf7ff; border:2px solid " + t.colores.p1 + "; border-radius:14px; padding:10px 12px;";
+    const info = document.createElement("div");
+    info.style.cssText = "flex:1; text-align:left; min-width:0;";
+    info.innerHTML = `<div style="font-weight:800;">${t.emoji} ${escHtml(p.alias)}</div>
+      <div style="font-size:.85rem; color:var(--tinta-suave);">${escHtml(p.cursoNombre)} · ${t.nombre}</div>`;
+    const bAj = document.createElement("button");
+    bAj.className = "btn btn-mini btn-p1"; bAj.textContent = "⚙️ Ajustes";
+    bAj.addEventListener("click", ()=>abrirAjustes(p.id, "padres"));
+    const bQ = document.createElement("button");
+    bQ.className = "btn btn-mini btn-p1"; bQ.textContent = "🗑 Quitar";
+    bQ.addEventListener("click", ()=>{ if(quitarPerfil(p.id)) abrirPadres(); });
+    fila.appendChild(info); fila.appendChild(bAj); fila.appendChild(bQ);
+    cont.appendChild(fila);
+  });
+  const bAdd = $("padres-add");
+  bAdd.disabled = lista.length >= MAX_PEQUES;
+  bAdd.textContent = lista.length >= MAX_PEQUES ? `👨‍👩‍👧‍👦 Familia completa (${MAX_PEQUES} peques)` : "➕ Añadir un peque";
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("activa"));
+  $("s-padres").classList.add("activa");
+}
+$("btn-padres").addEventListener("click", ()=>pedirPadres(abrirPadres));
+$("padres-atras").addEventListener("click", ()=>{
+  $("s-padres").classList.remove("activa");
+  $("s-perfiles").classList.add("activa");
+  pintarPerfiles();
+});
+$("padres-add").addEventListener("click", ()=>{
+  if(LSP.get("perfiles", []).length >= MAX_PEQUES){ msjFamiliaLlena(); return; }
+  $("s-padres").classList.remove("activa");
+  abrirWizard();
+});
+$("padres-pin").addEventListener("click", ()=>{
+  /* el PIN viejo sigue valiendo hasta que el nuevo esté confirmado dos veces:
+     así, dejar el cambio a medias no deja la puerta sin cerradura */
+  PinP.cb = abrirPadres;
+  PinP.modo = "crear";
+  PinP.primero = null;
+  $("pinp-titulo").textContent = "Cambiar el PIN";
+  $("pinp-sub").textContent = "Elige el PIN nuevo de 4 números";
+  $("pinp-aviso").style.display = "none";
+  $("pinp-input").value = "";
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("activa"));
+  $("s-pin-padres").classList.add("activa");
+  setTimeout(()=>$("pinp-input").focus(), 150);
 });
 
 /* ── wizard ── */
