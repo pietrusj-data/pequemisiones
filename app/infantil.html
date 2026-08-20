@@ -1593,6 +1593,7 @@ function ejCompletado(){
    mascota vuelve a leer la pregunta: no hay rojo, no se pierden estrellas, fallar
    solo cuesta tiempo. Y lo que se falla vuelve a salir al final (ver `ejCompletado`). */
 const PAUSA_FALLO = 1900;
+const FALLOS_GUIA = 5; // fallos en un ejercicio antes de enseñar la respuesta (acierto guiado)
 function pintarOpciones(z, items, correctoIdx, reDecir){
   const cont = document.createElement("div"); cont.className = "opciones";
   const botones = [];
@@ -1611,7 +1612,7 @@ function pintarOpciones(z, items, correctoIdx, reDecir){
       } else {
         b.classList.add("mal");
         EjState.intentos++; Tanda.fallosTotales++;
-        if(EjState.intentos>=2){
+        if(EjState.intentos>=FALLOS_GUIA){
           setTimeout(()=>b.classList.remove("mal"), 600);
           EjState.guiada = true;
           botones.forEach((x,xi)=>{ if(xi!==correctoIdx) x.classList.add("apagada"); });
@@ -1814,7 +1815,7 @@ function renderRet(d){
       } else {
         b.classList.add("mal"); setTimeout(()=>b.classList.remove("mal"),600);
         EjState.intentos++; Tanda.fallosTotales++;
-        if(EjState.intentos>=2 && !EjState.guiada){
+        if(EjState.intentos>=FALLOS_GUIA && !EjState.guiada){
           EjState.guiada = true;
           hablar("Te ayudo: toca el que parpadea, ¡y seguimos contando hacia atrás!");
           ponPista();
@@ -1893,7 +1894,7 @@ function renderVec(d){
       } else {
         b.classList.add("mal"); setTimeout(()=>b.classList.remove("mal"),600);
         EjState.intentos++; Tanda.fallosTotales++;
-        if(EjState.intentos>=2 && !EjState.guiada){
+        if(EjState.intentos>=FALLOS_GUIA && !EjState.guiada){
           EjState.guiada = true;
           chips.forEach(([bb,vv])=>{ if(vv!==d.n-1 && vv!==d.n+1) bb.classList.add("apagada"); else if(!bb.classList.contains("bien")) bb.classList.add("pista"); });
           hablar("Mira, son estos. ¡Tócalos!");
@@ -1948,7 +1949,7 @@ function renderFam(d){
         } else {
           b.classList.add("mal"); setTimeout(()=>b.classList.remove("mal"),600);
           EjState.intentos++; Tanda.fallosTotales++;
-          if(EjState.intentos>=2 && !EjState.guiada){
+          if(EjState.intentos>=FALLOS_GUIA && !EjState.guiada){
             EjState.guiada = true;
             chips.forEach(([bb,vv])=>{
               if(!d.faltan.includes(vv)) bb.classList.add("apagada");
@@ -2008,7 +2009,7 @@ function renderFam(d){
           } else {
             b.classList.add("mal"); setTimeout(()=>b.classList.remove("mal"),600);
             EjState.intentos++; Tanda.fallosTotales++;
-            if(EjState.intentos>=2){
+            if(EjState.intentos>=FALLOS_GUIA){
               EjState.guiada = true;
               [...opsCont.children].forEach(o=>{
                 if(o.textContent!==String(v)) o.classList.add("apagada"); else o.classList.add("pista");
@@ -2055,7 +2056,7 @@ function renderFam(d){
       } else {
         b.classList.add("mal"); setTimeout(()=>b.classList.remove("mal"),600);
         EjState.intentos++; Tanda.fallosTotales++;
-        if(EjState.intentos>=2 && !EjState.guiada){
+        if(EjState.intentos>=FALLOS_GUIA && !EjState.guiada){
           EjState.guiada = true;
           botones.forEach(([bb,vv])=>{
             if(!d.buenos.includes(vv)) bb.classList.add("apagada");
@@ -2248,11 +2249,11 @@ function renderSil(d){
           s.classList.add("mal"); setTimeout(()=>s.classList.remove("mal"), 550);
           EjState.intentos++; Tanda.fallosTotales++;
           sfx.mal();
-          if(EjState.intentos>=2 && !EjState.guiada){
+          if(EjState.intentos>=FALLOS_GUIA && !EjState.guiada){
             EjState.guiada = true;
             const libre = spans.find(x=>x.textContent===d.sil && !x.classList.contains("cazada"));
             if(libre){ libre.classList.add("pista"); hablar("Mira, aquí hay una brillando. ¡Tócala!"); }
-          } else if(EjState.intentos<2){
+          } else if(EjState.intentos<FALLOS_GUIA){
             hablar(`Esa no suena ${d.sil.toLowerCase()}. Busca donde ponga ${d.sil.toLowerCase()}`);
           }
         }

@@ -2279,11 +2279,12 @@ function renderEj(){
   if(btnPista) btnPista.style.display = "";
   ({abn:renderAbn, cla:renderCla, igu:renderIgu, dif:renderDif, mul:renderMul, div:renderDiv, rel:renderRel, pes:renderPes, geo:renderGeo, cie:renderCie, ing:renderIng})[ej.t](ej.d);
 }
+const FALLOS_GUIA = 5; // fallos seguidos en el mismo paso antes de enseñar la solución (acierto guiado)
 function fallo(pista){
   EjState.fallosEj++; EjState.fallosRow++; Tanda.fallosTotales++;
   if(pista) EjState.ultimaPista = pista; // el ayudante IA lo usa para saber en qué se atascó
   hadaAnimo(EjState.fallosRow, pista);
-  if(EjState.fallosRow>=3){ EjState.ayudado = true; if(window.__solucion) window.__solucion(); }
+  if(EjState.fallosRow>=FALLOS_GUIA){ EjState.ayudado = true; if(window.__solucion) window.__solucion(); }
 }
 function marcarMal(celdas){
   celdas.forEach(c=>{ c.classList.add("mal"); setTimeout(()=>c.classList.remove("mal"), 650); });
