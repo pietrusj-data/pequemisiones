@@ -26,7 +26,9 @@ const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 // Todas las tablas que llevan columna `familia` (pm_errores no la lleva, a propósito).
 // pm_suscripciones incluida: reforzar el código no puede dejar a nadie sin su plan Pro.
-const TABLAS = ["pm_misiones", "pm_resultados", "pm_insignias", "pm_dudas", "pm_reportes", "pm_premios", "pm_canjes", "pm_suscripciones"];
+// pm_cuentas, pm_dispositivos y pm_vinculos (0016-0017): rotar el código no cambia
+// quién es el dueño ni desempareja ningún aparato.
+const TABLAS = ["pm_misiones", "pm_resultados", "pm_insignias", "pm_dudas", "pm_reportes", "pm_premios", "pm_canjes", "pm_suscripciones", "pm_cuentas", "pm_dispositivos", "pm_vinculos"];
 
 const FUERTE = /^[A-ZÑ]{2,12}-[A-Z2-9]{4}-[A-Z2-9]{4}$/;    // formato de los códigos nuevos
 const VALIDO = /^[A-ZÑ]{2,12}(-[A-ZÑ0-9]{3,6}){1,3}$/;      // cualquier código aceptado por el portal

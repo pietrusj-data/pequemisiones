@@ -4,29 +4,20 @@ Lo que hay aquí es SQL escrito y razonado, pero **aparcado a propósito**. No e
 en `../migrations/` para que nadie lo aplique por error ni entre en la cuenta de
 numeración. Si algún día se retoma, se le pone número nuevo y se mueve.
 
-## `dispositivos_emparejados.sql` — aparcado el 10-ago-2026
+## `dispositivos_emparejados.sql` — RETOMADO el 20-ago-2026 como `0017`
 
-Escrito el 5-ago-2026. Ataca el riesgo **R7 de la EIPD** (el más alto del
-sistema): que el código de familia *sea* la llave — se ve en pantalla, vale para
-siempre y no se puede revocar un dispositivo suelto sin cambiárselo a toda la
-familia. En una separación, eso es exactamente el problema.
+Escrito el 5-ago-2026, aparcado el 10-ago (la rotación de códigos `0011` resolvió
+el problema urgente por otro camino), y **retomado y rehecho el 20-ago** como
+`../migrations/0017_dispositivos_emparejados.sql`, ya aplicado en producción.
+El archivo del borrador se retiró de esta carpeta: lo que vale es la 0017.
 
-Su propuesta: un secreto largo por dispositivo que nunca sale del aparato (al
-servidor solo llega su huella sha256), emparejamiento con código de un solo uso
-que caduca a los 10 minutos, y revocación dispositivo a dispositivo.
-
-**Por qué está aparcado.** El 9-ago se volvió a abrir el problema y se resolvió
-por otro camino (`0011_rotacion_codigo.sql`): códigos fuertes
-`PALABRA-XXXX-XXXX` (~10^13 combinaciones), vincular por enlace y rotación del
-código con arrastre de todo el historial. Ese loop de diseño **descartó
-explícitamente** la autenticación por dispositivo: obliga a migrar todas las
-políticas RLS y se muere si el peque borra el `localStorage`.
-
-**Ojo si se retoma:** este fichero redefine `familia_peticion()` para exigir la
-cabecera `x-dispositivo` (con un interruptor `pm_config.llave_antigua` para la
-transición). Aplicarlo tal cual **encima** de la rotación de códigos rompería el
-RLS que hoy funciona. Hay que rehacerlo, no reciclarlo.
-
-**Lo que sigue sin resolver** (y por lo que se guarda): la rotación no permite
-revocar *un* dispositivo, ni recuperar la familia si se pierden todos. Eso sigue
-pendiente y es el siguiente paso natural de seguridad.
+Diferencias del rehecho respecto al borrador:
+- No trae `pm_crear_familia` (los códigos fuertes los genera el portal desde 0011).
+- `familia_peticion()` mantiene el modo antiguo con el interruptor
+  `pm_config.llave_antigua` (encendido): x-familia sigue funcionando hasta que
+  toda la familia esté emparejada.
+- Los vínculos y revocaciones también los puede emitir el **dueño de la familia
+  desde su cuenta** (0016, Supabase Auth): eso resuelve el "si el peque borra el
+  localStorage, muere" que mató al borrador, y el arranque sin huevo-y-gallina.
+- La rotación (`rotar` v2) arrastra `pm_cuentas`, `pm_dispositivos` y
+  `pm_vinculos`.
